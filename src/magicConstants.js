@@ -39,9 +39,9 @@ export const EdgeType = {
   AND: 'AND', 
   OR: 'OR', 
   XOR: 'XOR', 
-  SEQUENCIA: 'SEQUENCIA', 
+  SE_ENTAO: 'SE_ENTAO', 
   ATRIBUICAO: 'ATRIBUICAO', 
-  FEEDBACK: 'FEEDBACK' 
+  CORRENTE: 'CORRENTE' 
 };
 
 export const CoreRunes = { 
@@ -76,18 +76,18 @@ export const EdgeCycle = [
   EdgeType.AND, 
   EdgeType.OR, 
   EdgeType.XOR, 
-  EdgeType.SEQUENCIA, 
+  EdgeType.SE_ENTAO, 
   EdgeType.ATRIBUICAO, 
-  EdgeType.FEEDBACK
+  EdgeType.CORRENTE
 ];
 
 export const EdgeSymbols = { 
   [EdgeType.AND]: '--', 
   [EdgeType.OR]: '<==>', 
   [EdgeType.XOR]: '<-->', 
-  [EdgeType.SEQUENCIA]: '-->', 
+  [EdgeType.SE_ENTAO]: '-->', 
   [EdgeType.ATRIBUICAO]: '==c', 
-  [EdgeType.FEEDBACK]: '<-->' 
+  [EdgeType.CORRENTE]: '==' 
 };
 
 export const AdditiveDescriptions = {
