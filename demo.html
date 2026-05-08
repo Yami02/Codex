@@ -41,6 +41,14 @@
       color: #f5eedc; 
       box-shadow: 0 0 20px rgba(212, 175, 55, 0.15); 
     }
+    
+    .sidebar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+    }
+    .sidebar-grid .draggable-item { margin-bottom: 0; }
+    
     .draggable-item:active { cursor: grabbing; transform: scale(0.98); }
     .core-item { border-left: 3px solid #e84118; }
     .subcircle-item { border-left: 3px solid #e84393; text-align: center; justify-content: center; }
@@ -136,7 +144,7 @@
     
     @media (max-width: 768px) {
       .codex-panel { padding: 20px; border-radius: 12px; margin-top: 1.5rem; }
-      .main-content { padding: 1rem; }
+      .main-content { padding: 1rem; padding-bottom: 120px; }
     }
     
     @keyframes fadeIn {
@@ -214,10 +222,17 @@
       z-index: 3000;
       box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 40px rgba(212,175,55,0.15);
       max-width: 95vw;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      justify-content: flex-start;
       animation: bar-slide-up 0.5s cubic-bezier(0.19, 1, 0.22, 1);
       transition: all 0.3s;
     }
-    .node-action-bar::-webkit-scrollbar { display: none; }
+    .node-action-bar::-webkit-scrollbar { height: 6px; display: block; }
+    .node-action-bar::-webkit-scrollbar-track { background: transparent; }
+    .node-action-bar::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 3px; }
+    .node-action-bar::-webkit-scrollbar-thumb:hover { background: rgba(212,175,55,0.4); }
     .hover-highlight:hover {
       background: rgba(212, 175, 55, 0.05) !important;
       border-color: rgba(212, 175, 55, 0.3) !important;
@@ -231,6 +246,7 @@
       border-right: 1px solid rgba(212, 175, 55, 0.2); 
       padding-right: 24px; 
       height: 100%;
+      flex-shrink: 0;
     }
     .action-group:last-child { border-right: none; padding-right: 0; }
     .action-label { 
@@ -278,13 +294,14 @@
     }
     
     @media (max-width: 1024px) {
-      .node-action-bar { bottom: 85px; padding: 10px 18px; gap: 12px; border-radius: 12px; }
-      .action-group { padding-right: 12px; gap: 8px; }
+      .node-action-bar { bottom: 85px; padding: 10px 12px; gap: 8px; border-radius: 12px; }
+      .action-group { padding-right: 8px; gap: 6px; }
       .mini-btn { width: 34px; height: 34px; border-radius: 6px; }
+      .action-label { font-size: 0.55rem; }
     }
 
     .app-container { 
-      display: flex; height: 100vh; width: 100vw; overflow: hidden; 
+      display: flex; height: 100dvh; width: 100vw; overflow: hidden; 
       flex-direction: row; background-color: #05040a; 
     }
     .sidebar { 
@@ -299,7 +316,7 @@
       box-sizing: border-box;
       position: sticky;
       top: 0;
-      height: 100vh;
+      height: 100dvh;
     }
     .main-content { 
       flex: 1; padding: 2.5rem; display: flex; flex-direction: column; 
@@ -352,13 +369,13 @@
       box-shadow: 0 8px 25px rgba(212, 175, 55, 0.15); 
     }
     @media (max-width: 1024px) {
-      .app-container { flex-direction: column; overflow: hidden; display: flex; height: 100vh; position: relative; }
+      .app-container { flex-direction: column; overflow: hidden; display: flex; height: 100dvh; position: relative; }
       .sidebar { 
         position: fixed;
         top: 0;
         left: 0;
         width: 280px;
-        height: 100vh;
+        height: 100dvh;
         z-index: 2000;
         transform: translateX(-100%);
         transition: transform 0.3s ease-in-out;
@@ -375,7 +392,7 @@
         top: 0;
         left: 0;
         width: 100vw;
-        height: 100vh;
+        height: 100dvh;
         background: rgba(0,0,0,0.7);
         z-index: 1900;
         display: none;
@@ -405,7 +422,7 @@
       }
       .mobile-sidebar-toggle:active { transform: scale(0.9); }
       
-      .main-content { padding: 1.5rem; overflow-y: auto; height: 100vh; flex: 1; }
+      .main-content { padding: 1.5rem; padding-bottom: 110px; overflow-y: auto; flex: 1; }
       .top-bar { flex-direction: column; align-items: stretch; gap: 15px; margin-bottom: 1.5rem; }
       .top-actions { justify-content: center; gap: 10px; flex-wrap: wrap; }
       .action-btn { flex: 1; min-width: 120px; font-size: 0.75rem; padding: 12px 10px; min-height: 48px; display: flex; justify-content: center; align-items: center; }
@@ -428,6 +445,7 @@
       .action-btn { min-width: 0; padding: 8px 4px; }
       .runic-text { font-size: 1rem; }
       .sidebar h3 { font-size: 1rem; margin-top: 1rem; }
+      .draggable-item { padding: 10px 8px; margin-bottom: 8px; font-size: 0.75rem; min-height: 44px; gap: 6px; }
     }
   </style>
 </head>
@@ -460,22 +478,22 @@
 
     class MagicCompiler {
       static _compileInternal(graph) {
-        const core = graph.nodes.find(n => n.type === NodeType.CORE);
+        const core = (graph.nodes || []).find(n => n.type === NodeType.CORE);
         if (!core) return null;
 
         let attrs = { ...(NodeAttributesDict[core.element] || {}), tags: [...(NodeAttributesDict[core.element]?.tags || [])] };
         const instabilities = [];
         const logs = [];
 
-        const layers = [...new Set(graph.nodes.map(n => n.layer || 0))].sort();
+        const layers = [...new Set((graph.nodes || []).map(n => n.layer || 0))].sort();
         
         layers.forEach(L => {
           const nodes = graph.nodes.filter(n => n.layer === L && n.type !== NodeType.CORE);
           nodes.forEach(node => {
             // Implicações Estruturais e Multiplicadores
-            const attributionEdges = graph.edges.filter(e => e.type === EdgeType.ATRIBUICAO && e.targetId === node.id);
+            const attributionEdges = (graph.edges || []).filter(e => e.type === EdgeType.ATRIBUICAO && e.targetId === node.id);
             attributionEdges.forEach(edge => {
-              const source = graph.nodes.find(n => n.id === edge.sourceId);
+              const source = (graph.nodes || []).find(n => n.id === edge.sourceId);
               if (source) {
                 const sourceAttrs = source.type === NodeType.SUBCIRCLE ? MagicCompiler._compileInternal(source.magicGraph)?.attrs : NodeAttributesDict[source.additiveType];
                 if (sourceAttrs) {
@@ -496,7 +514,7 @@
             let isPropertyOnly = false;
 
             // Se o nó estiver conectado ao NÚCLEO via ATRIBUIÇÃO (--o), extraímos apenas as propriedades numéricas
-            const toCoreEdge = graph.edges.find(e => e.type === EdgeType.ATRIBUICAO && e.sourceId === node.id && e.targetId === core.id);
+            const toCoreEdge = (graph.edges || []).find(e => e.type === EdgeType.ATRIBUICAO && e.sourceId === node.id && e.targetId === core.id);
             if (toCoreEdge) isPropertyOnly = true;
 
             if (node.type === NodeType.SUBCIRCLE || node.type === NodeType.KERNEL) {
@@ -535,27 +553,64 @@
         if (t.includes('Sombra') && t.includes('Composição')) { attrs.damageType = 'maldição'; attrs.debuffs = [...(attrs.debuffs || []), 'amaldiçoado']; }
 
         // Regra do Triângulo (Base estável)
-        if (graph.nodes.length < 3) instabilities.push('Magia instável: Menos de 3 componentes detectados (Pilar do Triângulo ausente).');
+        if ((graph.nodes || []).length < 3) instabilities.push('Magia instável: Menos de 3 componentes detectados (Pilar do Triângulo ausente).');
 
         // Gera a Descrição da Magia de forma automatizada pelo compilador
         const level = 1 + Math.floor((attrs.complexity || 0) / 3);
-        const effectType = attrs.healing ? 'restaurador' : 'destrutivo';
-        const actionType = attrs.mass > 10 ? 'Ritualística' : 'Pronta-Ação';
-        const rangeText = attrs.potency > 5 ? 'projetada à distância' : 'manifestada em curto alcance';
         
-        let visualText = attrs.lumen <= 0 ? "oculta aos olhos profanos" : "brilhante e visível";
-        let heatText = "uma temperatura ambiente neutra";
-        if ((attrs.thermal || 0) > 3) heatText = "fótons de plasma incandescente";
-        if ((attrs.thermal || 0) < -3) heatText = "um turbilhão de estilhaços glaciais";
+        const subcirclesCount = (graph.nodes || []).filter(n => n.type === NodeType.SUBCIRCLE).length;
+        const subcirclesText = subcirclesCount > 0 ? `${subcirclesCount} Subciclo(s)` : 'Nenhum';
         
-        let densityText = "leveza maleável e volátil";
-        if ((attrs.mass || 0) > 20) densityText = "uma gravidade anomalamente densa, distorcendo o solo";
-        
-        let patternText = "meticulosamente controlada pelo tecelão";
-        if ((attrs.chaos || 0) > 3) patternText = "caótica e errática, com fagulhas imprevisíveis";
+        const activeConnections = (graph.edges || []).map(e => {
+            const s = (graph.nodes || []).find(n => n.id === e.sourceId);
+            const t = (graph.nodes || []).find(n => n.id === e.targetId);
+            if (!s || !t) return null;
+            return `${s.additiveType || s.element || '()'} ${EdgeSymbols[e.type] || '--'} ${t.additiveType || t.element || '()'}`;
+        }).filter(Boolean).join(', ');
 
-        const magicDescription = `Pela matriz do elemento ${core.element}, a equação resultou em um fluxo de energia ${effectType} classificado como Poder Nível ${level}. Seu vetor de ativação é de escala ${actionType}, e sua área de convergência será ${rangeText}.
-Fisicamente, a magia emite ${heatText}. Sua interação barométrica com o cenário provoca ${densityText}. A ressonância interna provou-se ${patternText}, produzindo uma aura ${visualText}.`;
+        const magicSchool = {
+            [CoreElement.FOGO]: 'Evocação',
+            [CoreElement.AGUA]: 'Abjuração/Conjuração',
+            [CoreElement.TERRA]: 'Transmutação',
+            [CoreElement.AR]: 'Transmutação/Evocação',
+            [CoreElement.LUZ]: 'Ilusão/Evocação',
+            [CoreElement.SOMBRA]: 'Necromancia/Ilusão'
+        }[core.element] || 'Magia Universal';
+        
+        let damageDice = Math.max(1, Math.floor((attrs.potency || 0) / 2));
+        let baseDamageType = attrs.damageType || (core.element === CoreElement.FOGO ? 'Fogo' : (core.element === CoreElement.TERRA ? 'Contundente' : 'Força Arcana'));
+        let damageStr = attrs.healing ? `${damageDice}d8 + ${attrs.potency || 0} de Cura` : `${damageDice}d6 + ${attrs.potency || 0} de dano de ${baseDamageType}`;
+
+        let castTime = attrs.mass > 10 ? '1 Minuto' : '1 Ação';
+        let rangeStr = attrs.potency > 5 ? `${30 + (attrs.velocity || 0) * 10} pés` : 'Toque / Centrado no Conjurador';
+        let durationStr = attrs.duration || ((attrs.mass || 0) > 5 ? 'Concentração, até 1 minuto' : 'Instantânea');
+
+        const isStable = instabilities.length === 0;
+
+        let riskWarning = '';
+        if (!isStable) {
+            riskWarning = `\\n\\n**Risco de Execução (Instabilidade Rúnica):** O círculo arcano carece da triquetra fundamental de estabilidade (menos de 2 aditivos/subcírculos orbitando o núcleo). A magia AINDA PODE SER CONJURADA com os efeitos descritos abaixo, mas o conjurador deverá rolar na *Tabela de Magia Selvagem* ou sofrer o *Efeito Reverso* da manifestação. A energia instável ameaça colapsar no próprio conjurador.`;
+        }
+
+        const magicDescription = `**Manifestação Semântica de ${core.element}**
+*${level}º nível de ${magicSchool}*
+
+**Tempo de Conjuração:** ${castTime}
+**Alcance:** ${rangeStr}
+**Componentes:** V, S, M (Codex Arcana)
+**Duração:** ${durationStr}${riskWarning}
+
+**Descrição Mecânica:**
+A manifestação converte a estrutura fundamental do plano dimensional filtrada pela lente de ${core.element}. A interpretação do Codex Arcana de dentro para fora gera uma teia estruturada de efeitos. Atributos da magia gerada: Térmico (${attrs.thermal || 0}), Cinético (${attrs.velocity || 0}), Luminância (${attrs.lumen || 0}), Entropia (${attrs.entropy || 0}), e Complexidade (${attrs.complexity || 0}). 
+Os gatilhos e aditivos vinculados determinam a formatação espacial (Área de Efeito, Projétil ou Aura Localizada). A magia propaga-se segundo a leitura conectiva elaborada pelos ciclos, transmutando a realidade imediata.
+
+**Cálculo de Dano/Efeito:** ${damageStr}
+**Estabilidade:** ${isStable ? 'Estável' : 'Instável'}
+
+**Log do Compilador:**
+Núcleo Principal: ${core.element}
+Subcírculos: ${subcirclesText}
+Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
         
         logs.push({ action: 'Compile Success', description: magicDescription, timestamp: new Date().toISOString() });
 
@@ -743,9 +798,11 @@ Fisicamente, a magia emite ${heatText}. Sua interação barométrica com o cená
             <div style={{ background: 'rgba(212, 175, 55, 0.05)', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #d4af37', fontSize: '0.95rem', lineHeight: '1.7', color: '#e0d8c0', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3)', position: 'relative' }}>
               <div style={{ position: 'absolute', top: '-10px', left: '20px', background: '#d4af37', color: '#05040a', fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', fontFamily: 'Cinzel' }}>DESCRIÇÃO DA MAGIA (GERADA PELO COMPILADOR)</div>
               
-              <p style={{ margin: 0, color: '#c8b99e', fontStyle: 'italic', whiteSpace: 'pre-line' }}>
-                {description}
-              </p>
+              <div style={{ margin: 0, color: '#e0d8c0', whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                {description.split('\n').map((line, i) => (
+                  <p key={i} style={{ margin: '0 0 10px 0', minHeight: line.trim() ? 'auto' : '1.6em' }} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #d4af37">$1</strong>').replace(/\*(.*?)\*/g, '<em style="color: #c8b99e">$1</em>') }} />
+                ))}
+              </div>
               
               {instabilities.length > 0 ? (
                 <div style={{ color: '#ff5e57', marginTop: '15px', fontWeight: 'bold', padding: '10px', background: 'rgba(255, 94, 87, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 94, 87, 0.3)' }}>
@@ -989,7 +1046,7 @@ Fisicamente, a magia emite ${heatText}. Sua interação barométrica com o cená
             </g>
           ))}
 
-          {graph.edges.map(edge => {
+          {(graph.edges || []).map(edge => {
             const pos1 = nodePositions.get(edge.sourceId);
             const pos2 = nodePositions.get(edge.targetId);
             if (!pos1 || !pos2) return null;
@@ -1133,7 +1190,7 @@ Fisicamente, a magia emite ${heatText}. Sua interação barométrica com o cená
             {!viewMode && <circle cx={centerX} cy={centerY} r={maxOrbitRadius + 55} stroke="#353b48" strokeWidth="1" fill="none" />}
           </g>
 
-          {graph.edges.map(edge => {
+          {(graph.edges || []).map(edge => {
             const pos1 = nodePositions.get(edge.sourceId);
             const pos2 = nodePositions.get(edge.targetId);
             if (!pos1 || !pos2) return null;
@@ -1475,7 +1532,7 @@ Fisicamente, a magia emite ${heatText}. Sua interação barométrica com o cená
       const selectedNode = activeGraph.nodes.find(n => n.id === selectedNodeId);
 
       return (
-        <div className="app-container" style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        <div className="app-container" style={{ display: 'flex', height: '100dvh', width: '100vw', overflow: 'hidden' }}>
           
           {selectedNode && !viewMode && (
             <div className="node-action-bar" key={selectedNode.id}>
@@ -1587,17 +1644,17 @@ Fisicamente, a magia emite ${heatText}. Sua interação barométrica com o cená
               <p style={{ fontSize: '0.85rem', color: '#8a7d9b', marginBottom: '2rem', textAlign: 'center', fontStyle: 'italic' }}>Toque para adicionar ou pressione e arraste.</p>
               
               <h3 style={{ fontSize: '1.1rem', color: '#ff793f', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #ff793f', paddingLeft: '8px' }}>Núcleo (Elemental)</h3>
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+              <div className="sidebar-grid">
                 {['FOGO', 'AGUA', 'TERRA', 'AR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#f1c40f', marginTop: '1.5rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #f1c40f', paddingLeft: '8px' }}>Núcleo (Dualidade)</h3>
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+              <div className="sidebar-grid">
                 {['LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" onAdd={handleDirectAdd} />)}
               </div>
               
               <h3 style={{ fontSize: '1.1rem', color: '#3498db', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #3498db', paddingLeft: '8px' }}>Aditivos</h3>
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+              <div className="sidebar-grid">
                 {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} onAdd={handleDirectAdd} />)}
               </div>
 
