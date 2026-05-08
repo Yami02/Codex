@@ -1,0 +1,110 @@
+
+Núcleo
+Elemental(fogo,água,terra,ar)
+Dualidade(luz,sombra,compor,decompor)
+Combinações
+Fogo + Terra = metal/lava
+Fogo + Ar = combustão/eletricidade
+Água + Terra = Madeira/Lodo
+Água + Ar = Nuvem
+Luz + Compor = vida/cura
+Luz + Decompor = ilusão/contramágica
+Sombra + Decompor = morte/drenar
+Sombra + Compor = maldição
+
+Kernel do Kernel(buffer da magia)
+Entropia - frio/calor (padrão ambiente)
+Morfologia - forma/formato natural (padrão elemento)
+Estados - líquido/sólido/gasoso/plasma (padrão elemento)
+Onda: som/luz (padrão som 1ft, luz 5ft e 5ft penumbra)
+Força: forte/fraca (remete a ideia da física gravitacional e força eletromagnética)
+Volume: (padrão 2 cm cúbicos)
+
+Aditivos
+controle - vocal\somático\mental “área de efeito 5 fts”
+aumento “uma quantidade fixa” 
+redução “uma quantidade fixa”
+ponto - centro ciclo/movimento/area
+manter - duração/capacitor
+gatilho 
+eco 
+
+
+Conectivos
+or <--> “opção ou outro“
+And -- “conectividade e adição”0
+contém ==c “Atribuir característica, normalmente de um subciclo”
+xor
+corrente == depender dos gatilhos elas saem 1 tick
+se/então --> “é usado no gatinho e eco” é usado algo -->(se) (gatilho == manter ) -->(então) algo quer dizer que ele se algo acontecer ele espera um tick e então executa algo
+
+
+
+
+
+
+
+
+
+
+Explicação da morfologia arcana
+A magia é feita por ciclo onde contém o núcleo e deus adjetivos
+É escrito () quando temos um subciclo.
+Um subciclo contém todas as regras aplicadas a um ciclo, mas o seu núcleo perde a ideia de elemento e passa a ter uma ideia semântica do seu núcleo.
+tudo que está em {} está conectado a algo, como um grafo completo
+Um ciclo é lido de dentro para fora, e executado da mesma forma.
+Quando estiver escrito aditivo  ad: algo1/algo2/algo3. quer dizer que se
+tivesse apenas ad, ele seria um algo1. se tivesse ad -- ad, ele seria algo2. se tivesse um ad -- ad -- ad – um ciclo fechado de ad, então seria o algo3.
+Algo
+
+
+Regras
+Para que a Magia seja bem feita e funcione, ela tem que seguir.
+Triângulo é a base: caso tenha uma magia com menos de dois componentes sendo 	sendo eles aditivos ou subnúcleos a magia é considerada instável.
+conectividade é um outro elemento: 
+
+
+
+Junções
+
+
+Aumentar e Reduzir
+
+entropia -- aumento/reduzir = aumentar ou diminuir a temperatura (maior o aumento maior o calor ou frio. inicio temperatura ambiente)
+{onda -- onda} -- aumento/reduzir = aumento ou redução na luminosidade
+{força -- força}  -- aumento/reduzir = aumentar 
+força  -- aumento/reduzir  = aumentar 
+aumentar/reduzir – (ponto – ponto - ponto) = é aumentar ou reduzir uma área
+eco -- aumentar =! não funciona
+
+Controle
+
+gatilho -- controle = controle pela voz/somático/metal
+controle -- aumentar =! não funciona 
+controle -- ({ponto -- ponto -- ponto} -- aumentar) = aumentaria a área
+eco -- controle = permite controlar +1 elemento por eco
+
+
+
+
+
+
+
+
+
+
+Magias 
+
+BOLA DE FOGO:
+
+[Fogo ==c (ponto -- ponto)] -- ponto ({ponto--ponto--ponto} -- aumento -- aumento -- aumento -- aumento) ({Entropia} -- aumento -- aumento -- aumento -- aumento) = 
+
+({ponto -- ponto} -- vocal) — estado = move a algo com a voz
+({ponto -- ponto -- ponto} – (entropia – reduzida)) -- ponto = pega o frio e condensa em um ponto (padrão o centro do ciclo)
+
+
+
+
+
+
+
