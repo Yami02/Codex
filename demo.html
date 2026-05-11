@@ -477,6 +477,61 @@
     }
 
     class MagicCompiler {
+      static getAdditiveInfo(graph, typeName) {
+        const nodes = (graph.nodes || []).filter(n => n.additiveType === typeName);
+        if (nodes.length === 0) return { size: 0, isClosed: false };
+        
+        const adj = {};
+        nodes.forEach(n => adj[n.id] = new Set());
+        
+        (graph.edges || []).forEach(e => {
+            if (e.type === EdgeType.AND) {
+                if (adj[e.sourceId] && adj[e.targetId]) {
+                    adj[e.sourceId].add(e.targetId);
+                    adj[e.targetId].add(e.sourceId);
+                }
+            }
+        });
+
+        let maxSize = 1;
+        let maxIsClosed = false;
+        const visited = new Set();
+        
+        nodes.forEach(startNode => {
+            if (!visited.has(startNode.id)) {
+                let size = 0;
+                let edgesCount = 0;
+                const stack = [startNode.id];
+                const comp = new Set();
+                
+                while (stack.length > 0) {
+                    const curr = stack.pop();
+                    if (!comp.has(curr)) {
+                        comp.add(curr);
+                        visited.add(curr);
+                        size++;
+                        for (let neighbor of adj[curr]) {
+                            edgesCount++;
+                            if (!comp.has(neighbor)) stack.push(neighbor);
+                        }
+                    }
+                }
+                
+                const actualEdges = edgesCount / 2;
+                const isClosed = actualEdges >= size && size >= 3;
+                
+                if (size > maxSize) {
+                    maxSize = size;
+                    maxIsClosed = isClosed;
+                } else if (size === maxSize && isClosed) {
+                    maxIsClosed = true;
+                }
+            }
+        });
+        
+        return { size: maxSize, isClosed: maxIsClosed };
+      }
+
       static _compileInternal(graph) {
         const core = (graph.nodes || []).find(n => n.type === NodeType.CORE);
         if (!core) return null;
@@ -513,6 +568,10 @@
             let nodeAttrs = node.tempAttrs || NodeAttributesDict[node.additiveType] || {};
             let isPropertyOnly = false;
 
+            if (node.customMorphology && node.type === NodeType.KERNEL) {
+              nodeAttrs.customMorphology = node.customMorphology;
+            }
+
             // Se o nó estiver conectado ao NÚCLEO via ATRIBUIÇÃO (--o), extraímos apenas as propriedades numéricas
             const toCoreEdge = (graph.edges || []).find(e => e.type === EdgeType.ATRIBUICAO && e.sourceId === node.id && e.targetId === core.id);
             if (toCoreEdge) isPropertyOnly = true;
@@ -526,11 +585,43 @@
                   delete nodeAttrs.damageType;
                   delete nodeAttrs.healing;
                   delete nodeAttrs.baseDamage;
+                  const keysToReset = ['thermal', 'entropy', 'morphology', 'volume', 'strength', 'wave', 'sonic', 'lumen', 'order', 'chaos', 'mass'];
+                  keysToReset.forEach(k => delete nodeAttrs[k]);
                   
+                  // Força o tipo do Kernel baseado no elemento núcleo interno
+                  const kernelMapping = {
+                    'FOGO': 'ENTROPIA',
+                    'AGUA': 'VOLUME',
+                    'TERRA': 'FORCA',
+                    'AR': 'SOM',
+                    'LUZ': 'LUMINOSIDADE',
+                    'SOMBRA': 'MORFOLOGIA',
+                    'COMPOR': 'ORDEM',
+                    'DECOMPOR': 'CAOS'
+                  };
+                  if (sub.element) {
+                    node.additiveType = kernelMapping[sub.element] || 'ENTROPIA';
+                  }
+
                   // Se for Kernel, forçamos os atributos do seu tipo de buffer
                   const kernelBase = NodeAttributesDict[node.additiveType] || {};
                   nodeAttrs = this.merge(nodeAttrs, kernelBase, true);
                   nodeAttrs.isKernelBuffer = true;
+
+                  // Converte o modificador genérico de "potência" do kernel para seu atributo principal 
+                  let kernelModifier = (nodeAttrs.potency || 0);
+                  if (kernelModifier !== 0) {
+                     if (kernelBase.entropy) nodeAttrs.entropy = (nodeAttrs.entropy || 0) + kernelModifier;
+                     if (kernelBase.morphology) nodeAttrs.morphology = (nodeAttrs.morphology || 0) + kernelModifier;
+                     if (kernelBase.phase) nodeAttrs.phase = (nodeAttrs.phase || 0) + kernelModifier;
+                     if (kernelBase.lumen) nodeAttrs.lumen = (nodeAttrs.lumen || 0) + kernelModifier;
+                     if (kernelBase.sonic) nodeAttrs.sonic = (nodeAttrs.sonic || 0) + kernelModifier;
+                     if (kernelBase.strength) nodeAttrs.strength = (nodeAttrs.strength || 0) + kernelModifier;
+                     if (kernelBase.volume) nodeAttrs.volume = (nodeAttrs.volume || 0) + kernelModifier;
+                     if (kernelBase.order) nodeAttrs.order = (nodeAttrs.order || 0) + kernelModifier;
+                     if (kernelBase.chaos) nodeAttrs.chaos = (nodeAttrs.chaos || 0) + kernelModifier;
+                     nodeAttrs.potency = 0; // A potência já foi convertida e absolvida pelo Buffer
+                  }
                 }
                 (sub.instabilities || []).forEach(i => instabilities.push(i));
               }
@@ -540,17 +631,69 @@
           });
         });
 
-        const t = attrs.tags || [];
+        // BFS para encontrar tags conectadas via EdgeType.AND ao NÚCLEO
+        const connectedTags = new Set([...(NodeAttributesDict[core.element]?.tags || [])]);
+        const visited = new Set([core.id]);
+        const queue = [core.id];
+        
+        const adjTags = {};
+        (graph.nodes || []).forEach(n => adjTags[n.id] = new Set());
+        (graph.edges || []).forEach(e => {
+            if (e.type === EdgeType.AND) {
+                if (adjTags[e.sourceId] && adjTags[e.targetId]) {
+                    adjTags[e.sourceId].add(e.targetId);
+                    adjTags[e.targetId].add(e.sourceId);
+                }
+            }
+        });
+        
+        while (queue.length > 0) {
+            const currId = queue.shift();
+            for (let neighborId of adjTags[currId]) {
+                if (!visited.has(neighborId)) {
+                    visited.add(neighborId);
+                    queue.push(neighborId);
+                    
+                    const neighborNode = graph.nodes.find(n => n.id === neighborId);
+                    if (neighborNode) {
+                        const tArgs = neighborNode.tempAttrs?.tags || [];
+                        tArgs.forEach(tag => connectedTags.add(tag));
+                    }
+                }
+            }
+        }
+        
+        const t = Array.from(connectedTags);
+        attrs.tags = Array.from(new Set([...t, ...(attrs.tags || []).filter(tag => ['CONTROL', 'PONTO', 'MANTER', 'GATILHO', 'ECO'].includes(tag))]));
 
         // Combinações Rúnicas (Junções)
-        if (t.includes('Fogo') && t.includes('Terra')) { attrs.damageType = 'lava'; attrs.thermal += 4; }
-        if (t.includes('Fogo') && t.includes('Ar')) { attrs.damageType = 'combustão/eletricidade'; attrs.potency += 3; }
-        if (t.includes('Água') && t.includes('Terra')) { attrs.damageType = 'lodo/madeira'; attrs.mass += 5; }
-        if (t.includes('Água') && t.includes('Ar')) { attrs.damageType = 'nuvem'; attrs.stealth += 4; }
-        if (t.includes('Luz') && t.includes('Composição')) { attrs.damageType = 'vida/cura'; attrs.healing = '2d6'; }
-        if (t.includes('Luz') && t.includes('Decomposição')) { attrs.damageType = 'ilusão/contramágica'; attrs.stealth += 5; }
-        if (t.includes('Sombra') && t.includes('Decomposição')) { attrs.damageType = 'morte/drenar'; attrs.potency += 6; }
-        if (t.includes('Sombra') && t.includes('Composição')) { attrs.damageType = 'maldição'; attrs.debuffs = [...(attrs.debuffs || []), 'amaldiçoado']; }
+        if (t.includes('Fogo') && t.includes('Terra') && t.includes('Composição')) { attrs.damageType = 'Metal'; attrs.thermal += 4; }
+        else if (t.includes('Fogo') && t.includes('Terra') && t.includes('Decomposição')) { attrs.damageType = 'Lava'; attrs.thermal += 4; }
+        else if (t.includes('Fogo') && t.includes('Ar') && t.includes('Composição')) { attrs.damageType = 'Eletricidade'; attrs.potency += 3; }
+        else if (t.includes('Fogo') && t.includes('Ar') && t.includes('Decomposição')) { attrs.damageType = 'Combustão'; attrs.potency += 3; }
+        else if (t.includes('Água') && t.includes('Terra') && t.includes('Composição')) { attrs.damageType = 'Madeira'; attrs.mass += 5; }
+        else if (t.includes('Água') && t.includes('Terra') && t.includes('Decomposição')) { attrs.damageType = 'Veneno'; attrs.mass += 5; }
+        else if (t.includes('Água') && t.includes('Ar')) { attrs.damageType = 'Nuvem'; attrs.stealth += 4; }
+        else if (t.includes('Luz') && t.includes('Decomposição') && t.includes('Sombra')) { attrs.damageType = 'Ilusão'; attrs.stealth += 5; }
+        else if (t.includes('Luz') && t.includes('Decomposição') && t.includes('Composição')) { attrs.damageType = 'Contramágica'; }
+        else if (t.includes('Luz') && t.includes('Composição')) { attrs.damageType = 'Vida/Cura'; attrs.healing = '2d6'; }
+        else if (t.includes('Sombra') && t.includes('Decomposição')) { attrs.damageType = 'Morte/Drenar'; attrs.potency += 6; }
+        else if (t.includes('Sombra') && t.includes('Composição')) { attrs.damageType = 'Maldição'; attrs.debuffs = [...(attrs.debuffs || []), 'amaldiçoado']; }
+
+        // Sinergias de Kernel (Aumentam o poder/dano)
+        if (t.includes('ENTROPIA') && (core.element === CoreElement.FOGO || core.element === CoreElement.LUZ)) {
+            attrs.potency = (attrs.potency || 0) + 6;
+        }
+        if (t.includes('FORCA') && (core.element === CoreElement.TERRA || core.element === CoreElement.AGUA || core.element === CoreElement.AR)) {
+            attrs.potency = (attrs.potency || 0) + 6;
+        }
+        if (t.includes('VOLUME') && (core.element === CoreElement.TERRA || core.element === CoreElement.AR)) {
+            attrs.potency = (attrs.potency || 0) + 6;
+        }
+
+        if (MagicCompiler.getAdditiveInfo(graph, 'PONTO').size === 0) {
+            instabilities.push('Magia Parcialmente Instável: Falta aditivo PONTO para definir onde a magia vai ir/começar.');
+        }
 
         // Regra do Triângulo (Base estável)
         if ((graph.nodes || []).length < 3) instabilities.push('Magia instável: Menos de 3 componentes detectados (Pilar do Triângulo ausente).');
@@ -577,13 +720,55 @@
             [CoreElement.SOMBRA]: 'Necromancia/Ilusão'
         }[core.element] || 'Magia Universal';
         
-        let damageDice = Math.max(1, Math.floor((attrs.potency || 0) / 2));
-        let baseDamageType = attrs.damageType || (core.element === CoreElement.FOGO ? 'Fogo' : (core.element === CoreElement.TERRA ? 'Contundente' : 'Força Arcana'));
-        let damageStr = attrs.healing ? `${damageDice}d8 + ${attrs.potency || 0} de Cura` : `${damageDice}d6 + ${attrs.potency || 0} de dano de ${baseDamageType}`;
+        let mainDamageAttr = 0;
+        let baseDamageType = attrs.damageType || 'Força Arcana';
+
+        if (!attrs.damageType) {
+            if (core.element === CoreElement.FOGO || core.element === CoreElement.LUZ) {
+                mainDamageAttr = attrs.entropy || 0;
+                baseDamageType = core.element === CoreElement.FOGO ? 'Fogo' : 'Radiante';
+            } else if (core.element === CoreElement.TERRA || core.element === CoreElement.AGUA || core.element === CoreElement.AR) {
+                mainDamageAttr = (attrs.strength || 0) + (attrs.volume || 0); // volume aumenta dano terra e ar
+                baseDamageType = core.element === CoreElement.AGUA ? 'Frio/Impacto' : (core.element === CoreElement.TERRA ? 'Contundente' : 'Trovejante');
+            } else {
+                mainDamageAttr = Math.max(0, (attrs.chaos || 0) + (attrs.order || 0));
+            }
+        } else {
+            // Se tiver dano combinado, soma os atributos principais suportados
+            mainDamageAttr = (attrs.entropy || 0) + (attrs.strength || 0) + (attrs.volume || 0) + Math.max(0, (attrs.chaos || 0) + (attrs.order || 0));
+        }
+
+        let damageDice = Math.max(0, Math.floor(mainDamageAttr / 2));
+        let potencyBonus = attrs.potency > 0 ? ` + ${attrs.potency}d4` : '';
+        
+        // Capitalize the damage type
+        baseDamageType = baseDamageType.charAt(0).toUpperCase() + baseDamageType.slice(1);
+
+        let damageStr = attrs.healing 
+            ? (damageDice > 0 ? `${damageDice}d8 de Cura${potencyBonus}` : `1 de Cura${potencyBonus}`) 
+            : (damageDice > 0 ? `${damageDice}d6${potencyBonus} de dano de ${baseDamageType}` : `1${potencyBonus} de dano de ${baseDamageType}`);
 
         let castTime = attrs.mass > 10 ? '1 Minuto' : '1 Ação';
-        let rangeStr = attrs.potency > 5 ? `${30 + (attrs.velocity || 0) * 10} pés` : 'Toque / Centrado no Conjurador';
-        let durationStr = attrs.duration || ((attrs.mass || 0) > 5 ? 'Concentração, até 1 minuto' : 'Instantânea');
+        let rangeStr = 'Indefinido (Instável)';
+        let pontoInfo = MagicCompiler.getAdditiveInfo(graph, 'PONTO');
+        let pontoLevel = pontoInfo.size;
+        if (pontoLevel === 1) rangeStr = 'Ponto / Centro do Ciclo';
+        else if (pontoLevel === 2) rangeStr = 'Movimento / Projétil';
+        else if (pontoLevel >= 3) rangeStr = 'Área de Efeito';
+        
+        let controlInfo = MagicCompiler.getAdditiveInfo(graph, 'CONTROLE');
+        let controlLevel = controlInfo.size;
+        let componentsStr = 'Codex Arcana (Material)';
+        if (controlLevel === 1) componentsStr = 'Vocal, Material';
+        else if (controlLevel === 2) componentsStr = 'Somático, Material';
+        else if (controlLevel >= 3) componentsStr = 'Mental, Material';
+
+        let manterInfo = MagicCompiler.getAdditiveInfo(graph, 'MANTER');
+        let durationStr = 'Instantânea';
+        if (manterInfo.size >= 4 && manterInfo.isClosed) durationStr = 'Capacitor (Quadrado)';
+        else if (manterInfo.size >= 3 && manterInfo.isClosed) durationStr = 'Concentração (Triângulo)';
+        else if (manterInfo.size > 0) durationStr = 'Duração (Tick)';
+        else if (attrs.duration) durationStr = attrs.duration;
 
         const isStable = instabilities.length === 0;
 
@@ -592,16 +777,33 @@
             riskWarning = `\\n\\n**Risco de Execução (Instabilidade Rúnica):** O círculo arcano carece da triquetra fundamental de estabilidade (menos de 2 aditivos/subcírculos orbitando o núcleo). A magia AINDA PODE SER CONJURADA com os efeitos descritos abaixo, mas o conjurador deverá rolar na *Tabela de Magia Selvagem* ou sofrer o *Efeito Reverso* da manifestação. A energia instável ameaça colapsar no próprio conjurador.`;
         }
 
+        const activeStats = [
+            { name: 'Entropia', key: 'entropy' },
+            { name: 'Luminância', key: 'lumen' },
+            { name: 'Complexidade', key: 'complexity' },
+            { name: 'Acústica', key: 'sonic' },
+            { name: 'Força', key: 'strength' },
+            { name: 'Volume', key: 'volume' },
+            { name: 'Morfologia', key: 'morphology' },
+            { name: 'Ordem', key: 'order' },
+            { name: 'Caos', key: 'chaos' },
+            { name: 'Frequência', key: 'wave' }
+        ].filter(s => (attrs[s.key] || 0) !== 0).map(s => `${s.name} (${attrs[s.key]})`).join(', ');
+
+        const morphologyDesc = attrs.customMorphology ? ` A magia é moldada na forma de **${attrs.customMorphology}**.` : '';
+
+        const needsDC = (attrs.debuffs && attrs.debuffs.length > 0) || (attrs.precision || 0) > 0 || t.includes('AURA') || t.includes('CONTROL') || t.includes('AREA') || (core.element === CoreElement.SOMBRA) || (baseDamageType || '').toLowerCase().includes('psíquico') || (attrs.duration === 'Concentração');
+
         const magicDescription = `**Manifestação Semântica de ${core.element}**
 *${level}º nível de ${magicSchool}*
 
 **Tempo de Conjuração:** ${castTime}
 **Alcance:** ${rangeStr}
-**Componentes:** V, S, M (Codex Arcana)
+**Componentes:** ${componentsStr}
 **Duração:** ${durationStr}${riskWarning}
 
 **Descrição Mecânica:**
-A manifestação converte a estrutura fundamental do plano dimensional filtrada pela lente de ${core.element}. A interpretação do Codex Arcana de dentro para fora gera uma teia estruturada de efeitos. Atributos da magia gerada: Térmico (${attrs.thermal || 0}), Cinético (${attrs.velocity || 0}), Luminância (${attrs.lumen || 0}), Entropia (${attrs.entropy || 0}), e Complexidade (${attrs.complexity || 0}). 
+A manifestação converte a estrutura fundamental do plano dimensional filtrada pela lente de ${core.element}. A interpretação do Codex Arcana de dentro para fora gera uma teia estruturada de efeitos. Atributos da magia gerada: ${activeStats || 'Nenhum atributo primário detectado'}.${morphologyDesc}
 Os gatilhos e aditivos vinculados determinam a formatação espacial (Área de Efeito, Projétil ou Aura Localizada). A magia propaga-se segundo a leitura conectiva elaborada pelos ciclos, transmutando a realidade imediata.
 
 **Cálculo de Dano/Efeito:** ${damageStr}
@@ -614,7 +816,7 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
         
         logs.push({ action: 'Compile Success', description: magicDescription, timestamp: new Date().toISOString() });
 
-        return { attrs, instabilities, logs, element: core.element, description: magicDescription };
+        return { attrs, instabilities, logs, element: core.element, description: magicDescription, needsDC };
       }
 
       static compile(tokens) {
@@ -634,7 +836,12 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
         
         // Se for um subciclo (KERNEL), ele perde a identidade elemental e vira semântico
         const isKernel = b.isKernelBuffer;
-        const res = { ...a, tags: [...new Set([...(a.tags || []), ...(b.tags || [])])] };
+        let bTags = b.tags || [];
+        if (isKernel) {
+          const allowedKernelTags = ['KERNEL', 'ENTROPIA', 'MORFOLOGIA', 'ESTADO', 'LUMINOSIDADE', 'SOM', 'FORCA', 'VOLUME', 'ORDEM', 'CAOS'];
+          bTags = bTags.filter(t => allowedKernelTags.includes(t));
+        }
+        const res = { ...a, tags: [...new Set([...(a.tags || []), ...bTags])] };
         
         const keys = ['thermal', 'entropy', 'morphology', 'volume', 'strength', 'wave', 'sonic', 'lumen', 'order', 'chaos', 'potency', 'complexity', 'mass', 'velocity'];
         keys.forEach(k => res[k] = (a[k] || 0) + (b[k] || 0));
@@ -644,6 +851,8 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
           res.baseDamage = b.baseDamage || a.baseDamage;
           res.healing = b.healing || a.healing;
         }
+
+        res.customMorphology = b.customMorphology || a.customMorphology;
         
         res.debuffs = [...new Set([...(a.debuffs || []), ...(b.debuffs || [])])];
         if (b.duration) res.duration = b.duration;
@@ -673,25 +882,36 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
         const result = MagicPipeline.run(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs } = result;
+        const { attrs, instabilities, element, description, logs, needsDC } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
         
-        let rangeStr = 'Toque';
-        if (attrs?.tags?.includes('PROJETIL') || (attrs.velocity || 0) > 0) rangeStr = `${30 + (attrs.velocity || 0) * 10}ft (Arremesso)`;
-        else if (attrs?.tags?.includes('AURA') || (attrs.precision || 0) > 0) rangeStr = `${attrs.precision || 0}ft (Efeito)`;
+        let rangeStr = 'Indefinido';
+        let pontoInfo = MagicCompiler.getAdditiveInfo(graph, 'PONTO');
+        let pontoLevel = pontoInfo.size;
+        if (pontoLevel === 1) rangeStr = 'Ponto / Centro do Ciclo';
+        else if (pontoLevel === 2) rangeStr = 'Movimento / Projétil';
+        else if (pontoLevel >= 3) rangeStr = 'Área de Efeito';
 
         const level = 1 + Math.floor((attrs.complexity || 0) / 3);
         const dc = 10 + Math.floor(level / 2) + Math.floor((attrs.potency || 0) / 2);
 
+        let durationStr = attrs.duration || 'Instantânea';
+        const manterInfo = MagicCompiler.getAdditiveInfo(graph, 'MANTER');
+        if (manterInfo.size >= 4 && manterInfo.isClosed) durationStr = 'Capacitor (Quadrado)';
+        else if (manterInfo.size >= 3 && manterInfo.isClosed) durationStr = 'Concentração (Triângulo)';
+        else if (manterInfo.size > 0) durationStr = 'Duração (Tick)';
+
         const techStats = [
-          { label: 'Potência', value: attrs.potency || 0, icon: '🔥' },
+          { label: 'Potência', value: attrs.potency || 0, icon: '⚡' },
           { label: 'Complexidade', value: attrs.complexity || 0, icon: '⚙️' },
           { label: 'Massa', value: attrs.mass || 0, icon: '⚖️' },
-          { label: 'Velocidade', value: attrs.velocity || 0, icon: '🚀' },
-          { label: 'Térmico', value: attrs.thermal || 0, icon: '🌡️' },
-          { label: 'Entropia', value: attrs.entropy || 0, icon: '🌀' },
+          { label: 'Força', value: attrs.strength || 0, icon: '🗿' },
+          { label: 'Entropia', value: attrs.entropy || 0, icon: '🌡️' },
           { label: 'Frequência', value: attrs.wave || 0, icon: '🌊' },
-          { label: 'Luminância', value: attrs.lumen || 0, icon: '✨' }
+          { label: 'Luminância', value: attrs.lumen || 0, icon: '✨' },
+          { label: 'Acústica', value: attrs.sonic || 0, icon: '🔊' },
+          { label: 'Volume', value: attrs.volume || 0, icon: '🧊' },
+          { label: 'Morfologia', value: attrs.morphology || 0, icon: '🧬' }
         ];
 
         return (
@@ -715,12 +935,14 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
               </div>
               <div style={{ background: 'rgba(212,175,55,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.1)' }}>
                 <div style={{ fontSize: '0.7rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Duração</div>
-                <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{attrs.duration || 'Instantânea'}</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{durationStr}</div>
               </div>
-              <div style={{ background: 'rgba(212,175,55,0.08)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.2)', boxShadow: '0 0 15px rgba(212,175,55,0.05)' }}>
-                <div style={{ fontSize: '0.7rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Dificuldade Arcaica</div>
-                <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>CD {dc}</div>
-              </div>
+              {needsDC && (
+                <div style={{ background: 'rgba(212,175,55,0.08)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.2)', boxShadow: '0 0 15px rgba(212,175,55,0.05)' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Dificuldade Arcaica</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>CD {dc}</div>
+                </div>
+              )}
             </div>
 
             {/* Additional Info Toggle */}
@@ -1222,7 +1444,7 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
                   </g>
                   {!viewMode && (
                     <text textAnchor="middle" dy="2.5em" fill="#7f8fa6" fontSize="6" fontWeight="bold" style={{ pointerEvents: 'none' }}>
-                      {node.additiveType.replace('_', ' ')}
+                      {node.type === NodeType.KERNEL ? "KERNEL" : node.additiveType.replace('_', ' ')}
                     </text>
                   )}
                 </g>
@@ -1235,6 +1457,18 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
               
               visual = (
                 <g>
+                  {isK && node.customMorphology && (
+                    <g className={viewMode ? "spin-ring-fast" : ""} style={{ transformOrigin: '0 0' }}>
+                      <circle r={76} fill="none" stroke="#d4af37" strokeWidth="1" strokeDasharray="4,4" opacity="0.6" />
+                      <circle r={56} fill="none" stroke="#d4af37" strokeWidth="1" opacity="0.6" />
+                      <path id={`morphology-path-${node.id}`} d="M 0, -66 A 66 66 0 1 1 0, 66 A 66 66 0 1 1 0, -66" fill="none" stroke="none" />
+                      <text fill="#d4af37" fontSize={viewMode ? "10" : "8"} fontWeight="bold" style={{ fontFamily: 'Cinzel, serif', letterSpacing: '4px', textTransform: 'uppercase', filter: viewMode ? 'drop-shadow(0 0 5px rgba(212,175,55,0.8))' : 'none', pointerEvents: 'none' }}>
+                         <textPath href={`#morphology-path-${node.id}`} startOffset="50%" textAnchor="middle">
+                           {Array(3).fill(node.customMorphology).join(' ✦ ')}
+                         </textPath>
+                      </text>
+                    </g>
+                  )}
                    {isK ? (
                      <polygon points="45,0 22.5,39 -22.5,39 -45,0 -22.5,-39 22.5,-39" fill={subFill} stroke={subStroke} strokeWidth="3" filter="url(#strongNeon)" className={viewMode ? "kernel-pulse" : ""} />
                    ) : (
@@ -1501,8 +1735,22 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
         setMainGraph(updateNestedGraph(mainGraph, path, newGraph));
       };
 
+      const updateNodeCustomProperty = (nodeId, prop, value) => {
+        const newGraph = { ...activeGraph, nodes: activeGraph.nodes.map(n => n.id === nodeId ? { ...n, [prop]: value } : n) };
+        setMainGraph(updateNestedGraph(mainGraph, path, newGraph));
+      };
+
       const handleKernelToggle = (node, mode, kernelType) => {
-        const newGraph = { ...activeGraph, nodes: activeGraph.nodes.map(n => n.id === node.id ? { ...n, type: mode, additiveType: kernelType } : n) };
+        const newGraph = { ...activeGraph, nodes: activeGraph.nodes.map(n => {
+          if (n.id === node.id) {
+            const newNode = { ...n, type: mode, additiveType: kernelType };
+            if (mode === NodeType.SUBCIRCLE) {
+              delete newNode.customMorphology;
+            }
+            return newNode;
+          }
+          return n;
+        }) };
         setMainGraph(updateNestedGraph(mainGraph, path, newGraph));
       };
 
@@ -1541,9 +1789,9 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
                   <div className="action-label">Elemento</div>
                   <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span className="runic-text" style={{ fontSize: '1rem', display: 'inline-block' }}>
-                      {selectedNode.type === NodeType.CORE ? CoreRunes[selectedNode.element] : AdditiveRunes[selectedNode.additiveType]}
+                      {selectedNode.type === NodeType.CORE ? CoreRunes[selectedNode.element] : (selectedNode.type === NodeType.KERNEL ? CoreRunes['COMPOR'] : AdditiveRunes[selectedNode.additiveType])}
                     </span>
-                    {selectedNode.type === NodeType.CORE ? selectedNode.element : (selectedNode.additiveType || selectedNode.type)}
+                    {selectedNode.type === NodeType.CORE ? selectedNode.element : (selectedNode.type === NodeType.KERNEL ? 'KERNEL' : (selectedNode.additiveType || selectedNode.type))}
                   </div>
                 </div>
               </div>
@@ -1578,6 +1826,12 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
 
               {(selectedNode.type === NodeType.SUBCIRCLE || selectedNode.type === NodeType.KERNEL) && (
                 <div className="action-group">
+                  {selectedNode.type === NodeType.KERNEL && selectedNode.additiveType === 'MORFOLOGIA' && (
+                    <div style={{ marginRight: '16px' }}>
+                      <div className="action-label">Forma Requerida</div>
+                      <input type="text" value={selectedNode.customMorphology || ''} onChange={(e) => updateNodeCustomProperty(selectedNode.id, 'customMorphology', e.target.value)} placeholder="Ex: Espada, Escudo..." style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid #4a3e5c', color: '#f5eedc', padding: '6px 8px', borderRadius: '4px', fontSize: '0.75rem', width: '120px', fontFamily: 'Cinzel, serif' }} />
+                    </div>
+                  )}
                   <div>
                     <div className="action-label">Lógica</div>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -1590,9 +1844,21 @@ Conexões Ativas: ${activeConnections || 'Nenhuma'}`;
                           const mode = selectedNode.type === NodeType.KERNEL ? NodeType.SUBCIRCLE : NodeType.KERNEL;
                           let kernelType = '';
                           if (mode === NodeType.KERNEL) {
-                            const choice = prompt("Selecione a Essência do Buffer (Kernel):\n1. ENTROPIA (Térmico)\n2. MORFOLOGIA (Forma)\n3. ESTADO (Fase Física)\n4. ONDA (Som/Luz)\n5. FORÇA (Física)\n6. VOLUME (Espaço)", "1");
-                            const options = ["ENTROPIA", "MORFOLOGIA", "ESTADO", "ONDA", "FORCA", "VOLUME"];
-                            kernelType = options[parseInt(choice) - 1] || "ENTROPIA";
+                            const coreNode = selectedNode.magicGraph.nodes.find(n => n.type === NodeType.CORE);
+                            const coreElement = coreNode ? coreNode.element : 'FOGO';
+                            
+                            const kernelMapping = {
+                              'FOGO': 'ENTROPIA',
+                              'AGUA': 'VOLUME',
+                              'TERRA': 'FORCA',
+                              'AR': 'SOM',
+                              'LUZ': 'LUMINOSIDADE',
+                              'SOMBRA': 'MORFOLOGIA',
+                              'COMPOR': 'ORDEM',
+                              'DECOMPOR': 'CAOS'
+                            };
+                            
+                            kernelType = kernelMapping[coreElement] || 'ENTROPIA';
                           }
                           handleKernelToggle(selectedNode, mode, kernelType);
                         }}>
