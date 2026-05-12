@@ -1,307 +1,339 @@
-import { 
-  MagicGraph, 
-  CompiledSpell, 
-  MagicNode, 
-  NodeType, 
-  CoreElement, 
-  EdgeType,
-  SubCircleNode,
-  NodeAttributes
-} from '../types/magic';
+import { MagicGraph, MagicNode, MagicEdge, NodeType, EdgeType, CoreElement, AdditiveType } from '../types/magic';
+import { NodeAttributesDict } from './constants';
 
-export class MagicCompiler {
-  public instabilities: string[] = [];
-  public auditLog: string[] = [];
+export interface ActionBufferItem {
+  step: number;
+  title: string;
+  description: string;
+  type: 'CAST' | 'TRAVEL' | 'IMPACT' | 'AURA' | 'CONTROL' | 'MODIFIER';
+  dice?: string;
+  dcTarget?: number;
+  element?: string;
+}
 
-  constructor() {
-    this.instabilities = [];
-    this.auditLog = [];
+// 1. Árvore de Sintaxe Abstrata (AST)
+export abstract class ASTNode {
+  constructor(public id: string) {}
+  abstract accept(visitor: ASTVisitor): void;
+}
+
+export class CoreASTNode extends ASTNode {
+  constructor(id: string, public element: string) { super(id); }
+  accept(visitor: ASTVisitor) { visitor.visitCore(this); }
+}
+
+export class AdditiveASTNode extends ASTNode {
+  constructor(id: string, public additiveType: string) { super(id); }
+  accept(visitor: ASTVisitor) { visitor.visitAdditive(this); }
+}
+
+export class KernelASTNode extends ASTNode {
+  constructor(id: string, public kernelType: string, public subGraph: ASTGraph) { super(id); }
+  accept(visitor: ASTVisitor) { visitor.visitKernel(this); }
+}
+
+export class ASTGraph {
+  public nodes: ASTNode[] = [];
+  public adjacency: Map<string, string[]> = new Map(); // child -> parents (dependencies)
+  public forwardAdjacency: Map<string, string[]> = new Map(); // parent -> children
+
+  public addNode(node: ASTNode) {
+    this.nodes.push(node);
+    if (!this.adjacency.has(node.id)) this.adjacency.set(node.id, []);
+    if (!this.forwardAdjacency.has(node.id)) this.forwardAdjacency.set(node.id, []);
   }
 
-  public compile(graph: MagicGraph): CompiledSpell {
-    this.instabilities = [];
-    this.auditLog = [];
-    
-    // 1. Validação
-    this.validateValence(graph);
-
-    // 2. Resolução do Grafo
-    const finalAttributes = this.resolveGraph(graph);
-
-    const statusTags = [...(finalAttributes.tags || [])];
-    
-    // Sustentação -> Concentração
-    if (statusTags.includes('Concentração')) {
-      finalAttributes.duration = 'Concentração, até 1 minuto';
+  public addEdge(sourceId: string, targetId: string) {
+    // sourceId -> targetId indicates target depends on source.
+    if (this.adjacency.has(targetId)) {
+      this.adjacency.get(targetId)!.push(sourceId);
     }
-
-    // 3. Síntese de Elementos (Junções)
-    if (statusTags.includes('Luz') && statusTags.includes('Composição')) {
-      finalAttributes.healing = '2d6';
-      finalAttributes.damageType = 'vida/cura';
-      this.auditLog.push("Síntese Arcanica: Luz + Composição. Propriedade de VIDA/CURA ativada.");
+    if (this.forwardAdjacency.has(sourceId)) {
+      this.forwardAdjacency.get(sourceId)!.push(targetId);
     }
-    if (statusTags.includes('Sombra') && statusTags.includes('Decomposição')) {
-      finalAttributes.potency = (finalAttributes.potency || 0) + 6;
-      finalAttributes.damageType = 'morte';
-      this.auditLog.push("Síntese Arcanica: Sombra + Decomposição. Propriedade de MORTE ativada.");
-    }
-    if (statusTags.includes('Sombra') && statusTags.includes('Composição')) {
-      finalAttributes.debuffs = [...(finalAttributes.debuffs || []), 'amaldiçoado'];
-      this.auditLog.push("Síntese Arcanica: Sombra + Composição. Propriedade de MALDIÇÃO ativada.");
-    }
-    if (statusTags.includes('Terra') && statusTags.includes('Fogo')) {
-      finalAttributes.damageType = 'lava/metal';
-      finalAttributes.thermal = (finalAttributes.thermal || 0) + 4;
-      this.auditLog.push("Síntese Arcanica: Terra + Fogo. Propriedade de LAVA/METAL ativada.");
-    }
-    if (statusTags.includes('Fogo') && statusTags.includes('Ar')) {
-      finalAttributes.damageType = 'eletricidade';
-      finalAttributes.potency = (finalAttributes.potency || 0) + 3;
-      this.auditLog.push("Síntese Arcanica: Fogo + Ar. Propriedade de COMBUSTÃO/ELETRICIDADE ativada.");
-    }
-    if (statusTags.includes('Água') && statusTags.includes('Terra')) {
-      finalAttributes.mass = (finalAttributes.mass || 0) + 5;
-      finalAttributes.damageType = 'lodo/madeira';
-      this.auditLog.push("Síntese Arcanica: Água + Terra. Propriedade de MADEIRA/LODO ativada.");
-    }
-    if (statusTags.includes('Água') && statusTags.includes('Ar')) {
-      finalAttributes.stealth = (finalAttributes.stealth || 0) + 4;
-      finalAttributes.damageType = 'nuvem';
-      this.auditLog.push("Síntese Arcanica: Água + Ar. Propriedade de NUVEM embaçada.");
-    }
-    if (statusTags.includes('Luz') && statusTags.includes('Decomposição')) {
-      finalAttributes.stealth = (finalAttributes.stealth || 0) + 5;
-      finalAttributes.damageType = 'ilusão';
-      this.auditLog.push("Síntese Arcanica: Luz + Decomposição. Propriedade de ILUSÃO/CONTRAMÁGICA.");
-    }
-
-    // Regra do Triângulo (Base estável)
-    if (graph.nodes.length < 3) {
-      this.instabilities.push("Pilar do Triângulo Incompleto: Magia instável (menos de 3 componentes).");
-    }
-
-    if ((finalAttributes.lumen || 0) <= 0) statusTags.push('INVISIBLE_SPELL');
-    if ((finalAttributes.sonic || 0) <= 0) statusTags.push('SILENT');
-    
-    // Alerta de Instabilidade
-    if ((finalAttributes.thermal || 0) > 10 && (finalAttributes.volatility || 0) > 5) {
-      this.instabilities.push("Círculo Instável: Risco de Colapso Elemental Térmico");
-    }
-
-    finalAttributes.tags = statusTags;
-
-    // 4. Formatação Final da Ficha
-    return this.formatSpell(graph, finalAttributes);
   }
 
-  private validateValence(graph: MagicGraph) {
-    const provided = new Set<string>();
-    const sortedNodes = [...graph.nodes].sort((a, b) => (a.layer || 0) - (b.layer || 0));
+  public getNode(id: string): ASTNode | undefined {
+    return this.nodes.find(n => n.id === id);
+  }
+}
 
-    for (const node of sortedNodes) {
-      if (node.requires) {
-        for (const req of node.requires) {
-          if (!provided.has(req)) {
-            this.instabilities.push(`Falha de Valência: O nó ${node.type} (${node.id}) requer [${req}]`);
+export interface ASTVisitor {
+  visitCore(node: CoreASTNode): void;
+  visitAdditive(node: AdditiveASTNode): void;
+  visitKernel(node: KernelASTNode): void;
+}
+
+// 2. Parser: Transforma JSON em AST
+export class GraphToASTBuilder {
+  public static build(graph: MagicGraph | any): ASTGraph {
+    const ast = new ASTGraph();
+
+    for (const n of graph.nodes) {
+      if (n.type === NodeType.CORE) {
+        ast.addNode(new CoreASTNode(n.id, n.element || n.name));
+      } else if (n.type === NodeType.ADDITIVE) {
+        ast.addNode(new AdditiveASTNode(n.id, n.additiveType || n.name));
+      } else if (n.type === NodeType.KERNEL) {
+        const subAst = n.magicGraph ? this.build(n.magicGraph) : new ASTGraph();
+        ast.addNode(new KernelASTNode(n.id, n.additiveType || n.name, subAst));
+      }
+    }
+
+    for (const e of graph.edges) {
+      ast.addEdge(e.sourceId, e.targetId);
+    }
+
+    return ast;
+  }
+}
+
+// 3. Validador Semântico
+export class SemanticValidator {
+  public static validate(ast: ASTGraph): string[] {
+    const errors: string[] = [];
+    const cores = ast.nodes.filter(n => n instanceof CoreASTNode);
+    
+    if (cores.length === 0) {
+      errors.push("Anomalia Semântica: A malha arcana não possui um Núcleo Elementar (Core) para ancorar a magia.");
+    } else if (cores.length > 1) {
+      errors.push("Colapso Dimensional: Múltiplos Núcleos detectados. Apenas uma essência primordial pode governar a instância do feitiço.");
+    }
+
+    const kernels = ast.nodes.filter((n): n is KernelASTNode => n instanceof KernelASTNode);
+    for (const k of kernels) {
+      if (!k.subGraph || k.subGraph.nodes.length === 0) {
+        errors.push(`Vazio Semântico: Um Kernel (${k.kernelType}) foi declarado, mas se encontra oco (nenhuma regra atrelada a ele).`);
+      }
+    }
+
+    if (this.hasCycle(ast)) {
+      errors.push("Paradoxo Temporal: O feitiço descreve um loop infinito (dependências circulares). Executar causaria um buraco negro semântico.");
+    }
+
+    return errors;
+  }
+
+  private static hasCycle(ast: ASTGraph): boolean {
+    const visited = new Set<string>();
+    const recStack = new Set<string>();
+
+    const dfs = (nodeId: string): boolean => {
+      if (!visited.has(nodeId)) {
+        visited.add(nodeId);
+        recStack.add(nodeId);
+
+        const neighbors = ast.forwardAdjacency.get(nodeId) || [];
+        for (const neighbor of neighbors) {
+          if (!visited.has(neighbor) && dfs(neighbor)) {
+            return true;
+          } else if (recStack.has(neighbor)) {
+            return true;
           }
         }
       }
-      if (node.provides) {
-        node.provides.forEach(p => provided.add(p));
-      }
-      if (node.type === NodeType.SUBCIRCLE) {
-        this.validateValence((node as SubCircleNode).magicGraph);
+      recStack.delete(nodeId);
+      return false;
+    };
+
+    for (const node of ast.nodes) {
+      if (dfs(node.id)) {
+        return true;
       }
     }
+    return false;
   }
+}
 
-  private resolveGraph(graph: MagicGraph): NodeAttributes {
-    const core = graph.nodes.find(n => n.type === NodeType.CORE);
-    if (!core) return {};
-
-    let currentAttributes: NodeAttributes = { ...core.attributes };
+// 4. Ordenação Topológica (Grafo de Resolução)
+export class ExecutionTraversal {
+  public static resolveOrder(ast: ASTGraph): ASTNode[] {
+    const order: ASTNode[] = [];
+    const visited = new Set<string>();
     
-    const layers = new Map<number, MagicNode[]>();
-    for (const node of graph.nodes) {
-      if (node.type === NodeType.CORE) continue;
-      const l = node.layer || 1;
-      if (!layers.has(l)) layers.set(l, []);
-      layers.get(l)!.push(node);
+    const visit = (nodeId: string) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+      
+      const dependencies = ast.adjacency.get(nodeId) || [];
+      for (const dep of dependencies) {
+        visit(dep);
+      }
+      
+      const node = ast.getNode(nodeId);
+      if (node) {
+        order.push(node);
+      }
+    };
+
+    for (const node of ast.nodes) {
+      visit(node.id);
+    }
+    
+    return order;
+  }
+}
+
+// 5. O Motor Principal do Compilador
+export class MagicCompilerEngine {
+  public static execute(graphObject: any) {
+    if (!graphObject.nodes || graphObject.nodes.length === 0) {
+      return null;
     }
 
-    const maxLayer = layers.size > 0 ? Math.max(...Array.from(layers.keys())) : 0;
+    // 1. Parser JSON -> AST
+    const astGraph = GraphToASTBuilder.build(graphObject);
+    
+    // 2. Validador Semântico
+    const semanticErrors = SemanticValidator.validate(astGraph);
 
-    for (let i = 1; i <= maxLayer; i++) {
-      const nodesInLayer = layers.get(i);
-      if (!nodesInLayer) continue;
+    // 3. Travessia (Resolução da Ordem de Avaliação)
+    const executionOrder = ExecutionTraversal.resolveOrder(astGraph);
+    
+    // 4. Geração do Buffer de Saída (D&D Output)
+    const events: ActionBufferItem[] = [];
+    let currentAttrs: any = {};
+    let element = "Alvo";
+    
+    let stepCount = 1;
+    let pontosLevel = 0;
+    let hasManter = 0;
 
-      // Primeiro, resolvemos as conexões lógicas (XOR, etc)
-      const activeNodesInLayer = this.resolveConnections(nodesInLayer, graph.edges);
-
-      // Segundo, resolvemos as "Implicações" ou "Atribuições" entre nós da mesma camada
-      const modifiedNodes = this.applyStructuralEdges(activeNodesInLayer, graph.edges);
-
-      for (const node of modifiedNodes) {
-        let nodeAttrs = { ...node.attributes };
-
-        if (node.type === NodeType.SUBCIRCLE) {
-          nodeAttrs = this.resolveSubcycle(node as SubCircleNode);
+    for (const node of executionOrder) {
+      if (node instanceof CoreASTNode) {
+        element = node.element;
+        const coreBase = NodeAttributesDict[element] || {};
+        currentAttrs = this.mergeAttrs(currentAttrs, coreBase);
+        events.push({
+            step: stepCount++,
+            title: `Conjuração Primordial: ${element}`,
+            description: `A energia elementar bruta de ${element} começa a se manifestar pelas veias do conjurador.`,
+            type: 'CAST',
+            element
+        });
+      }
+      else if (node instanceof AdditiveASTNode) {
+        const addBase = NodeAttributesDict[node.additiveType] || {};
+        currentAttrs = this.mergeAttrs(currentAttrs, addBase);
+        
+        if (node.additiveType === 'PONTO') {
+            pontosLevel++;
+            if (pontosLevel === 1) {
+                events.push({
+                    step: stepCount++,
+                    title: `Ancoragem Local`,
+                    description: `A magia se agarra ao ponto de conjuração (Alcance: Toque / Si mesmo).`,
+                    type: 'TRAVEL'
+                });
+            } else if (pontosLevel === 2) {
+                events.push({
+                    step: stepCount++,
+                    title: `Vetor de Movimento`,
+                    description: `A massa mágica ganha impulso (Projétil linear / Movimento guiado).`,
+                    type: 'TRAVEL'
+                });
+            } else if (pontosLevel === 3) {
+                events.push({
+                    step: stepCount++,
+                    title: `Expansão Volumétrica`,
+                    description: `A magia se torna uma Área de Efeito ao atingir seu destino.`,
+                    type: 'IMPACT'
+                });
+            }
+        } else if (node.additiveType === 'MANTER') {
+            hasManter++;
         } else {
-          // Logando a contribuição deste nó
-          const coreDesc = (node as any).element || (node as any).additiveType || node.type;
-          this.auditLog.push(`[Layer ${i}] +${coreDesc}: Lumen(${nodeAttrs.lumen || 0}) Thermal(${nodeAttrs.thermal || 0}) Potency(${nodeAttrs.potency || 0})`);
+            events.push({
+                step: stepCount++,
+                title: `Modificador: ${node.additiveType}`,
+                description: `Transmuta propriedades arcanas da manifestação em fluxo.`,
+                type: 'MODIFIER'
+            });
         }
-
-        currentAttributes = this.mergeAttributes(currentAttributes, nodeAttrs);
       }
     }
 
-    currentAttributes.maxLayer = maxLayer;
-    return currentAttributes;
-  }
-
-  private applyStructuralEdges(nodes: MagicNode[], edges: any[]): MagicNode[] {
-    const result = [...nodes];
-    const attributionEdges = edges.filter(e => e.type === EdgeType.ATRIBUICAO);
-
-    for (const edge of attributionEdges) {
-      const source = result.find(n => n.id === edge.sourceId);
-      const target = result.find(n => n.id === edge.targetId);
-
-      if (source && target) {
-        this.auditLog.push(`Implicação: ${source.id} modificando ${target.id}`);
-        target.attributes = this.mergeAttributes(target.attributes || {}, source.attributes || {});
-      }
+    if (hasManter > 0) {
+        events.push({
+            step: stepCount++,
+            title: `Sustentação Arcana`,
+            description: `O feitiço persistirá ao longo do tempo (Duração ou Concentração).`,
+            type: 'AURA'
+        });
     }
-    return result;
-  }
 
-  private resolveConnections(nodesInLayer: MagicNode[], edges: any[]): MagicNode[] {
-    const activeNodes = new Map<string, MagicNode>();
-    nodesInLayer.forEach(n => activeNodes.set(n.id, n));
+    // Cálculos D&D finais
+    let damageBase = currentAttrs.damageType || 'Energia Pura';
+    const mainDamageAttr = (currentAttrs.entropy || 0) + (currentAttrs.strength || 0) + (currentAttrs.volume || 0) + (currentAttrs.order || 0) + (currentAttrs.chaos || 0);
+    const numDice = Math.max(1, Math.floor(mainDamageAttr / 2));
+    const bonus = currentAttrs.potency > 0 ? `+${currentAttrs.potency * 2}` : '';
     
-    const xorEdges = edges.filter(e => e.type === EdgeType.XOR);
-    for (const edge of xorEdges) {
-      if (activeNodes.has(edge.sourceId) && activeNodes.has(edge.targetId)) {
-        activeNodes.delete(edge.targetId);
-        this.instabilities.push(`Anulação XOR: O nó ${edge.targetId} foi sacrificado.`);
-      }
-    }
-
-    return Array.from(activeNodes.values());
-  }
-
-  private resolveSubcycle(node: SubCircleNode): NodeAttributes {
-    const subCompiler = new MagicCompiler();
-    const subSpell = subCompiler.compile(node.magicGraph);
-    
-    subCompiler.instabilities.forEach(i => this.instabilities.push(`[Subciclo]: ${i}`));
-    this.auditLog.push(`[Subciclo Resolvido/Kernel]: Lumen(${subSpell.finalAttributes.lumen}) Potency(${subSpell.finalAttributes.potency})`);
-
-    const kernelAttrs = { ...subSpell.finalAttributes };
-    // Subciclo perde a ideia de elemento
-    delete (kernelAttrs as any).damageType;
-    delete (kernelAttrs as any).healing;
-
-    return kernelAttrs as any;
-  }
-
-  private mergeAttributes(attr1: NodeAttributes, attr2: NodeAttributes): NodeAttributes {
-    const keys = [
-      'lumen', 'sonic', 'thermal', 'olfactory',
-      'mass', 'velocity', 'density', 'potency',
-      'volatility', 'complexity', 'stealth', 'saveDCBonus'
-    ];
-
-    const merged: NodeAttributes = { ...attr1 };
-
-    for (const key of keys) {
-      const val1 = attr1[key] || 0;
-      const val2 = attr2[key] || 0;
-      merged[key] = val1 + val2;
-    }
-
-    merged.tags = [...new Set([...(attr1.tags || []), ...(attr2.tags || [])])];
-    merged.debuffs = [...new Set([...(attr1.debuffs || []), ...(attr2.debuffs || [])])];
-    merged.damageType = attr2.damageType || attr1.damageType;
-    merged.baseDamage = attr2.baseDamage || attr1.baseDamage;
-    merged.healing = attr2.healing || attr1.healing;
-
-    return merged;
-  }
-
-  private formatSpell(graph: MagicGraph, attrs: NodeAttributes): CompiledSpell {
-    const core = graph.nodes.find(n => n.type === NodeType.CORE) as any;
-    const element = core ? core.element : 'Desconhecido';
-
-    let school = 'Evocação';
-    if (element === CoreElement.COMPOR || element === CoreElement.TERRA) school = 'Conjuração';
-    if (attrs.healing || element === CoreElement.LUZ) school = 'Abjuração';
-    if (element === CoreElement.AR) school = 'Transmutação';
-    if (element === CoreElement.MORTE || element === CoreElement.DECOMPOR || element === CoreElement.SOMBRA) school = 'Necromancia';
-    if (element === 'Psiquico' || element === 'Mente') school = 'Encantamento';
-
-    let level = 1 + Math.floor((attrs.complexity || 0) / 3) + (attrs.maxLayer || 0);
-    if (level > 9) level = 9;
-
-    let castingTime = '1 Ação';
-    if ((attrs.mass || 0) < 0) castingTime = '1 Ação Bônus';
-    if ((attrs.mass || 0) > 10) castingTime = '1 Minuto';
-
-    // 4. Dedução de Propriedades D&D 5e
-    let rangeStr = 'Toque';
-    if ((attrs.velocity || 0) > 0) {
-      rangeStr = `${30 + (attrs.velocity || 0) * 10} pés (Arremessada)`;
-    } else if ((attrs.rangeBonus || 0) > 0) {
-      rangeStr = `${attrs.rangeBonus} pés (Aura)`;
-    }
-
-    // Mecânicas de Dano / Cura / Debuffs
-    const damageDice = Math.max(1, level + Math.floor((attrs.potency || 0) / 2));
-    let finalDamageType = attrs.damageType || 'força';
-    
-    // Mudança de estado baseada em temperatura extrema
-    if (finalDamageType === 'fire' && (attrs.thermal || 0) < -5) finalDamageType = 'cold';
-    if (finalDamageType === 'fire' && (attrs.thermal || 0) > 15) finalDamageType = 'radiant'; // Fogo branco
-
-    let mechanics = '';
-    if (attrs.healing) {
-      mechanics = `Restaura ${damageDice}d${attrs.healing.split('d')[1] || '8'} HP.`;
+    // Caso faltem componentes para o dano, ou se for algo de cura:
+    if (currentAttrs.healing) {
+        events.push({
+            step: stepCount++,
+            title: `Harmonização Vital`,
+            description: `Restaura a forma física. Cura estimada: ${Math.floor(numDice/2)}d8${bonus}.`,
+            type: 'IMPACT',
+            dice: `${Math.floor(numDice/2)}d8${bonus}`,
+            element
+        });
     } else {
-      mechanics = `Causa ${damageDice}d${attrs.baseDamage?.split('d')[1] || '8'} de dano ${finalDamageType}.`;
+        events.push({
+            step: stepCount++,
+            title: `Resolução do Efeito`,
+            description: `A malha colapsa, forçando a resolução física. Impacto causa dano base de ${numDice}d6${bonus} de ${damageBase}.`,
+            type: 'IMPACT',
+            dice: `${numDice}d6${bonus}`,
+            element
+        });
     }
 
-    if (attrs.debuffs && attrs.debuffs.length > 0) {
-      const dc = 10 + Math.floor(level / 2) + (attrs.saveDCBonus || 0);
-      mechanics += ` CD ${dc} ou fica: ${attrs.debuffs.join(', ')}.`;
+    // Formatando o D&D text output
+    let description = `**Manifestação Semântica Resolvida**\n\n`;
+    description += `*Ordem de Execução do Buffer Mágico Mapeada:*\n\n`;
+    
+    for (const step of events) {
+        description += `**Step [${step.step}]: ${step.title}**\n`;
+        description += `*${step.description}*\n`;
+        if (step.dice) description += `> Resolução de Colisão: **${step.dice}**\n`;
+        description += `\n`;
+    }
+
+    let rangeStr = 'Toque';
+    if (pontosLevel >= 3) rangeStr = 'Área de Efeito';
+    else if (pontosLevel === 2) rangeStr = 'Projétil';
+    else if (pontosLevel === 1) rangeStr = 'Toque / Curta Distância';
+
+    const level = 1 + Math.floor((currentAttrs.complexity || 0) / 3);
+    const dc = 10 + Math.floor(level / 2) + Math.floor((currentAttrs.potency || 0) / 2);
+
+    let durationStr = 'Instantânea';
+    if (hasManter > 0) {
+        durationStr = 'Concentração / Contínua';
     }
 
     return {
-      spellName: 'Manifestação Arcana',
+      description,
+      attrs: currentAttrs,
+      instabilities: semanticErrors,
+      logs: events,
+      element,
+      needsDC: dc > 10,
+      rangeStr,
       level,
-      school,
-      castingTime,
-      range: rangeStr,
-      components: attrs.tags?.includes('SILENT') ? 'S' : 'V, S',
-      duration: 'Instantânea',
-      damageOrEffect: mechanics,
-      instabilities: this.instabilities,
-      finalAttributes: {
-        lumen: attrs.lumen || 0,
-        sonic: attrs.sonic || 0,
-        thermal: attrs.thermal || 0,
-        olfactory: attrs.olfactory || 0,
-        mass: attrs.mass || 0,
-        velocity: attrs.velocity || 0,
-        density: attrs.density || 0,
-        potency: attrs.potency || 0,
-        volatility: attrs.volatility || 0,
-        complexity: attrs.complexity || 0,
-        stealth: attrs.stealth || 0,
-        status: attrs.tags || [],
-        auditLog: this.auditLog
-      }
+      dc,
+      durationStr
     };
+  }
+
+  private static mergeAttrs(a: any, b: any) {
+    const res = { ...a };
+    for (const key in b) {
+        if (typeof b[key] === 'number') res[key] = (res[key] || 0) + b[key];
+        else if (Array.isArray(b[key])) res[key] = [...new Set([...(res[key]||[]), ...b[key]])];
+        else res[key] = b[key];
+    }
+    return res;
   }
 }

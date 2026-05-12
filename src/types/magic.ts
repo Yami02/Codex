@@ -6,6 +6,7 @@ export enum NodeType {
   CORE = 'CORE',
   ADDITIVE = 'ADDITIVE',
   SUBCIRCLE = 'SUBCIRCLE',
+  KERNEL = 'KERNEL'
 }
 
 export enum CoreElement {
@@ -80,6 +81,9 @@ export enum EdgeType {
   OR = 'OR',                 // <==>
   XOR = 'XOR',               // <-->
   SUB_STREAM = 'SUB_STREAM', // ==
+  CORRENTE = 'CORRENTE',     // == (demo addition)
+  SE_ENTAO = 'SE_ENTAO',    // --> (demo alias/addition)
+  REVERSO = 'REVERSO',
 }
 
 // ==========================================
@@ -120,9 +124,11 @@ export interface BaseNode {
   type: NodeType;
   position?: { x: number; y: number }; // Utilizado pelo React Flow
   layer?: number; // Camada orbital do nó (0 = Núcleo)
+  angleOffset?: number; // Deslocamento angular (demo feature)
   attributes?: NodeAttributes; // Atributos mecânicos carregados pelo nó
   requires?: string[]; // Dependências (ex: ['FORMA_FISICA'])
   provides?: string[]; // Concessões (ex: ['PROJETIL'])
+  customMorphology?: string; // Morphologia customizada (demo feature)
 }
 
 export interface CoreNode extends BaseNode {
@@ -143,7 +149,13 @@ export interface SubCircleNode extends BaseNode {
   magicGraph: MagicGraph; 
 }
 
-export type MagicNode = CoreNode | AdditiveNode | SubCircleNode;
+export interface KernelNode extends BaseNode {
+  type: NodeType.KERNEL;
+  additiveType: string;
+  magicGraph: MagicGraph;
+}
+
+export type MagicNode = CoreNode | AdditiveNode | SubCircleNode | KernelNode;
 
 // ==========================================
 // 3. INTERFACES DE ARESTAS (EDGES)
@@ -192,8 +204,19 @@ export interface CompiledSpell {
     volatility: number;
     complexity: number;
     stealth: number;
+    entropy: number;
+    morphology: number;
+    order: number;
+    chaos: number;
+    volume: number;
+    strength: number;
+    wave: number;
+    healing?: string;
+    damageType?: string;
     status: string[];
     auditLog: string[];
   };
+  needsDC: boolean;
+  dc: number;
 }
 

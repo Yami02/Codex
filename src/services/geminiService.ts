@@ -41,24 +41,23 @@ RULES:
 
 OUTPUT FORMAT (JSON ONLY):
 {
-  "graph": {
-    "nodes": [ { "id": "n1", "type": "CORE", "element": "FOGO" }, ... ],
-    "edges": [ { "id": "e1", "sourceId": "n1", "targetId": "n2", "type": "SEQUENCIA" }, ... ]
-  },
   "spell": {
     "spellName": "creative arcane name",
-    "level": 1-9, "school": "Evocation", "castingTime": "1 action", ...
+    "level": 1-9, "school": "Evocation", "castingTime": "1 action",
+    "range": "60 feet", "components": "V, SM", "duration": "Instantaneous",
+    "damageOrEffect": "Deals 2d6 fire damage.",
     "instabilities": [],
-    "finalAttributes": { "lumen": 0, "thermal": 0, ... }
+    "finalAttributes": { "lumen": 0, "thermal": 0, "sonic": 0, "mass": 0, "velocity": 0, "density": 0, "auditLog": ["Compiled successfully."] }
   }
 }
 `;
 
-export async function compileArcaneDSL(input: string): Promise<{ graph: MagicGraph, spell: CompiledSpell }> {
+export async function compileArcaneGraph(graph: MagicGraph): Promise<{ spell: CompiledSpell }> {
   try {
+    const inputJson = JSON.stringify(graph, null, 2);
     const response = await genAI.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Input DSL: ${input}\n\nCompile this magic logic. Return only the JSON.`,
+      model: "gemini-2.5-flash",
+      contents: `Input Graph:\n${inputJson}\n\nAnalyze this visual magic graph. Return only the JSON representing the CompiledSpell.`,
       config: {
         systemInstruction: SYSTEM_PROMPT,
         responseMimeType: "application/json"
@@ -69,8 +68,7 @@ export async function compileArcaneDSL(input: string): Promise<{ graph: MagicGra
     const data = JSON.parse(text);
 
     return {
-      graph: data.graph,
-      spell: data.spell
+      spell: data.spell || data // In case it returns the spell object directly or wrapped
     };
   } catch (error) {
     console.error("Gemini Compilation Error:", error);

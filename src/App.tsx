@@ -1,8 +1,12 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+import React from 'react';
+import DemoApp from './components/DemoApp';
 
-export default function App() {
-  return <div></div>;
-}
+export const App: React.FC = () => {
+  return (
+    <div className="w-screen h-screen">
+      <DemoApp />
+    </div>
+  );
+};
+
+export default App;

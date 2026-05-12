@@ -1,53 +1,55 @@
-export const NodeType = { 
-  CORE: 'CORE', 
-  ADDITIVE: 'ADDITIVE', 
-  SUBCIRCLE: 'SUBCIRCLE', 
-  KERNEL: 'KERNEL' 
-};
+export enum NodeType { 
+  CORE = 'CORE', 
+  ADDITIVE = 'ADDITIVE', 
+  SUBCIRCLE = 'SUBCIRCLE', 
+  KERNEL = 'KERNEL' 
+}
 
-export const CoreElement = { 
-  FOGO: 'FOGO', 
-  AGUA: 'AGUA', 
-  TERRA: 'TERRA', 
-  AR: 'AR', 
-  LUZ: 'LUZ', 
-  SOMBRA: 'SOMBRA', 
-  COMPOR: 'COMPOR', 
-  DECOMPOR: 'DECOMPOR' 
-};
+export enum CoreElement { 
+  FOGO = 'FOGO', 
+  AGUA = 'AGUA', 
+  TERRA = 'TERRA', 
+  AR = 'AR', 
+  LUZ = 'LUZ', 
+  SOMBRA = 'SOMBRA', 
+  COMPOR = 'COMPOR', 
+  DECOMPOR = 'DECOMPOR' 
+}
 
-export const AdditiveType = { 
-  CONTROLE: 'CONTROLE', 
-  AUMENTO: 'AUMENTO', 
-  REDUCAO: 'REDUCAO', 
-  PONTO: 'PONTO', 
-  MANTER: 'MANTER', 
-  GATILHO: 'GATILHO', 
-  ECO: 'ECO' 
-};
+export enum AdditiveType { 
+  CONTROLE = 'CONTROLE', 
+  AUMENTO = 'AUMENTO', 
+  REDUCAO = 'REDUCAO', 
+  PONTO = 'PONTO', 
+  MANTER = 'MANTER', 
+  GATILHO = 'GATILHO', 
+  ECO = 'ECO' 
+}
 
-export const KernelType = {
-  ENTROPIA: 'ENTROPIA', 
-  MORFOLOGIA: 'MORFOLOGIA', 
-  ESTADO: 'ESTADO', 
-  LUMINOSIDADE: 'LUMINOSIDADE', 
-  SOM: 'SOM',
-  FORCA: 'FORCA', 
-  VOLUME: 'VOLUME',
-  ORDEM: 'ORDEM',
-  CAOS: 'CAOS'
-};
+export enum KernelType {
+  ENTROPIA = 'ENTROPIA', 
+  MORFOLOGIA = 'MORFOLOGIA', 
+  ESTADO = 'ESTADO', 
+  LUMINOSIDADE = 'LUMINOSIDADE', 
+  SOM = 'SOM',
+  FORCA = 'FORCA', 
+  VOLUME = 'VOLUME',
+  ORDEM = 'ORDEM',
+  CAOS = 'CAOS'
+}
 
-export const EdgeType = { 
-  AND: 'AND', 
-  OR: 'OR', 
-  XOR: 'XOR', 
-  SE_ENTAO: 'SE_ENTAO', 
-  ATRIBUICAO: 'ATRIBUICAO', 
-  CORRENTE: 'CORRENTE' 
-};
+export enum EdgeType { 
+  AND = 'AND', 
+  OR = 'OR', 
+  XOR = 'XOR', 
+  SE_ENTAO = 'SE_ENTAO', 
+  ATRIBUICAO = 'ATRIBUICAO', 
+  CORRENTE = 'CORRENTE',
+  UNIAO = 'UNIAO',
+  REVERSO = 'REVERSO'
+}
 
-export const CoreRunes = { 
+export const CoreRunes: Record<string, string> = { 
   [CoreElement.FOGO]: 'ᚲ', 
   [CoreElement.AGUA]: 'ᛚ', 
   [CoreElement.TERRA]: 'ᚦ', 
@@ -58,7 +60,7 @@ export const CoreRunes = {
   [CoreElement.DECOMPOR]: 'ᚦ' 
 };
 
-export const AdditiveRunes = {
+export const AdditiveRunes: Record<string, string> = {
   [AdditiveType.CONTROLE]: 'ᚱ', 
   [AdditiveType.AUMENTO]: 'ᚢ', 
   [AdditiveType.REDUCAO]: 'ᚦ',
@@ -87,22 +89,23 @@ export const EdgeCycle = [
   EdgeType.CORRENTE
 ];
 
-export const EdgeSymbols = { 
+export const EdgeSymbols: Record<string, string> = { 
   [EdgeType.AND]: '--', 
   [EdgeType.OR]: '<==>', 
   [EdgeType.XOR]: '<-->', 
   [EdgeType.SE_ENTAO]: '-->', 
   [EdgeType.ATRIBUICAO]: '==c', 
-  [EdgeType.CORRENTE]: '==' 
+  [EdgeType.CORRENTE]: '==',
+  [EdgeType.UNIAO]: '--'
 };
 
-export const AdditiveDescriptions = {
+export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.CONTROLE]: 'impondo domínio através de canais rúnicos',
   [AdditiveType.AUMENTO]: 'exaltando a amplitude da ressonância',
   [AdditiveType.REDUCAO]: 'suprimindo a intensidade do fluxo',
   [AdditiveType.PONTO]: 'ancorando a lógica em uma coordenada fixa',
   [AdditiveType.MANTER]: 'persistindo a estrutura através de loops temporais',
-  [AdditiveType.GATILHO]: 'programando uma resposta condicional',
+  [AdditiveType.GATILHO]: 'programando uma response condicional',
   [AdditiveType.ECO]: 'replicando a assinatura energética',
   // Kernels
   [KernelType.ENTROPIA]: 'Buffer de Entropia: Manipula a agitação térmica.',
@@ -116,7 +119,7 @@ export const AdditiveDescriptions = {
   [KernelType.CAOS]: 'Buffer de Caos: Promove a dissipação e quebra de padrões.'
 };
 
-export const NodeAttributesDict = {
+export const NodeAttributesDict: Record<string, any> = {
   [CoreElement.FOGO]: { thermal: +6, entropy: +3, tags: ['Fogo'] },
   [CoreElement.AGUA]: { volume: +4, tags: ['Água'] },
   [CoreElement.TERRA]: { strength: +5, mass: +3, tags: ['Terra'] },
@@ -143,4 +146,3 @@ export const NodeAttributesDict = {
   [KernelType.ORDEM]: { order: 1, orderBuffer: true, tags: ['KERNEL', 'ORDEM'] },
   [KernelType.CAOS]: { chaos: 1, chaosBuffer: true, tags: ['KERNEL', 'CAOS'] }
 };
-

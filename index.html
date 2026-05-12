@@ -1,124 +1,14 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodexARCH | Arquitetura de Magia Semântica</title>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;700&family=Inter:wght@300;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --gold: #d4af37;
-            --text: #f8fafc;
-        }
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            text-align: center;
-            padding: 20px;
-        }
-        .container {
-            max-width: 800px;
-        }
-        h1 {
-            font-family: 'Crimson Pro', serif;
-            font-size: 4rem;
-            color: var(--gold);
-            margin-bottom: 0.5rem;
-            letter-spacing: -2px;
-        }
-        p {
-            font-size: 1.25rem;
-            line-height: 1.6;
-            color: #94a3b8;
-            margin-bottom: 2rem;
-            font-weight: 300;
-        }
-        .bento-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 3rem;
-        }
-        .bento-item {
-            background: var(--card);
-            padding: 20px;
-            border-radius: 16px;
-            border: 1px solid #334155;
-            transition: transform 0.2s;
-        }
-        .bento-item:hover {
-            transform: translateY(-5px);
-            border-color: var(--gold);
-        }
-        .bento-item h3 {
-            color: var(--gold);
-            margin-top: 0;
-        }
-        .cta-button {
-            display: inline-block;
-            background-color: var(--gold);
-            color: var(--bg);
-            padding: 18px 48px;
-            border-radius: 100px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.25rem;
-            transition: all 0.2s;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-        }
-        .cta-button:hover {
-            transform: scale(1.05);
-            background-color: #f1c40f;
-        }
-        .react-link {
-            display: block;
-            margin-top: 2rem;
-            color: #64748b;
-            text-decoration: none;
-            font-size: 0.8rem;
-        }
-        .react-link:hover {
-            color: #94a3b8;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#05040a">
+  <title>Compilador Mágico - Grimório Arcano</title>
 </head>
-<body>
-    <div class="container">
-        <h1>CodexARCH</h1>
-        <p>A próxima evolução na compilação de lógica arcana. <br> Transformando gramática mágica em estrutura de realidade.</p>
-        
-        <div class="bento-grid">
-            <div class="bento-item">
-                <h3>Kernel Buffer</h3>
-                <p style="font-size: 0.9rem">Subciclos semânticos que processam as variáveis físicas da magia.</p>
-            </div>
-            <div class="bento-item">
-                <h3>Sintese Elemental</h3>
-                <p style="font-size: 0.9rem">Combinações rúnicas complexas como Metal, Vida e Maldição.</p>
-            </div>
-            <div class="bento-item">
-                <h3>Estúdio v2</h3>
-                <p style="font-size: 0.9rem">Interface visual para design de grafos arcanos estáveis.</p>
-            </div>
-        </div>
-
-        <a href="/demo.html" class="cta-button">Abrir Estúdio Arcânico</a>
-        
-        <a href="/react_app" id="react-entry-hidden" class="react-link">Versão React experimental</a>
-    </div>
-    
-    <script>
-        // Note: The React app is still available via internal routing if needed, 
-        // but demo.html is the primary focus for the new architecture.
-    </script>
+<body style="margin: 0; background-color: #05040a; font-family: 'Lora', serif; color: #e0d8c0;">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
