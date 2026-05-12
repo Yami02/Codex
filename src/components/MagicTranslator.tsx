@@ -8,14 +8,15 @@ import {
 import { MagicCompilerEngine } from '../engine/compiler';
 
 const MagicTranslator = ({ graph }: any) => {
-      const [isAdvancedMode, setIsAdvancedMode] = useState(false);
-      const [isAdditionalInfoOpen, setIsAdditionalInfoOpen] = useState(false);
+    const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+    const [isAdditionalInfoOpen, setIsAdditionalInfoOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'ANALISE' | 'DND5E'>('DND5E');
       
-      try {
+    try {
         const result = MagicCompilerEngine.execute(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr } = result;
+        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
 
         const techStats = [
@@ -134,26 +135,94 @@ const MagicTranslator = ({ graph }: any) => {
               </div>
             )}
 
-            <div style={{ background: 'rgba(212, 175, 55, 0.05)', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #d4af37', fontSize: '0.95rem', lineHeight: '1.7', color: '#e0d8c0', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3)', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-10px', left: '20px', background: '#d4af37', color: '#05040a', fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', fontFamily: 'Cinzel' }}>DESCRIÇÃO DA MAGIA (GERADA PELO COMPILADOR)</div>
-              
-              <div style={{ margin: 0, color: '#e0d8c0', whiteSpace: 'pre-line', lineHeight: '1.6' }}>
-                {description.split('\n').map((line, i) => (
-                  <p key={i} style={{ margin: '0 0 10px 0', minHeight: line.trim() ? 'auto' : '1.6em' }} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #d4af37">$1</strong>').replace(/\*(.*?)\*/g, '<em style="color: #c8b99e">$1</em>') }} />
-                ))}
-              </div>
-              
-              {instabilities.length > 0 ? (
-                <div style={{ color: '#ff5e57', marginTop: '15px', fontWeight: 'bold', padding: '10px', background: 'rgba(255, 94, 87, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 94, 87, 0.3)' }}>
-                  ⚠️ Risco de Colapso Arcano: {instabilities[0]}
-                </div>
-              ) : (
-                <div style={{ color: '#1dd1a1', marginTop: '15px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  Matriz Rúnica Compilada com Sucesso - Risco de Refluxo Zerado.
-                </div>
-              )}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid rgba(212,175,55,0.3)', paddingBottom: '10px' }}>
+              <button 
+                onClick={() => setActiveTab('ANALISE')}
+                style={{
+                  background: activeTab === 'ANALISE' ? 'rgba(212,175,55,0.2)' : 'transparent',
+                  border: '1px solid rgba(212,175,55,0.3)',
+                  color: activeTab === 'ANALISE' ? '#fff' : '#d4af37',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontFamily: 'Cinzel',
+                  fontWeight: 'bold',
+                  transition: '0.2s',
+                  textTransform: 'uppercase',
+                  fontSize: '0.8rem'
+                }}
+              >Varredura Arcana (Eventos)</button>
+              <button 
+                onClick={() => setActiveTab('DND5E')}
+                style={{
+                  background: activeTab === 'DND5E' ? 'rgba(212,175,55,0.2)' : 'transparent',
+                  border: '1px solid rgba(212,175,55,0.3)',
+                  color: activeTab === 'DND5E' ? '#fff' : '#d4af37',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontFamily: 'Cinzel',
+                  fontWeight: 'bold',
+                  transition: '0.2s',
+                  textTransform: 'uppercase',
+                  fontSize: '0.8rem'
+                }}
+              >Ficha de Jogo (D&D 5E)</button>
             </div>
+
+            {activeTab === 'ANALISE' && (
+              <div style={{ background: 'rgba(212, 175, 55, 0.05)', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #d4af37', fontSize: '0.95rem', lineHeight: '1.7', color: '#e0d8c0', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3)', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '-10px', left: '20px', background: '#d4af37', color: '#05040a', fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', fontFamily: 'Cinzel' }}>DESCRIÇÃO DA MAGIA (GERADA PELO COMPILADOR)</div>
+                
+                <div style={{ margin: 0, color: '#e0d8c0', whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                  {description.split('\n').map((line: string, i: number) => (
+                    <p key={i} style={{ margin: '0 0 10px 0', minHeight: line.trim() ? 'auto' : '1.6em' }} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #d4af37">$1</strong>').replace(/\*(.*?)\*/g, '<em style="color: #c8b99e">$1</em>') }} />
+                  ))}
+                </div>
+                
+                {instabilities.length > 0 ? (
+                  <div style={{ color: '#ff5e57', marginTop: '15px', fontWeight: 'bold', padding: '10px', background: 'rgba(255, 94, 87, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 94, 87, 0.3)' }}>
+                    ⚠️ Risco de Colapso Arcano: {instabilities[0]}
+                  </div>
+                ) : (
+                  <div style={{ color: '#1dd1a1', marginTop: '15px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Matriz Rúnica Compilada com Sucesso - Risco de Refluxo Zerado.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'DND5E' && dndBlock && (
+              <div style={{ background: 'rgba(255, 250, 240, 0.03)', padding: '24px', borderTop: '4px solid #d4af37', borderBottom: '4px solid #d4af37', fontFamily: 'serif', color: '#eaeaea', marginTop: '10px' }}>
+                <h3 style={{ margin: '0 0 5px 0', color: '#d4af37', fontFamily: 'Cinzel, serif', fontSize: '1.8rem', letterSpacing: '1px', textTransform: 'uppercase' }}>{dndBlock.name}</h3>
+                <div style={{ fontStyle: 'italic', fontSize: '0.95rem', color: '#b9a888', textTransform: 'lowercase', marginBottom: '15px', borderBottom: '1px solid rgba(212, 175, 55, 0.3)', paddingBottom: '10px' }}>{dndBlock.levelSchool}</div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, max-content) 1fr', gap: '8px 15px', fontSize: '0.95rem', marginBottom: '20px' }}>
+                  <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Tempo de Conjuração:</div>
+                  <div>{dndBlock.castingTime}</div>
+                  
+                  <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Alcance:</div>
+                  <div>{dndBlock.range}</div>
+                  
+                  <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Componentes:</div>
+                  <div>{dndBlock.components}</div>
+                  
+                  <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Duração:</div>
+                  <div>{dndBlock.duration}</div>
+                </div>
+
+                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '1rem', color: '#e0d8c0' }}>
+                    {dndBlock.fullText}
+                </div>
+                
+                {instabilities.length > 0 && (
+                  <div style={{ color: '#ff5e57', marginTop: '20px', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    *A magia está instável e é sujeita a rolagens de contramágica na Tabela de Magia Selvagem (Dano ao Conjurador).*
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Advanced Mode Toggle */}
             <div style={{ marginTop: '30px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '20px' }}>
@@ -183,6 +252,15 @@ const MagicTranslator = ({ graph }: any) => {
               {isAdvancedMode && (
                 <div style={{ marginTop: '20px', animation: 'fadeIn 0.3s' }}>
                   
+                  {result.debugPathBlock && (
+                    <>
+                      <h4 style={{ color: '#8a7d9b', fontFamily: 'Cinzel', fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase' }}>Debug Técnico</h4>
+                      <div style={{ background: '#05040a', padding: '15px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem', fontFamily: 'monospace', color: '#ff9ff3', marginBottom: '20px' }}>
+                        {result.debugPathBlock}
+                      </div>
+                    </>
+                  )}
+
                   <h4 style={{ color: '#8a7d9b', fontFamily: 'Cinzel', fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase' }}>Logs de Compilação (Array)</h4>
                   <div style={{ background: '#05040a', padding: '15px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.75rem', fontFamily: 'monospace', color: '#1dd1a1', overflowX: 'auto', maxHeight: '200px', overflowY: 'auto', marginBottom: '20px' }}>
                     <pre style={{ margin: 0 }}>{JSON.stringify(logs, null, 2)}</pre>
