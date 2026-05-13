@@ -13,6 +13,7 @@ import MagicDSLTerminal from './MagicDSLTerminal';
     } from '../magicConstants';
 
     import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -54,6 +55,7 @@ import MagicDSLTerminal from './MagicDSLTerminal';
     };
 
     const CodexModule = () => {
+      const navigate = useNavigate();
       const [isSidebarOpen, setIsSidebarOpen] = useState(false);
       const [mainGraph, setMainGraph] = useState(() => {
         try {
@@ -411,7 +413,7 @@ import MagicDSLTerminal from './MagicDSLTerminal';
           <div className="main-content">
             <div className="top-bar">
               <div className="top-actions" style={{ opacity: viewMode ? 0 : 1, transition: 'opacity 0.3s', pointerEvents: viewMode ? 'none' : 'auto' }}>
-                <button className="action-btn" onClick={() => window.location.href = '/'}>🏠 Hub</button>
+                <button className="action-btn" onClick={() => navigate('/')}>🏠 Hub</button>
                 <button className="action-btn" onClick={() => setIsGrimoireOpen(true)}>📖 Grimório</button>
                 <button className="action-btn primary" onClick={saveSpellToGrimoire}>💾 Salvar</button>
                 <button className="action-btn" onClick={exportSpellFile}>↓ Baixar</button>
