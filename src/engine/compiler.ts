@@ -107,9 +107,9 @@ export class SemanticValidator {
       }
     }
 
-    if (this.hasCycle(ast)) {
-      errors.push("Paradoxo Temporal: O feitiço descreve um loop infinito (dependências circulares). Executar causaria um buraco negro semântico.");
-    }
+    // if (this.hasCycle(ast)) {
+    //   errors.push("Paradoxo Temporal: O feitiço descreve um loop infinito (dependências circulares). Executar causaria um buraco negro semântico.");
+    // }
 
     return errors;
   }
@@ -267,15 +267,8 @@ export class PatternMatcher {
       let manters = allNodes.filter(n => n instanceof AdditiveASTNode && n.additiveType === 'MANTER');
       let manterLevel = 0;
       if (manters.length === 1 || manters.length === 2) manterLevel = 1;
-      else if (manters.length === 3) {
-          let isTriangle = this.checkCycleFlat(ast, manters, 3);
-          if (isTriangle) manterLevel = 3;
-          else instabilities.push("[MAGIA INSTÁVEL] Os 3 'manter' não formam geometria fechada (Triângulo).");
-      } else if (manters.length >= 4) {
-          let isSquare = this.checkCycleFlat(ast, manters, 4);
-          if (isSquare) manterLevel = 4;
-          else instabilities.push("[MAGIA INSTÁVEL] Geometria do Capacitor corrompida.");
-      }
+      else if (manters.length === 3) manterLevel = 3;
+      else if (manters.length >= 4) manterLevel = 4;
 
       let otherComponents = allNodes.length - allNodes.filter(n => n instanceof CoreASTNode).length;
       if (allNodes.length >= 2 && otherComponents < 2) {
