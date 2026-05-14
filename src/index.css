@@ -1,9 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body { margin: 0; background-color: #05040a; font-family: 'Lora', serif; color: #e0d8c0; }
+body { margin: 0; background-color: #05040a; font-family: 'EB Garamond', serif; color: #e0d8c0; }
     
     /* Scrollbars Arcanos */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
