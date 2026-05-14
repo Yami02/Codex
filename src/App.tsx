@@ -6,6 +6,7 @@ import { Naturalista } from './pages/Naturalista';
 import { LivroMagias } from './pages/LivroMagias';
 import { LivroMonstros } from './pages/LivroMonstros';
 import { Fichas } from './pages/Fichas';
+import { CriarMundo } from './pages/CriarMundo';
 
 export const App: React.FC = () => {
   return (
@@ -18,6 +19,7 @@ export const App: React.FC = () => {
           <Route path="/livro-magias" element={<LivroMagias />} />
           <Route path="/livro-monstros" element={<LivroMonstros />} />
           <Route path="/fichas" element={<Fichas />} />
+          <Route path="/criarmundo" element={<CriarMundo />} />
         </Routes>
       </div>
     </Router>

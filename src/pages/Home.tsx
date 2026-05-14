@@ -8,6 +8,7 @@ export const Home = () => {
     { name: 'Livro de Magias', path: '/livro-magias', desc: 'Acesse tomos e magias prontas da comunidade.', icon: '📖' },
     { name: 'Livro de Monstros', path: '/livro-monstros', desc: 'Consulte o bestiário e táticas de combate.', icon: '🐉' },
     { name: 'Criação de Fichas', path: '/fichas', desc: 'Gere a essência de seu personagem.', icon: '👤' },
+    { name: 'Criação de Mundos', path: '/criarmundo', desc: 'Forje seus próprios reinos e campanhas.', icon: '🌍' },
   ];
 
   return (
