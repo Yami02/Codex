@@ -254,7 +254,7 @@ export const Naturalista = () => {
   const nextMobile = () => setMobilePageIdx(Math.min(bookPages.length - 1, mobilePageIdx + 1));
 
   return (
-    <div className="min-h-screen bg-[#05040a] relative selection:bg-[#4a3728]/20 flex flex-col items-center py-6 md:py-10 px-4 group/body overflow-hidden">
+    <div className="min-h-screen bg-[#05040a] relative selection:bg-[#4a3728]/20 flex flex-col items-center py-2 md:py-6 px-2 group/body overflow-hidden">
       
       {/* Global Style Tags for Typography and Ink */}
       <style>{`
@@ -301,24 +301,25 @@ export const Naturalista = () => {
       </div>
 
       {/* DESKTOP BOOK LAYOUT */}
-      <div className="hidden md:flex relative w-full max-w-[1250px] h-[88vh] mx-auto my-auto items-center justify-center">
+      <div className="hidden md:flex relative w-[98vw] max-w-[1600px] h-[94vh] mx-auto my-auto items-center justify-center">
         {/* Book Cover (Backing) */}
-        <div className="absolute inset-x-[-12px] inset-y-[-12px] bg-[#1a0f0a] rounded-xl shadow-[0_30px_60px_rgba(0,0,0,0.9)] border border-[#3e2723] z-0">
-           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60 rounded-xl" />
-           <div className="absolute left-1/2 top-0 bottom-0 w-8 -translate-x-1/2 bg-gradient-to-r from-black/80 via-transparent to-black/80 z-0" />
+        <div className="absolute inset-x-[-14px] inset-y-[-14px] bg-[#1a0f0a] rounded-xl shadow-[0_30px_70px_rgba(0,0,0,0.95)] border border-[#3e2723] z-0">
+           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/70 rounded-xl" />
+           <div className="absolute left-1/2 top-0 bottom-0 w-10 -translate-x-1/2 bg-gradient-to-r from-black/90 via-transparent to-black/90 z-0" />
         </div>
 
         <div 
-          className="relative w-full h-full bg-[#f4e8d1] rounded-sm text-[#4a3728] font-serif flex overflow-hidden transition-all duration-700 z-10"
+          className="relative w-full h-full bg-[#f4e8d1] rounded-md text-[#4a3728] font-serif flex overflow-hidden transition-all duration-700 z-10"
           style={{
             backgroundImage: paperTexture,
             boxShadow: `
-              inset 24px 0 50px -20px rgba(100,70,40,0.5), 
-              inset -24px 0 50px -20px rgba(100,70,40,0.5),
+              inset 30px 0 60px -20px rgba(100,70,40,0.6), 
+              inset -30px 0 60px -20px rgba(100,70,40,0.6),
               6px 6px 0 -1px #ebdcc0,
               6px 6px 3px -1px rgba(0,0,0,0.4),
-              12px 12px 0 -2px #e3cba3,
-              12px 12px 6px -2px rgba(0,0,0,0.5)
+              14px 14px 0 -2px #e3cba3,
+              14px 14px 8px -2px rgba(0,0,0,0.6),
+              inset 0 0 100px rgba(100, 70, 40, 0.1)
             `
           }}
         >
@@ -326,13 +327,15 @@ export const Naturalista = () => {
           <div className="absolute inset-0 pointer-events-none mix-blend-multiply opacity-40 z-20" style={{ background: 'radial-gradient(circle at 30% 70%, rgba(109,19,19,0.08) 0%, transparent 40%), radial-gradient(circle at 80% 20%, rgba(74,55,40,0.12) 0%, transparent 50%), linear-gradient(90deg, rgba(0,0,0,0.05) 0%, transparent 2%, transparent 98%, rgba(0,0,0,0.05) 100%)' }} />
 
           {/* Ribbon Bookmark */}
-          <div 
-             className="absolute top-0 right-[22%] w-12 bg-[#6d1313] shadow-[2px_0_10px_rgba(0,0,0,0.5)] z-30 transition-all duration-700" 
-             style={{ height: '150px', clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 20px), 0 100%)' }}
+          <button 
+             onClick={() => setSpreadIdx(0)}
+             className="absolute top-0 right-[6%] w-12 bg-[#6d1313] shadow-[2px_0_10px_rgba(0,0,0,0.5)] z-40 transition-all duration-700 hover:h-[160px] cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500" 
+             style={{ height: '110px', clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 20px), 0 100%)' }}
+             title="Voltar ao início do grimório"
           >
-             <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent" />
-             <div className="text-amber-200/60 text-[11px] uppercase text-center mt-4 tracking-widest font-bold rotate-90 origin-left ml-7 whitespace-nowrap">Codex Magus</div>
-          </div>
+             <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent group-hover:from-black/10 transition-colors" />
+             <div className="text-amber-200/60 text-[11px] uppercase -mt-10 tracking-widest font-bold rotate-90 origin-left ml-7 whitespace-nowrap group-hover:text-amber-200 transition-colors">Codex Magus</div>
+          </button>
 
           {/* Book Spine Simulation */}
           <div className="absolute left-1/2 top-0 w-[2px] h-full bg-black/30 shadow-[0_0_15px_rgba(0,0,0,0.6)] z-30 -translate-x-1/2 pointer-events-none" />
@@ -353,17 +356,17 @@ export const Naturalista = () => {
           <button 
             onClick={prevSpread} 
             disabled={spreadIdx === 0}
-            className="absolute left-6 top-1/2 -translate-y-1/2 p-4 text-[#4a3728]/40 hover:text-[#4a3728] transition-all disabled:opacity-0 disabled:pointer-events-none group z-40 bg-transparent hover:bg-[#4a3728]/10 rounded-full"
-          >
-            <ChevronLeft className="w-12 h-12 group-hover:-translate-x-2 transition-transform drop-shadow" />
-          </button>
+            className="absolute left-0 top-0 bottom-0 w-[12%] z-40 cursor-pointer disabled:pointer-events-none outline-none focus-visible:bg-[#4a3728]/5 transition-colors"
+            title="Página Anterior"
+            aria-label="Página Anterior"
+          />
           <button 
             onClick={nextSpread} 
             disabled={spreadIdx === totalSpreads - 1}
-            className="absolute right-6 top-1/2 -translate-y-1/2 p-4 text-[#4a3728]/40 hover:text-[#4a3728] transition-all disabled:opacity-0 disabled:pointer-events-none group z-40 bg-transparent hover:bg-[#4a3728]/10 rounded-full"
-          >
-            <ChevronRight className="w-12 h-12 group-hover:translate-x-2 transition-transform drop-shadow" />
-          </button>
+            className="absolute right-0 top-0 bottom-0 w-[12%] z-40 cursor-pointer disabled:pointer-events-none outline-none focus-visible:bg-[#4a3728]/5 transition-colors"
+            title="Próxima Página"
+            aria-label="Próxima Página"
+          />
 
           {/* Page Folio Numbers */}
           <div className="absolute bottom-6 left-12 text-sm font-cinzel font-bold text-[#4a3728]/50 z-30">{spreadIdx * 2 + 1}</div>
@@ -395,12 +398,14 @@ export const Naturalista = () => {
           <div className="absolute inset-0 pointer-events-none mix-blend-multiply opacity-40 z-20" style={{ background: 'radial-gradient(circle at 50% 10%, rgba(109,19,19,0.06) 0%, transparent 50%), radial-gradient(circle at 10% 80%, rgba(74,55,40,0.1) 0%, transparent 60%)' }} />
 
           {/* Ribbon Bookmark Mobile */}
-          <div 
-             className="absolute top-0 right-[15%] w-8 bg-[#6d1313] shadow-[2px_0_10px_rgba(0,0,0,0.5)] z-20 transition-all duration-700" 
-             style={{ height: '80px', clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 15px), 0 100%)' }}
+          <button 
+             onClick={() => setMobilePageIdx(0)}
+             className="absolute top-0 right-[6%] w-[50px] bg-[#6d1313] shadow-[2px_0_10px_rgba(0,0,0,0.5)] z-20 transition-all duration-700 hover:h-[130px] cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500" 
+             style={{ height: '120px', clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 15px), 0 100%)' }}
+             title="Voltar ao início do grimório"
           >
-             <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent" />
-          </div>
+             <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent group-hover:from-black/10 transition-colors" />
+          </button>
 
           <div className="flex-1 p-8 pb-24 overflow-y-auto custom-scrollbar relative z-10 bg-gradient-to-b from-black/[0.04] to-transparent">
              {bookPages[mobilePageIdx]}
