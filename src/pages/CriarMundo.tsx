@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { Download, Upload, ArrowLeft, PlusCircle, Map, Target, Skull, Leaf, Compass, ChevronDown, ChevronRight, Trash2, Wand2, PenTool, Navigation, Save, Zap, ListTree } from 'lucide-react';
+import { Download, Upload, ArrowLeft, PlusCircle, Map, Target, Skull, Leaf, Compass, ChevronDown, ChevronRight, Trash2, Wand2, PenTool, Navigation, Save, Zap, ListTree, Castle, Users, Flag, Edit2 } from 'lucide-react';
 
 export const parseDice = (diceStr: string) => {
   const match = diceStr.toLowerCase().match(/(\d+)d(\d+)(?:\s*\+\s*(\d+))?/);
@@ -24,7 +24,7 @@ if (import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY) {
   ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY });
 }
 
-export type EntityType = 'continente' | 'bioma' | 'regiao' | 'monstro' | 'animal' | 'planta';
+export type EntityType = 'continente' | 'bioma' | 'regiao' | 'civilizacao' | 'povo' | 'objetivo' | 'monstro' | 'animal' | 'planta';
 
 export interface EntityAttributes {
   str: number | string;
@@ -56,6 +56,10 @@ export interface Entity {
   ataques?: Attack[];
   skills?: { name: string; description: string; damage?: string }[];
   midjourneyPrompt?: string;
+  alinhamento?: string;
+  hierarquia?: string;
+  povos?: string;
+  objetivo?: string;
 }
 
 export const simulateLevelScaling = (entity: Entity, targetLevel: number): Entity => {
@@ -125,6 +129,9 @@ const tabs: { id: EntityType, label: string, icon: React.ReactNode }[] = [
   { id: 'continente', label: 'Continentes', icon: <Map className="w-4 h-4" /> },
   { id: 'bioma', label: 'Biomas', icon: <Leaf className="w-4 h-4" /> },
   { id: 'regiao', label: 'Regiões', icon: <Compass className="w-4 h-4" /> },
+  { id: 'civilizacao', label: 'Civilizações', icon: <Castle className="w-4 h-4" /> },
+  { id: 'povo', label: 'Povos/Raças', icon: <Users className="w-4 h-4" /> },
+  { id: 'objetivo', label: 'Objetivos', icon: <Flag className="w-4 h-4" /> },
   { id: 'monstro', label: 'Monstros', icon: <Skull className="w-4 h-4" /> },
   { id: 'animal', label: 'Animais', icon: <Target className="w-4 h-4" /> },
   { id: 'planta', label: 'Plantas', icon: <Leaf className="w-4 h-4" /> },
@@ -134,6 +141,7 @@ export const CriarMundo = () => {
   const [activeTab, setActiveTab] = useState<EntityType>('continente');
   const [creationMode, setCreationMode] = useState<'manual' | 'ai'>('manual');
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   // Forms & AI
   const [formData, setFormData] = useState<Partial<Entity>>({});
@@ -163,11 +171,15 @@ export const CriarMundo = () => {
     localStorage.setItem('world_database_v2', JSON.stringify(database));
   }, [database]);
 
-  // Reset form when tab changes
-  useEffect(() => {
-    setFormData({ tipo: activeTab });
-    setAiPrompt('');
-  }, [activeTab]);
+  // Handle Edit Action
+  const handleEdit = (entity: Entity) => {
+    setActiveTab(entity.tipo);
+    setFormData({ ...entity });
+    setSelectedParentId(entity.parentId);
+    setEditingId(entity.id);
+    setCreationMode('manual');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const getParentContext = () => {
     if (!selectedParentId) return '';
@@ -219,6 +231,44 @@ export const CriarMundo = () => {
             loot: { type: Type.STRING, description: "Materiais que podem ser colhidos da planta" }
           },
           required: ['nome', 'explicacao', 'loot']
+        }
+      }
+    } else if (tipo === 'civilizacao') {
+      return {
+        sysPrompt: "Crie uma civilização de um mundo de RPG de fantasia.",
+        schema: {
+          type: Type.OBJECT,
+          properties: {
+            nome: { type: Type.STRING },
+            alinhamento: { type: Type.STRING, description: "Alinhamento moral e ético" },
+            hierarquia: { type: Type.STRING, description: "Estrutura de poder e liderança" },
+            explicacao: { type: Type.STRING, description: "Descrição da cultura, costumes e características gerais" },
+          },
+          required: ['nome', 'alinhamento', 'hierarquia', 'explicacao']
+        }
+      }
+    } else if (tipo === 'povo') {
+      return {
+        sysPrompt: "Crie um povo, raça ou etnia para um mundo de RPG.",
+        schema: {
+          type: Type.OBJECT,
+          properties: {
+            nome: { type: Type.STRING },
+            explicacao: { type: Type.STRING, description: "Descrição detalhada do povo, cultura, aparência e costumes" }
+          },
+          required: ['nome', 'explicacao']
+        }
+      }
+    } else if (tipo === 'objetivo') {
+      return {
+        sysPrompt: "Crie um objetivo, meta ou motivação de uma facção ou povo em um jogo de RPG.",
+        schema: {
+          type: Type.OBJECT,
+          properties: {
+            nome: { type: Type.STRING, description: "Título do objetivo" },
+            explicacao: { type: Type.STRING, description: "Por que buscam isso e o que farão para conquistar" }
+          },
+          required: ['nome', 'explicacao']
         }
       }
     } else {
@@ -278,6 +328,10 @@ export const CriarMundo = () => {
             int: parsed.int, wis: parsed.wis, cha: parsed.cha
           };
         }
+        if (activeTab === 'civilizacao') {
+          next.alinhamento = parsed.alinhamento;
+          next.hierarquia = parsed.hierarquia;
+        }
         return next;
       });
 
@@ -299,21 +353,37 @@ export const CriarMundo = () => {
       return;
     }
 
-    const newEnt: Entity = {
-      id: formData.id || `${activeTab}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      tipo: activeTab,
-      parentId: selectedParentId || null,
-      nome: formData.nome,
-      explicacao: formData.explicacao,
-      hp: formData.hp,
-      loot: formData.loot,
-      attributes: formData.attributes,
-      nivel_inicial: formData.nivel_inicial || 1,
-      nivel_atual: formData.nivel_inicial || 1,
-      ataques: formData.ataques || [],
-    };
+    if (editingId) {
+      setDatabase(prev => ({
+        items: prev.items.map(i => i.id === editingId ? {
+          ...i,
+          ...formData,
+          tipo: activeTab,
+          parentId: selectedParentId || null,
+        } as Entity : i)
+      }));
+      setEditingId(null);
+    } else {
+      const newEnt: Entity = {
+        id: formData.id || `${activeTab}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        tipo: activeTab,
+        parentId: selectedParentId || null,
+        nome: formData.nome,
+        explicacao: formData.explicacao,
+        hp: formData.hp,
+        loot: formData.loot,
+        attributes: formData.attributes,
+        nivel_inicial: formData.nivel_inicial || 1,
+        nivel_atual: formData.nivel_atual || formData.nivel_inicial || 1,
+        ataques: formData.ataques || [],
+        alinhamento: formData.alinhamento,
+        hierarquia: formData.hierarquia,
+        povos: formData.povos,
+        objetivo: formData.objetivo,
+      };
 
-    setDatabase(prev => ({ items: [newEnt, ...prev.items] }));
+      setDatabase(prev => ({ items: [newEnt, ...prev.items] }));
+    }
     
     // Clear form but keep selection
     setFormData({ tipo: activeTab });
@@ -388,7 +458,7 @@ export const CriarMundo = () => {
   };
 
   // Hierarchy calculations
-  const possibleParents = database.items.filter(i => ['continente', 'bioma', 'regiao'].includes(i.tipo));
+  const possibleParents = database.items.filter(i => ['continente', 'bioma', 'regiao', 'civilizacao'].includes(i.tipo));
   const rootItems = database.items.filter(i => !i.parentId);
 
   return (
@@ -429,7 +499,12 @@ export const CriarMundo = () => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                   setActiveTab(tab.id);
+                   setEditingId(null);
+                   setFormData({ tipo: tab.id });
+                   setAiPrompt('');
+                }}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${
                   activeTab === tab.id ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
                 }`}
@@ -445,10 +520,10 @@ export const CriarMundo = () => {
                 <ListTree className="w-4 h-4" /> Navegação
              </h3>
              <div className="space-y-1">
-               {rootItems.filter(i => ['continente', 'bioma', 'regiao'].includes(i.tipo)).map(node => (
+               {rootItems.filter(i => ['continente', 'bioma', 'regiao', 'civilizacao'].includes(i.tipo)).map(node => (
                  <GeoNavNode key={node.id} entity={node} allItems={database.items} />
                ))}
-               {rootItems.filter(i => ['continente', 'bioma', 'regiao'].includes(i.tipo)).length === 0 && (
+               {rootItems.filter(i => ['continente', 'bioma', 'regiao', 'civilizacao'].includes(i.tipo)).length === 0 && (
                  <p className="text-xs text-zinc-600 italic px-2">Nenhuma geografia raiz.</p>
                )}
              </div>
@@ -571,6 +646,21 @@ export const CriarMundo = () => {
                     </div>
                   )}
 
+                  {activeTab === 'civilizacao' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-zinc-400 mb-1">Alinhamento</label>
+                          <input type="text" value={formData.alinhamento || ''} onChange={e => setFormData({...formData, alinhamento: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-100 focus:border-amber-500 outline-none" placeholder="Ex: Neutro e Bom" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-zinc-400 mb-1">Hierarquia</label>
+                          <input type="text" value={formData.hierarquia || ''} onChange={e => setFormData({...formData, hierarquia: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-100 focus:border-amber-500 outline-none" placeholder="Ex: Monarquia absolutista..." />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {['monstro', 'animal'].includes(activeTab) && (
                     <div>
                       <label className="block text-xs font-semibold text-zinc-400 mb-2">Atributos Base</label>
@@ -629,13 +719,24 @@ export const CriarMundo = () => {
                     </div>
                   )}
 
-                  <div className="pt-4 mt-4 border-t border-zinc-800/60">
+                  <div className="pt-4 mt-4 border-t border-zinc-800/60 flex gap-2">
                     <button
                       onClick={handleSaveForm}
-                      className="w-full flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold tracking-wide transition-all bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-900/20"
+                      className="flex-1 flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold tracking-wide transition-all bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-900/20"
                     >
-                      <Save className="w-5 h-5" /> Registrar no Codex
+                      <Save className="w-5 h-5" /> {editingId ? 'Salvar Alterações' : 'Registrar no Codex'}
                     </button>
+                    {editingId && (
+                      <button
+                        onClick={() => {
+                          setEditingId(null);
+                          setFormData({ tipo: activeTab });
+                        }}
+                        className="px-4 flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold tracking-wide transition-all bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                      >
+                        Cancelar
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -661,7 +762,7 @@ export const CriarMundo = () => {
               ) : (
                 <div className="space-y-4">
                   {rootItems.map(item => (
-                    <EntityNode key={item.id} entity={item} allItems={database.items} level={0} onUpdateParent={handleUpdateParent} onDelete={handleDelete} possibleParents={possibleParents} onCommitLevel={handleCommitLevel} />
+                    <EntityNode key={item.id} entity={item} allItems={database.items} level={0} onUpdateParent={handleUpdateParent} onDelete={handleDelete} onEdit={handleEdit} possibleParents={possibleParents} onCommitLevel={handleCommitLevel} />
                   ))}
                 </div>
               )}
@@ -675,7 +776,7 @@ export const CriarMundo = () => {
 };
 
 const GeoNavNode = ({ entity, allItems, level = 0 }: { entity: Entity, allItems: Entity[], level?: number }) => {
-  const children = allItems.filter(i => i.parentId === entity.id && ['continente', 'bioma', 'regiao'].includes(i.tipo));
+  const children = allItems.filter(i => i.parentId === entity.id && ['continente', 'bioma', 'regiao', 'civilizacao'].includes(i.tipo));
   
   return (
     <div className="flex flex-col">
@@ -684,7 +785,7 @@ const GeoNavNode = ({ entity, allItems, level = 0 }: { entity: Entity, allItems:
         style={{ paddingLeft: `${(level * 8) + 8}px` }}
         title={entity.nome}
       >
-        {entity.tipo === 'continente' ? <Map className="w-3 h-3 text-amber-600" /> : entity.tipo === 'bioma' ? <Leaf className="w-3 h-3 text-emerald-600" /> : <Compass className="w-3 h-3 text-purple-600" />}
+        {entity.tipo === 'continente' ? <Map className="w-3 h-3 text-amber-600" /> : entity.tipo === 'bioma' ? <Leaf className="w-3 h-3 text-emerald-600" /> : entity.tipo === 'regiao' ? <Compass className="w-3 h-3 text-purple-600" /> : entity.tipo === 'civilizacao' ? <Castle className="w-3 h-3 text-blue-500" /> : entity.tipo === 'povo' ? <Users className="w-3 h-3 text-amber-500"/> : <Flag className="w-3 h-3 text-rose-500" />}
         {entity.nome}
       </div>
       {children.map(child => (
@@ -696,7 +797,7 @@ const GeoNavNode = ({ entity, allItems, level = 0 }: { entity: Entity, allItems:
 
 // --- Recursive Tree Component implementation ---
 
-const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, possibleParents, onCommitLevel }: any) => {
+const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, onEdit, possibleParents, onCommitLevel }: any) => {
    const [open, setOpen] = useState(level < 1);
    const children = allItems.filter((i: any) => i.parentId === entity.id);
    const [forecastLevel, setForecastLevel] = useState<number>(entity.nivel_atual || entity.nivel_inicial || 1);
@@ -706,6 +807,9 @@ const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, possibl
        case 'continente': return <Map className="w-5 h-5 text-amber-500" />;
        case 'bioma': return <Leaf className="w-5 h-5 text-emerald-500" />;
        case 'regiao': return <Compass className="w-5 h-5 text-purple-500" />;
+       case 'civilizacao': return <Castle className="w-5 h-5 text-blue-500" />;
+       case 'povo': return <Users className="w-5 h-5 text-amber-500" />;
+       case 'objetivo': return <Flag className="w-5 h-5 text-rose-500" />;
        case 'monstro': return <Skull className="w-5 h-5 text-red-500" />;
        case 'animal': return <Target className="w-5 h-5 text-blue-400" />;
        case 'planta': return <Leaf className="w-5 h-5 text-green-400" />;
@@ -748,6 +852,14 @@ const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, possibl
                         <span className="text-xs text-zinc-300 font-serif">{String(v)}</span>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Civilizacao fields */}
+                {entity.tipo === 'civilizacao' && (
+                  <div className="mt-3 space-y-2 w-full text-sm bg-blue-950/20 border border-blue-900/30 p-3 rounded text-zinc-300">
+                     {entity.alinhamento && <p><span className="text-blue-400/80 font-semibold uppercase text-[10px] tracking-wider mr-2">Alinhamento:</span> <span>{entity.alinhamento}</span></p>}
+                     {entity.hierarquia && <p><span className="text-blue-400/80 font-semibold uppercase text-[10px] tracking-wider mr-2">Hierarquia:</span> <span>{entity.hierarquia}</span></p>}
                   </div>
                 )}
 
@@ -866,6 +978,13 @@ const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, possibl
                 </select>
              </div>
              <button 
+                onClick={() => onEdit(entity)}
+                className="p-1.5 bg-blue-950/30 hover:bg-blue-900/60 text-blue-500 border border-blue-900/30 rounded transition-colors"
+                title="Editar"
+             >
+               <Edit2 className="w-4 h-4" />
+             </button>
+             <button 
                 onClick={() => onDelete(entity.id)}
                 className="p-1.5 bg-red-950/30 hover:bg-red-900/60 text-red-500 border border-red-900/30 rounded transition-colors"
                 title="Excluir entidade e filhos"
@@ -881,7 +1000,7 @@ const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, possibl
              <motion.div initial={{height:0}} animate={{height:'auto'}} exit={{height:0}} className="overflow-hidden border-t border-zinc-800/40">
                 <div className="p-3 bg-zinc-950/50">
                    {children.map((child: any) => (
-                     <EntityNode key={child.id} entity={child} allItems={allItems} level={level + 1} onUpdateParent={onUpdateParent} onDelete={onDelete} possibleParents={possibleParents} onCommitLevel={onCommitLevel} />
+                     <EntityNode key={child.id} entity={child} allItems={allItems} level={level + 1} onUpdateParent={onUpdateParent} onDelete={onDelete} onEdit={onEdit} possibleParents={possibleParents} onCommitLevel={onCommitLevel} />
                    ))}
                 </div>
              </motion.div>
