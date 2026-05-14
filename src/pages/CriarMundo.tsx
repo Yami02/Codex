@@ -27,12 +27,12 @@ if (import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY) {
 export type EntityType = 'continente' | 'bioma' | 'regiao' | 'civilizacao' | 'povo' | 'objetivo' | 'monstro' | 'animal' | 'planta';
 
 export interface EntityAttributes {
-  str: number | string;
-  dex: number | string;
-  con: number | string;
-  int: number | string;
-  wis: number | string;
-  cha: number | string;
+  fisico: number | string;
+  precisao: number | string;
+  resistencia: number | string;
+  mente: number | string;
+  vontade: number | string;
+  eloquencia: number | string;
 }
 
 export interface Attack {
@@ -50,6 +50,7 @@ export interface Entity {
   explicacao: string;
   hp?: number | string;
   loot?: string;
+  loots?: string[];
   attributes?: EntityAttributes;
   nivel_inicial?: number;
   nivel_atual?: number;
@@ -73,8 +74,8 @@ export const simulateLevelScaling = (entity: Entity, targetLevel: number): Entit
   const newStats = { ...entity.attributes } as any;
   for (let lvl = currentLevel + 1; lvl <= targetLevel; lvl++) {
     if (lvl % 2 === 0) {
-      if (newStats.str !== undefined) newStats.str = Number(newStats.str) + 1;
-      if (newStats.con !== undefined) newStats.con = Number(newStats.con) + 1;
+      if (newStats.fisico !== undefined) newStats.fisico = Number(newStats.fisico) + 1;
+      if (newStats.resistencia !== undefined) newStats.resistencia = Number(newStats.resistencia) + 1;
     }
   }
 
@@ -93,7 +94,7 @@ export const simulateLevelScaling = (entity: Entity, targetLevel: number): Entit
     let newBonus = parsed.bonus;
     
     for (let lvl = currentLevel + 1; lvl <= targetLevel; lvl++) {
-      const currentStr = Number(entity.attributes?.str || 10) + Math.floor((lvl - initialLevel)/2);
+      const currentStr = Number(entity.attributes?.fisico || 10) + Math.floor((lvl - initialLevel)/2);
       const strBonus = Math.floor((currentStr - 10) / 2);
       
       newBonus += (strBonus > 0 ? 1 : 0);
@@ -199,10 +200,10 @@ export const CriarMundo = () => {
             explicacao: { type: Type.STRING, description: "Lore, aparência e ecologia" },
             hp: { type: Type.INTEGER, description: "Pontos de vida base" },
             nivel_inicial: { type: Type.INTEGER, description: "Nível inicial sugerido para a criatura (ex: monstos de alta periculosidade começam num nível mais alto)" },
-            loot: { type: Type.STRING, description: "Itens dropados valiosos para crafting" },
-            str: { type: Type.INTEGER }, dex: { type: Type.INTEGER },
-            con: { type: Type.INTEGER }, int: { type: Type.INTEGER },
-            wis: { type: Type.INTEGER }, cha: { type: Type.INTEGER },
+            loots: { type: Type.ARRAY, description: "Itens dropados valiosos para crafting", items: { type: Type.STRING } },
+            fisico: { type: Type.INTEGER }, precisao: { type: Type.INTEGER },
+            resistencia: { type: Type.INTEGER }, mente: { type: Type.INTEGER },
+            vontade: { type: Type.INTEGER }, eloquencia: { type: Type.INTEGER },
             ataques: {
               type: Type.ARRAY,
               description: "Ataques e habilidades que causam dano",
@@ -217,7 +218,7 @@ export const CriarMundo = () => {
               }
             }
           },
-          required: ['nome', 'explicacao', 'hp', 'nivel_inicial', 'loot', 'str', 'dex', 'con', 'int', 'wis', 'cha']
+          required: ['nome', 'explicacao', 'hp', 'nivel_inicial', 'loots', 'fisico', 'precisao', 'resistencia', 'mente', 'vontade', 'eloquencia']
         }
       };
     } else if (tipo === 'planta') {
@@ -228,9 +229,9 @@ export const CriarMundo = () => {
           properties: {
             nome: { type: Type.STRING },
             explicacao: { type: Type.STRING, description: "Aparência orgânica e habitat" },
-            loot: { type: Type.STRING, description: "Materiais que podem ser colhidos da planta" }
+            loots: { type: Type.ARRAY, description: "Materiais que podem ser colhidos da planta", items: { type: Type.STRING } }
           },
-          required: ['nome', 'explicacao', 'loot']
+          required: ['nome', 'explicacao', 'loots']
         }
       }
     } else if (tipo === 'civilizacao') {
@@ -322,10 +323,10 @@ export const CriarMundo = () => {
       // Auto-fill form
       setFormData(prev => {
         const next: Partial<Entity> = { ...prev, ...parsed, tipo: activeTab, parentId: selectedParentId || null };
-        if (parsed.str !== undefined) {
+        if (parsed.fisico !== undefined) {
           next.attributes = {
-            str: parsed.str, dex: parsed.dex, con: parsed.con,
-            int: parsed.int, wis: parsed.wis, cha: parsed.cha
+            fisico: parsed.fisico, precisao: parsed.precisao, resistencia: parsed.resistencia,
+            mente: parsed.mente, vontade: parsed.vontade, eloquencia: parsed.eloquencia
           };
         }
         if (activeTab === 'civilizacao') {
@@ -358,6 +359,8 @@ export const CriarMundo = () => {
         items: prev.items.map(i => i.id === editingId ? {
           ...i,
           ...formData,
+          loots: formData.loots || (formData.loot ? [formData.loot] : []),
+          loot: undefined,
           tipo: activeTab,
           parentId: selectedParentId || null,
         } as Entity : i)
@@ -371,7 +374,7 @@ export const CriarMundo = () => {
         nome: formData.nome,
         explicacao: formData.explicacao,
         hp: formData.hp,
-        loot: formData.loot,
+        loots: formData.loots || (formData.loot ? [formData.loot] : []),
         attributes: formData.attributes,
         nivel_inicial: formData.nivel_inicial || 1,
         nivel_atual: formData.nivel_atual || formData.nivel_inicial || 1,
@@ -633,16 +636,68 @@ export const CriarMundo = () => {
                         <input type="number" value={formData.nivel_inicial || ''} onChange={e => setFormData({...formData, nivel_inicial: parseInt(e.target.value) || 1})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-blue-400 focus:border-blue-500 outline-none" placeholder="Ex: 1" />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-zinc-400 mb-1">Loot / Drop</label>
-                        <input type="text" value={formData.loot || ''} onChange={e => setFormData({...formData, loot: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-amber-300 focus:border-amber-500 outline-none" placeholder="Couro rudimentar" />
+                        <label className="block text-xs font-semibold text-zinc-400 mb-1 flex justify-between items-center">
+                          Loots / Drops
+                          <button 
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, loots: [...(prev.loots || (prev.loot ? [prev.loot] : [])), ''] }))}
+                            className="text-amber-500 hover:text-amber-400 text-[10px] px-2 py-1 bg-amber-500/10 rounded"
+                          >
+                            + Add
+                          </button>
+                        </label>
+                        <div className="space-y-2">
+                          {(formData.loots || (formData.loot ? [formData.loot] : [])).map((l, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <input type="text" value={l} onChange={e => {
+                                const arr = [...(formData.loots || (formData.loot ? [formData.loot] : []))];
+                                arr[i] = e.target.value;
+                                setFormData({...formData, loots: arr, loot: undefined});
+                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-sm text-amber-300 focus:border-amber-500 outline-none" placeholder="Ex: Couro rudimentar" />
+                              <button type="button" onClick={() => {
+                                const arr = [...(formData.loots || (formData.loot ? [formData.loot] : []))];
+                                arr.splice(i, 1);
+                                setFormData({...formData, loots: arr, loot: undefined});
+                              }} className="p-2 bg-red-900 rounded text-white border border-red-800">
+                                <Trash2 className="w-4 h-4"/>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {activeTab === 'planta' && (
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-400 mb-1">Loot / Coleta</label>
-                      <input type="text" value={formData.loot || ''} onChange={e => setFormData({...formData, loot: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-emerald-300 focus:border-emerald-500 outline-none" placeholder="Seiva luminosa, Folhas ácidas..." />
+                      <label className="block text-xs font-semibold text-zinc-400 mb-1 flex justify-between items-center">
+                          Loots / Coleta
+                          <button 
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, loots: [...(prev.loots || (prev.loot ? [prev.loot] : [])), ''] }))}
+                            className="text-emerald-500 hover:text-emerald-400 text-[10px] px-2 py-1 bg-emerald-500/10 rounded"
+                          >
+                            + Add
+                          </button>
+                      </label>
+                      <div className="space-y-2">
+                          {(formData.loots || (formData.loot ? [formData.loot] : [])).map((l, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <input type="text" value={l} onChange={e => {
+                                const arr = [...(formData.loots || (formData.loot ? [formData.loot] : []))];
+                                arr[i] = e.target.value;
+                                setFormData({...formData, loots: arr, loot: undefined});
+                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-sm text-emerald-300 focus:border-emerald-500 outline-none" placeholder="Ex: Seiva luminosa" />
+                              <button type="button" onClick={() => {
+                                const arr = [...(formData.loots || (formData.loot ? [formData.loot] : []))];
+                                arr.splice(i, 1);
+                                setFormData({...formData, loots: arr, loot: undefined});
+                              }} className="p-2 bg-red-900 rounded text-white border border-red-800">
+                                <Trash2 className="w-4 h-4"/>
+                              </button>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   )}
 
@@ -665,14 +720,14 @@ export const CriarMundo = () => {
                     <div>
                       <label className="block text-xs font-semibold text-zinc-400 mb-2">Atributos Base</label>
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                        {['str', 'dex', 'con', 'int', 'wis', 'cha'].map((attr) => (
+                        {['fisico', 'precisao', 'resistencia', 'mente', 'vontade', 'eloquencia'].map((attr) => (
                            <div key={attr}>
                              <span className="text-[10px] uppercase text-zinc-500 font-bold mb-1 block text-center">{attr}</span>
                              <input type="number" 
                                value={(formData.attributes as any)?.[attr] || ''} 
                                onChange={e => setFormData({
                                  ...formData, 
-                                 attributes: { ...((formData.attributes || {str:10,dex:10,con:10,int:10,wis:10,cha:10}) as any), [attr]: e.target.value }
+                                 attributes: { ...((formData.attributes || {fisico:10,precisao:10,resistencia:10,mente:10,vontade:10,eloquencia:10}) as any), [attr]: e.target.value }
                                })}
                                className="w-full bg-zinc-900 border border-zinc-800 rounded p-2 text-center text-sm focus:border-amber-500 outline-none" />
                            </div>
@@ -839,7 +894,7 @@ const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, onEdit,
                   {/* Status Badges */}
                   {(entity.nivel_atual || entity.nivel_inicial) ? <span className="bg-blue-950/30 text-blue-400 text-[10px] px-2 py-0.5 rounded border border-blue-900/30 flex items-center gap-1"><Zap className="w-3 h-3"/> Nível: {entity.nivel_atual || entity.nivel_inicial}</span> : null}
                   {entity.hp && <span className="bg-red-950/40 text-red-400 text-[10px] px-2 py-0.5 rounded border border-red-900/30">HP: {entity.hp}</span>}
-                  {entity.loot && <span className="bg-emerald-950/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded border border-emerald-900/30 line-clamp-1 max-w-[200px]">Loot: {entity.loot}</span>}
+                  {(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).length > 0 && <span className="bg-emerald-950/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded border border-emerald-900/30 line-clamp-1 max-w-[200px]" title={(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).join(', ')}>Loot: {(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).join(', ')}</span>}
                 </div>
                 <p className="text-zinc-400 text-sm leading-relaxed">{entity.explicacao}</p>
 
@@ -1026,7 +1081,7 @@ function migrateV1toV2(oldDb: any): FlatWorldDatabase {
           nome: item.nome || item.name || 'Sem Nome',
           explicacao: item.explicacao || item.description || item.geography || '',
           hp: item.hp,
-          loot: item.loot,
+          loots: item.loots || (item.loot ? [item.loot] : []),
           attributes: item.attributes || item.stats
         });
         if (item.biomas) traverse(item.biomas, id, 'bioma');

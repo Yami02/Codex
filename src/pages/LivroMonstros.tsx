@@ -216,16 +216,26 @@ export const LivroMonstros = () => {
   }
 
   // Math
+  const atributos = {
+    fisico: 10 + (monster.conMod * 2) + Math.floor(crDiff / 2),
+    precisao: 10 + monster.conMod + Math.floor(crDiff / 3),
+    resistencia: 10 + (monster.conMod * 2) + Math.floor(crDiff / 2),
+    mente: 10 + Math.floor(crDiff / 4),
+    vontade: 10 + monster.conMod + Math.floor(crDiff / 3),
+    eloquencia: 8 + Math.floor(crDiff / 5),
+  };
+
   const calculatedAc = monster.baseAc + Math.floor(crDiff / 2);
-  const hpBonusFromCon = crDiff * monster.conMod;
-  const calculatedHp = (monster.baseHp + hpBonusFromCon) * hpMulti;
+  const hpBonusFromResistencia = crDiff * Math.floor((atributos.resistencia - 10) / 2);
+  const calculatedHp = (monster.baseHp + hpBonusFromResistencia) * hpMulti;
   const addedDice = Math.floor(crDiff / 3);
   
+  const dmgBonus = monster.damageBonus + Math.floor((atributos.fisico - 10) / 2);
   const finalDiceCount = monster.damageDiceCount + addedDice;
-  const finalDamageStr = `${finalDiceCount}d${monster.damageDiceSides} + ${monster.damageBonus} ${monster.damageType}`;
+  const finalDamageStr = `${finalDiceCount}d${monster.damageDiceSides} + ${dmgBonus} ${monster.damageType}`;
   
   const prof = 2 + Math.floor(Math.max(0, targetCr - 1) / 4);
-  const saveDc = 8 + prof + monster.conMod;
+  const saveDc = 8 + prof + Math.floor((atributos.mente - 10) / 2);
 
   // Features mapping String
   let abilitiesText = monster.baseAbility;
@@ -366,6 +376,14 @@ export const LivroMonstros = () => {
                   <div><strong>Armor Class (AC):</strong> {calculatedAc} {crDiff > 0 && <span style={{ color: '#1dd1a1', fontSize: '0.8rem' }}>(+{Math.floor(crDiff/2)} Refinamento)</span>}</div>
                   <div><strong>Hit Points (HP):</strong> {calculatedHp} {hpMulti > 1 && <span style={{ color: '#1dd1a1', fontSize: '0.8rem' }}>(Base Multiplicada x{hpMulti})</span>}</div>
                   <div><strong>Velocidade:</strong> {monster.speed}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginTop: '1rem', textAlign: 'center', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '4px' }}>
+                     <div><span style={{ fontSize: '0.7rem', color: '#d4af37', display: 'block', textTransform: 'uppercase' }}>Físico</span><strong>{atributos.fisico}</strong></div>
+                     <div><span style={{ fontSize: '0.7rem', color: '#d4af37', display: 'block', textTransform: 'uppercase' }}>Precisão</span><strong>{atributos.precisao}</strong></div>
+                     <div><span style={{ fontSize: '0.7rem', color: '#d4af37', display: 'block', textTransform: 'uppercase' }}>Resistência</span><strong>{atributos.resistencia}</strong></div>
+                     <div><span style={{ fontSize: '0.7rem', color: '#d4af37', display: 'block', textTransform: 'uppercase' }}>Mente</span><strong>{atributos.mente}</strong></div>
+                     <div><span style={{ fontSize: '0.7rem', color: '#d4af37', display: 'block', textTransform: 'uppercase' }}>Vontade</span><strong>{atributos.vontade}</strong></div>
+                     <div><span style={{ fontSize: '0.7rem', color: '#d4af37', display: 'block', textTransform: 'uppercase' }}>Eloquência</span><strong>{atributos.eloquencia}</strong></div>
+                  </div>
                 </div>
 
                 <div style={{ margin: '1rem 0' }}>
