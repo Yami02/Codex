@@ -112,44 +112,113 @@ export const Naturalista = () => {
   );
 
   const CapIndice = () => {
+    const [hoverCat, setHoverCat] = useState<string | null>(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
     const categorias = [
-      { id: 'nucleos', titulo: 'Núcleos', desc: 'Substantivos e Elementos Primordiais' },
-      { id: 'morfologia', titulo: 'Morfologia', desc: 'Adjetivos e Formas Geométricas' },
-      { id: 'vetores', titulo: 'Vetores', desc: 'Verbos e Orientação Espacial' },
-      { id: 'modificadores', titulo: 'Modificadores', desc: 'Advérbios e Distorções' }
+      { id: 'nucleos', titulo: 'Núcleos', desc: 'Substantivos e Elementos Primordiais', color: '#b91c1c' },
+      { id: 'morfologia', titulo: 'Morfologia', desc: 'Adjetivos e Formas Geométricas', color: '#047857' },
+      { id: 'vetores', titulo: 'Vetores', desc: 'Verbos e Orientação Espacial', color: '#1d4ed8' },
+      { id: 'modificadores', titulo: 'Modificadores', desc: 'Advérbios e Distorções', color: '#6d28d9' }
     ];
 
+    const handleMouseMove = (e: React.MouseEvent) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+      setMousePos({ x, y });
+    };
+
+    const activeColor = hoverCat ? categorias.find(c => c.id === hoverCat)?.color : '#4a3728';
+
     return (
-      <div className="h-full animate-in fade-in duration-700 flex flex-col">
-        <h1 className="font-cinzel text-3xl font-bold text-center text-[#4a3728] mb-8 border-b border-[#4a3728]/20 pb-4">O Índice de Componentes</h1>
-        <p className="font-serif text-[1.1rem] leading-relaxed text-[#2c1d11] mb-10 text-center italic">
-          Toque a designação desejada para desdobrar a tapeçaria das palavras.
-        </p>
-        
-        <div className="flex-1 flex flex-col justify-center space-y-6 max-w-sm mx-auto w-full">
-           {categorias.map(cat => (
-             <button 
-                key={cat.id} 
-                onClick={() => {
-                  setSelectedSub(cat.id);
-                  // se estivermos no mobile e clicarmos no indice, precisamos ir para a pag do lexico tb
-                  if (window.innerWidth < 768) {
-                    setMobilePageIdx(3);
-                  }
-                }}
-                className={`w-full text-left group flex items-end gap-2 pb-1 border-b border-transparent hover:border-[#6d1313]/30 transition-colors ${selectedSub === cat.id ? 'text-[#6d1313]' : 'text-[#3e2723]'}`}
-             >
-               <span className="font-cinzel font-bold text-2xl group-hover:text-[#6d1313] transition-colors ink-effect">{cat.titulo}</span>
-               <span className="flex-1 border-b-2 border-dotted border-[#4a3728]/30 relative -top-1.5 mx-2 group-hover:border-[#6d1313]/50 transition-colors" />
-             </button>
-           ))}
+      <div 
+        className="h-full animate-in fade-in duration-700 flex flex-col relative overflow-hidden"
+        onMouseMove={handleMouseMove}
+      >
+        {/* Dragon Silhouette with Parallax */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center transition-transform duration-200 ease-out z-0"
+          style={{ transform: `translate(${mousePos.x * -20}px, ${mousePos.y * -20}px)` }}
+        >
+          <svg viewBox="0 0 512 512" fill="currentColor" className="w-[120%] h-[120%] text-black scale-150">
+            {/* Minimal stylized dragon representation */}
+            <path d="M256 0c-15.6 0-30.8 1.4-45.5 4C219.8 19.3 224 40.2 224 64c0 10.3-1.6 20.3-4.5 29.8 20.9 9.8 34.5 31.9 34.5 56.2 0 17.6-7 33.6-18.4 45.4C261 210.5 288 238.3 288 272c0 14.5-5.1 27.9-13.7 38.4C295.3 325 316.5 352 320 352c16 0 32-15.6 32-32 0-33.1 28.3-60.8 62.1-63.5-3.8-3.4-7.4-6.9-11.1-10.3-25-24.1-39-56-39-90.2 0-70.7 57.3-128 128-128 6.5 0 12.9.5 19.1 1.4-1.2-1.9-2.5-3.8-3.9-5.7L507.2 22.3C445.6-12 366 11.9 320 64c-13.8 15.6-25 33.9-33 54C275.9 111.4 266.3 103 256 103s-19.9 8.3-25.9 22.4l.2.2c-.1-.1-.2-.2-.3-.3C223.7 151 202.9 160 180.2 160c-26.4 0-51-11.8-67.4-31.5-6.8 28.1-23.7 52.8-48.4 68.6 15 15.3 24.1 36.3 24.1 58.9v48L51.8 359c-32.5 18-51.8 52.3-51.8 89v56c0 4.4 3.6 8 8 8h16c4.4 0 8-3.6 8-8v-32c0-10.9 3.5-21 9.4-29.3C52.6 461 68 480 88.5 480c25.4 0 46.8-17.7 54.4-41.5 5.2 11.9 14.1 21.9 25 28.8 13.9 8.9 30.5 12.7 46.6 9.8 15.1-6.1 28.4-16.1 38.3-28.7 18.2-22.9 25.1-51.8 21.4-80.1l.8-.3c18.5 24 45 42 75.6 51 0-8.8 7.2-16 16-16h40c8.8 0 16 7.2 16 16v16c0 8.8-7.2 16-16 16s-16-7.2-16-16h-40c0-16.1 12.1-29.6 27.8-31.8-6.1-39.7-32.1-73-68.5-88.6C348.6 409.8 403 448 464 448c26.5 0 53-10.6 73.2-31.8L536.8 416h23.2v-21.7z"/>
+          </svg>
         </div>
 
-        <div className="mt-auto text-center opacity-40 pb-6">
-          <svg width="60" height="60" viewBox="0 0 100 100" className="mx-auto stroke-[#4a3728] fill-transparent stroke-[1]">
-             <polygon points="50,10 90,80 10,80" />
-             <circle cx="50" cy="56" r="16" />
+        <div className="relative z-10 flex flex-col items-center h-full pt-4">
+          <h1 className="font-cinzel text-4xl font-bold text-center text-[#4a3728] mb-1">O Índice Mágico</h1>
+          <svg className="w-48 h-6 opacity-60 mb-2" viewBox="0 0 100 20" preserveAspectRatio="none">
+             <path d="M0,10 Q50,0 100,10 Q50,20 0,10" fill="none" stroke="#4a3728" strokeWidth="0.5" />
           </svg>
+
+          <div className="relative flex-1 w-full max-w-sm flex items-center justify-center -mt-4">
+            
+             {/* Magic Circle Backdrop */}
+             <div className="absolute inset-0 flex items-center justify-center pointer-events-none transition-colors duration-1000">
+               {/* Slow Rotating Geometries */}
+               <svg viewBox="0 0 200 200" className="w-[300px] h-[300px] absolute animate-spin-slow transition-colors duration-500" style={{ stroke: activeColor, animationDuration: '45s' }}>
+                  <circle cx="100" cy="100" r="95" fill="none" strokeWidth="0.5" strokeDasharray="3 6" opacity="0.5" />
+                  <circle cx="100" cy="100" r="90" fill="none" strokeWidth="0.25" opacity="0.3" />
+                  {/* Dynamic Inner Polygon */}
+                  {hoverCat === 'nucleos' && <polygon points="100,15 174,142 26,142" fill="none" strokeWidth="0.8" opacity="0.6" />}
+                  {hoverCat === 'morfologia' && <polygon points="100,15 185,100 100,185 15,100" fill="none" strokeWidth="0.8" opacity="0.6" />}
+                  {hoverCat === 'vetores' && <polygon points="100,15 180,68 150,165 50,165 20,68" fill="none" strokeWidth="0.8" opacity="0.6" />}
+                  {hoverCat === 'modificadores' && <polygon points="100,15 174,58 174,142 100,185 26,142 26,58" fill="none" strokeWidth="0.8" opacity="0.6" />}
+                  {!hoverCat && <circle cx="100" cy="100" r="45" fill="none" strokeWidth="0.5" strokeDasharray="1 8" opacity="0.3" />}
+               </svg>
+               {/* Counter-rotating Inner Magic Ring */}
+               <svg viewBox="0 0 200 200" className="w-[180px] h-[180px] absolute animate-spin-reverse-slow transition-colors duration-500" style={{ stroke: activeColor, animationDuration: '25s' }}>
+                  <circle cx="100" cy="100" r="85" fill="none" strokeWidth="0.75" opacity="0.4" />
+                  <polygon points="100,15 174,142 26,142" fill="none" strokeWidth="0.5" opacity="0.3" />
+                  <polygon points="100,15 174,142 26,142" fill="none" strokeWidth="0.5" opacity="0.3" transform="rotate(180 100 100)" />
+               </svg>
+
+               <div 
+                 className="absolute w-24 h-24 rounded-full blur-2xl transition-all duration-700 mix-blend-screen" 
+                 style={{ backgroundColor: activeColor, opacity: hoverCat ? 0.25 : 0.05 }} 
+               />
+             </div>
+
+             {/* Vertical Main Menu overlaying the circle nicely */}
+             <div className="relative z-10 flex flex-col w-full px-12 space-y-7">
+               {categorias.map(cat => (
+                 <button 
+                    key={cat.id} 
+                    onClick={() => {
+                      setSelectedSub(cat.id);
+                      if (window.innerWidth < 768) setMobilePageIdx(3);
+                    }}
+                    onMouseEnter={() => setHoverCat(cat.id)}
+                    onMouseLeave={() => setHoverCat(null)}
+                    className="w-full text-center group transition-transform duration-300 transform outline-none"
+                 >
+                   <span 
+                     className={`font-cinzel text-2xl font-bold tracking-widest inline-block transition-colors duration-500
+                     ${selectedSub === cat.id ? 'opacity-100 scale-105' : 'opacity-80'}`}
+                     style={{ color: hoverCat === cat.id ? cat.color : '#4a3728', textShadow: hoverCat === cat.id ? `0 0 8px ${cat.color}60` : 'none' }}
+                   >
+                     {cat.titulo}
+                   </span>
+                   {/* Decorative sub-line that fills on hover */}
+                   <div className="relative h-[2px] w-2/3 mx-auto mt-2 overflow-hidden opacity-30 mt-1">
+                     <div className="absolute inset-0 bg-[#4a3728]" />
+                     <div 
+                       className="absolute inset-0 transition-transform duration-700 ease-out origin-left -translate-x-full group-hover:translate-x-0" 
+                       style={{ backgroundColor: cat.color }} 
+                     />
+                   </div>
+                 </button>
+               ))}
+             </div>
+          </div>
+
+          <div className="mt-auto pb-4 text-center">
+             <p className="font-serif italic text-sm text-[#4a3728]/70">
+                O círculo nunca cessa, apenas aguarda sua instrução.
+             </p>
+          </div>
         </div>
       </div>
     );
@@ -279,6 +348,21 @@ export const Naturalista = () => {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(74, 55, 40, 0.15); border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(74, 55, 40, 0.3); }
+        
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes spin-reverse-slow {
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow linear infinite;
+        }
+        .animate-spin-reverse-slow {
+          animation: spin-reverse-slow linear infinite;
+        }
       `}</style>
 
       {/* SVG Ink Bleed Filter */}
@@ -410,24 +494,26 @@ export const Naturalista = () => {
           <div className="flex-1 p-8 pb-24 overflow-y-auto custom-scrollbar relative z-10 bg-gradient-to-b from-black/[0.04] to-transparent">
              {bookPages[mobilePageIdx]}
           </div>
+
+          {/* Invisible Navigation Overlay Left */}
+          <button 
+            onClick={prevMobile} 
+            disabled={mobilePageIdx === 0}
+            className="absolute left-0 top-0 bottom-0 w-[20%] z-30 outline-none focus-visible:bg-[#4a3728]/5 disabled:pointer-events-none"
+            aria-label="Página Anterior"
+          />
+
+          {/* Invisible Navigation Overlay Right */}
+          <button 
+            onClick={nextMobile} 
+            disabled={mobilePageIdx === bookPages.length - 1}
+            className="absolute right-0 top-0 bottom-0 w-[20%] z-30 outline-none focus-visible:bg-[#4a3728]/5 disabled:pointer-events-none"
+            aria-label="Próxima Página"
+          />
           
-          {/* Mobile Navigation bar anchored at bottom inside page */}
-          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#e8dec7] via-[#e8dec7]/90 to-transparent flex items-end justify-between px-6 pb-5 z-30 pointer-events-none">
-             <button 
-               onClick={prevMobile} 
-               disabled={mobilePageIdx === 0}
-               className="pointer-events-auto p-2 text-[#6d1313] disabled:opacity-0"
-             >
-               <ChevronLeft className="w-8 h-8 drop-shadow" />
-             </button>
-             <span className="font-cinzel text-sm font-bold text-[#4a3728]/60 pb-3 drop-shadow-sm">{mobilePageIdx + 1} / {bookPages.length}</span>
-             <button 
-               onClick={nextMobile} 
-               disabled={mobilePageIdx === bookPages.length - 1}
-               className="pointer-events-auto p-2 text-[#6d1313] disabled:opacity-0"
-             >
-               <ChevronRight className="w-8 h-8 drop-shadow" />
-             </button>
+          {/* Mobile Folio Numbers anchored at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#e8dec7] to-transparent flex items-end justify-center pb-4 z-20 pointer-events-none">
+             <span className="font-cinzel text-sm font-bold text-[#4a3728]/60 drop-shadow-sm">{mobilePageIdx + 1} / {bookPages.length}</span>
           </div>
         </div>
       </div>
