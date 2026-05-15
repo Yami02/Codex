@@ -157,31 +157,33 @@ export const MagicDSLTerminal = ({ graph, onChange }: MagicDSLTerminalProps) => 
             <button 
                 onClick={() => setMode('DSL')}
                 style={{
-                    background: mode === 'DSL' ? '#d4af37' : 'transparent',
-                    color: mode === 'DSL' ? '#05040a' : '#d4af37',
-                    border: '1px solid #d4af37',
+                    background: mode === 'DSL' ? '#8b0000' : 'transparent',
+                    color: mode === 'DSL' ? '#ffd700' : '#8b0000',
+                    border: '1px solid #8b0000',
                     padding: '4px 10px',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    fontFamily: 'Cinzel',
+                    fontFamily: 'Cinzel, serif',
                     fontSize: '0.8rem',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    boxShadow: mode === 'DSL' ? 'inset 0 0 5px rgba(0,0,0,0.5)' : 'none'
                 }}
             >Modo Código (DSL)</button>
             <button 
                 onClick={() => { setMode('WIZARD'); setStep(1); }}
                 style={{
-                    background: mode === 'WIZARD' ? '#d4af37' : 'transparent',
-                    color: mode === 'WIZARD' ? '#05040a' : '#d4af37',
-                    border: '1px solid #d4af37',
+                    background: mode === 'WIZARD' ? '#8b0000' : 'transparent',
+                    color: mode === 'WIZARD' ? '#ffd700' : '#8b0000',
+                    border: '1px solid #8b0000',
                     padding: '4px 10px',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    fontFamily: 'Cinzel',
+                    fontFamily: 'Cinzel, serif',
                     fontSize: '0.8rem',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    boxShadow: mode === 'WIZARD' ? 'inset 0 0 5px rgba(0,0,0,0.5)' : 'none'
                 }}
-            >Assistente (Wizard)</button>
+            >Criação Guiada</button>
         </div>
       </div>
       
@@ -202,15 +204,16 @@ ADD PONTO p
 ADD AUMENTO a
 LINK f AND p
 LINK p ATRIBUICAO a`}
+                className="spell-input ink-drying"
                 style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(212,175,55,0.3)',
-                color: '#1dd1a1',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: '1px solid rgba(139,90,43,0.3)',
+                color: '#1a120b',
                 padding: '15px',
-                borderRadius: '4px',
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '0.9rem',
+                fontFamily: 'Caveat, cursive',
+                fontSize: '1.6rem',
                 resize: 'none',
                 outline: 'none',
                 minHeight: '200px'

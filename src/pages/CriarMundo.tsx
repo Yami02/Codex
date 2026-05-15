@@ -418,20 +418,41 @@ export const CriarMundo = () => {
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                 setActiveTab(tab.id);
-                 setEditingId(null);
-                 setFormData({ tipo: tab.id });
-              }}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all flex-shrink-0 border-b border-transparent ${
-                isActive ? 'rune-glow bg-[#d4af37]/5 border-b-[#d4af37]/40' : 'text-[#8e6c46] hover:text-[#c4a977] hover:bg-black/20'
-              }`}
-            >
-              <div className={`${isActive ? 'opacity-100 text-[#d4af37]' : 'opacity-60 text-[#8e6c46]'}`}>{tab.icon}</div>
-              <span className="capitalize font-cinzel tracking-wider text-xs">{tab.label}</span>
-            </button>
+              <button
+                key={tab.id}
+                onClick={() => {
+                   setActiveTab(tab.id);
+                   setEditingId(null);
+                   setFormData({ tipo: tab.id });
+                }}
+                className={`relative flex items-center justify-between gap-3 px-4 py-3 mb-3 text-sm transition-all transform hover:scale-105 hover:-rotate-1 ${
+                  isActive ? 'scale-105 -rotate-1 z-10' : 'opacity-80 rotate-1'
+                }`}
+                style={{
+                  background: "url('https://www.transparenttextures.com/patterns/cream-paper.png')",
+                  backgroundColor: '#dcd0b3',
+                  boxShadow: isActive ? '3px 5px 10px rgba(0,0,0,0.6)' : '1px 3px 5px rgba(0,0,0,0.4)',
+                  border: '1px solid rgba(139, 90, 43, 0.4)',
+                  color: '#1a120b',
+                  fontFamily: '"Balthazar", serif',
+                  fontWeight: 'bold',
+                }}
+              >
+                {/* Wax seal / Dagger pin */}
+                <div className="absolute -left-2 top-1 w-5 h-5 wax-seal flex items-center justify-center transform -rotate-12 z-20">
+                  <span className="text-[10px] text-yellow-500/50">✦</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className={`${isActive ? 'text-[#8b0000]' : 'text-[#3a1a05]'}`}>{tab.icon}</div>
+                  <span className="capitalize font-cinzel tracking-wider text-xs">{tab.label}</span>
+                </div>
+
+                {/* Number of items */}
+                <div className="text-[10px] text-[#5c3a21] bg-[#c8b99e] px-1.5 py-0.5 rounded shadow-inner">
+                  {database.items.filter(i => i.tipo === tab.id).length}
+                </div>
+              </button>
           )})}
         </div>
 

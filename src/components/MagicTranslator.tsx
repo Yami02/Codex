@@ -33,32 +33,32 @@ const MagicTranslator = ({ graph }: any) => {
         ];
 
         return (
-          <div className="spell-description" style={{ color: '#e0d8c0', animation: 'fadeIn 0.5s ease-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '2px solid rgba(212,175,55,0.3)', paddingBottom: '15px' }}>
+          <div className="spell-description ink-drying" style={{ fontFamily: 'Caveat, cursive', fontSize: '1.4rem', mixBlendMode: 'multiply' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '2px dashed rgba(139,90,43,0.3)', paddingBottom: '15px' }}>
               <div style={{ flex: 1 }}>
-                <h2 style={{ margin: 0, fontFamily: 'Cinzel', color: '#d4af37', fontSize: '1.8rem', letterSpacing: '2px', textShadow: '0 0 15px rgba(212,175,55,0.3)' }}>Manifestação de {element}</h2>
-                <div style={{ fontSize: '0.85rem', color: '#8a7d9b', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '3px' }}>{level}º Círculo | Transmutação Arcanística</div>
+                <h2 style={{ margin: 0, fontFamily: 'Cinzel, serif', color: '#5c3a21', fontSize: '1.8rem', letterSpacing: '2px', fontWeight: 'bold' }}>Manifestação de {element}</h2>
+                <div style={{ fontSize: '1.1rem', color: '#8b0000', marginTop: '6px', fontWeight: 'bold' }}>{level}º Círculo | Transmutação Arcanística</div>
               </div>
-              <div className="runic-text" style={{ fontSize: '3rem', filter: 'drop-shadow(0 0 12px rgba(212,175,55,0.6))', marginLeft: '20px' }}>{CoreRunes[element]}</div>
+              <div className="runic-text" style={{ fontSize: '3rem', color: '#8b0000', opacity: 0.8, marginLeft: '20px' }}>{CoreRunes[element]}</div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', marginBottom: '25px' }}>
-              <div style={{ background: 'rgba(212,175,55,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.1)' }}>
-                <div style={{ fontSize: '0.7rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Tempo de Conjuração</div>
-                <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{attrs.mass > 10 ? '1 Minuto' : '1 Ação'}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', marginBottom: '25px', fontFamily: 'Cinzel, serif' }}>
+              <div style={{ background: 'rgba(92,58,33,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(92,58,33,0.2)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#5c3a21', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Tempo de Conjuração</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{attrs.mass > 10 ? '1 Minuto' : '1 Ação'}</div>
               </div>
-              <div style={{ background: 'rgba(212,175,55,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.1)' }}>
-                <div style={{ fontSize: '0.7rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Alcance</div>
-                <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{rangeStr}</div>
+              <div style={{ background: 'rgba(92,58,33,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(92,58,33,0.2)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#5c3a21', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Alcance</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{rangeStr}</div>
               </div>
-              <div style={{ background: 'rgba(212,175,55,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.1)' }}>
-                <div style={{ fontSize: '0.7rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Duração</div>
-                <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{durationStr}</div>
+              <div style={{ background: 'rgba(92,58,33,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(92,58,33,0.2)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#5c3a21', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Duração</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{durationStr}</div>
               </div>
               {needsDC && (
-                <div style={{ background: 'rgba(212,175,55,0.08)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.2)', boxShadow: '0 0 15px rgba(212,175,55,0.05)' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Dificuldade Arcaica</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>CD {dc}</div>
+                <div style={{ background: 'rgba(139,0,0,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(139,0,0,0.3)', boxShadow: '0 0 10px rgba(139,0,0,0.1)' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#8b0000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Dificuldade Arcaica</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: '#8b0000' }}>CD {dc}</div>
                 </div>
               )}
             </div>
@@ -69,156 +69,151 @@ const MagicTranslator = ({ graph }: any) => {
                 onClick={() => setIsAdditionalInfoOpen(!isAdditionalInfoOpen)}
                 style={{
                   background: 'transparent',
-                  border: '1px solid rgba(212, 175, 55, 0.3)',
-                  color: '#d4af37',
+                  border: '1px dashed rgba(92, 58, 33, 0.4)',
+                  color: '#5c3a21',
                   padding: '8px 16px',
-                  borderRadius: '6px',
+                  borderRadius: '2px',
                   cursor: 'pointer',
-                  fontFamily: 'Cinzel, serif',
-                  fontSize: '0.85rem',
+                  fontFamily: 'Caveat, cursive',
+                  fontSize: '1.4rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                   width: '100%',
                   justifyContent: 'center',
                   transition: 'all 0.2s',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px'
+                  fontWeight: 'bold'
                 }}
               >
                 {isAdditionalInfoOpen ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
                 ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                 )}
-                {isAdditionalInfoOpen ? 'Ocultar Informações Adicionais' : 'Ver Informações Adicionais (Atributos & Efeito)'}
+                {isAdditionalInfoOpen ? 'Ocultar Anotações Marginais' : 'Revelar Anotações Marginais (+ Cálculos)'}
               </button>
             </div>
 
             {isAdditionalInfoOpen && (
               <div style={{ animation: 'fadeIn 0.3s' }}>
                 <div style={{ marginBottom: '25px' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, #d4af37, transparent)' }}></div>
-                    Matriz de Atributos Tabela
-                    <div style={{ height: '1px', flex: 1, background: 'linear-gradient(270deg, #d4af37, transparent)' }}></div>
+                  <div style={{ fontSize: '1.2rem', color: '#8b0000', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                    <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, #8b0000, transparent)' }}></div>
+                    [Matriz de Atributos]
+                    <div style={{ height: '1px', flex: 1, background: 'linear-gradient(270deg, #8b0000, transparent)' }}></div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px', background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '5px', padding: '12px', border: '1px dashed rgba(92,58,33,0.3)', transform: 'rotate(-1deg)' }}>
                     {techStats.map((s, i) => (
-                      <div key={i} style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid rgba(212,175,55,0.05)' }}>
-                        <div style={{ fontSize: '1.1rem', marginBottom: '2px' }}>{s.icon}</div>
-                        <div style={{ fontSize: '0.65rem', color: '#8a7d9b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
-                        <div style={{ fontWeight: 'bold', color: s.value !== 0 ? '#d4af37' : '#555', fontSize: '0.9rem' }}>{s.value > 0 ? `+${s.value}` : s.value}</div>
+                      <div key={i} style={{ textAlign: 'center', padding: '4px' }}>
+                        <div style={{ fontSize: '1.2rem', marginBottom: '2px', opacity: 0.7 }}>{s.icon}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#5c3a21', fontFamily: 'Cinzel, serif', fontWeight: 'bold' }}>{s.label}</div>
+                        <div style={{ fontWeight: 'bold', color: s.value !== 0 ? '#8b0000' : '#1a120b', fontSize: '1.3rem' }}>{s.value > 0 ? `+${s.value}` : s.value}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, #d4af37, transparent)' }}></div>
-                    Efeito Sintetizado
-                    <div style={{ height: '1px', flex: 1, background: 'linear-gradient(270deg, #d4af37, transparent)' }}></div>
+                  <div style={{ fontSize: '1.2rem', color: '#8b0000', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                    <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, #8b0000, transparent)' }}></div>
+                    [Síntese Prática]
+                    <div style={{ height: '1px', flex: 1, background: 'linear-gradient(270deg, #8b0000, transparent)' }}></div>
                   </div>
-                  <div style={{ fontSize: '1.1rem', color: attrs.healing ? '#1dd1a1' : '#ff5e57', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.4)', padding: '18px', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.15)', boxShadow: '0 5px 20px rgba(0,0,0,0.3)' }}>
-                    <div style={{ background: attrs.healing ? 'rgba(29, 209, 161, 0.1)' : 'rgba(255, 94, 87, 0.1)', padding: '10px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {attrs.healing ? <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/> : <path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2v-5h5c1.1 0 2-.9 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z" transform="rotate(45 12 12)"/>}
-                      </svg>
-                    </div>
+                  <div style={{ fontSize: '1.5rem', color: '#1a120b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(92,58,33,0.05)', padding: '18px', border: '1px solid rgba(92,58,33,0.2)', borderLeft: '4px solid #8b0000' }}>
                     <div>
-                      <div style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: '2px', textTransform: 'uppercase' }}>{attrs.healing ? 'Harmonização Vital' : 'Vibração Destrutiva'}</div>
-                      {attrs.healing ? `Restaura ${attrs.healing} pontos de essência arcana.` : `Canalização ofensiva de ${attrs.damageType || 'Energia Pura'}.`}
+                      <div style={{ fontSize: '1rem', color: '#5c3a21', marginBottom: '2px', fontFamily: 'Cinzel, serif' }}>{attrs.healing ? 'Harmonização Vital' : 'Vibração Destrutiva'}</div>
+                      <div style={{ transform: 'rotate(-1deg)' }}>
+                        {attrs.healing ? `Restaura ${attrs.healing} pontos de essência arcana.` : `Canalização ofensiva de ${attrs.damageType || 'Energia Pura'}.`}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid rgba(212,175,55,0.3)', paddingBottom: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid rgba(139,90,43,0.3)', paddingBottom: '10px', marginTop: '20px' }}>
               <button 
                 onClick={() => setActiveTab('ANALISE')}
                 style={{
-                  background: activeTab === 'ANALISE' ? 'rgba(212,175,55,0.2)' : 'transparent',
-                  border: '1px solid rgba(212,175,55,0.3)',
-                  color: activeTab === 'ANALISE' ? '#fff' : '#d4af37',
+                  background: activeTab === 'ANALISE' ? 'rgba(92,58,33,0.1)' : 'transparent',
+                  border: '1px solid rgba(92,58,33,0.3)',
+                  color: '#2a1a10',
                   padding: '8px 16px',
-                  borderRadius: '4px',
+                  borderRadius: '2px',
                   cursor: 'pointer',
-                  fontFamily: 'Cinzel',
+                  fontFamily: 'Cinzel, serif',
                   fontWeight: 'bold',
                   transition: '0.2s',
                   textTransform: 'uppercase',
-                  fontSize: '0.8rem'
+                  fontSize: '0.9rem'
                 }}
-              >Varredura Arcana (Eventos)</button>
+              >Notas Históricas</button>
               <button 
                 onClick={() => setActiveTab('DND5E')}
                 style={{
-                  background: activeTab === 'DND5E' ? 'rgba(212,175,55,0.2)' : 'transparent',
-                  border: '1px solid rgba(212,175,55,0.3)',
-                  color: activeTab === 'DND5E' ? '#fff' : '#d4af37',
+                  background: activeTab === 'DND5E' ? 'rgba(92,58,33,0.1)' : 'transparent',
+                  border: '1px solid rgba(92,58,33,0.3)',
+                  color: '#2a1a10',
                   padding: '8px 16px',
-                  borderRadius: '4px',
+                  borderRadius: '2px',
                   cursor: 'pointer',
-                  fontFamily: 'Cinzel',
+                  fontFamily: 'Cinzel, serif',
                   fontWeight: 'bold',
                   transition: '0.2s',
                   textTransform: 'uppercase',
-                  fontSize: '0.8rem'
+                  fontSize: '0.9rem'
                 }}
-              >Ficha de Jogo (D&D 5E)</button>
+              >Papiro Formal (D&D 5E)</button>
             </div>
 
             {activeTab === 'ANALISE' && (
-              <div style={{ background: 'rgba(212, 175, 55, 0.05)', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #d4af37', fontSize: '0.95rem', lineHeight: '1.7', color: '#e0d8c0', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3)', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '-10px', left: '20px', background: '#d4af37', color: '#05040a', fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', fontFamily: 'Cinzel' }}>DESCRIÇÃO DA MAGIA (GERADA PELO COMPILADOR)</div>
+              <div style={{ background: 'rgba(92, 58, 33, 0.05)', padding: '20px', borderLeft: '4px solid #5c3a21', fontSize: '1.4rem', lineHeight: '1.5', color: '#1a120b', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '-10px', left: '20px', background: '#e3d7c1', border: '1px solid #5c3a21', color: '#5c3a21', fontSize: '0.8rem', padding: '2px 8px', fontFamily: 'Cinzel, serif' }}>ANOTAÇÕES DA GÊNESE</div>
                 
-                <div style={{ margin: 0, color: '#e0d8c0', whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                <div style={{ margin: 0, color: '#1a120b', whiteSpace: 'pre-line', lineHeight: '1.4', marginTop: '10px' }}>
                   {description.split('\n').map((line: string, i: number) => (
-                    <p key={i} style={{ margin: '0 0 10px 0', minHeight: line.trim() ? 'auto' : '1.6em' }} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #d4af37">$1</strong>').replace(/\*(.*?)\*/g, '<em style="color: #c8b99e">$1</em>') }} />
+                    <p key={i} style={{ margin: '0 0 10px 0', minHeight: line.trim() ? 'auto' : '1.4em' }} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #8b0000; font-weight: bold">$1</strong>').replace(/\*(.*?)\*/g, '<em style="color: #5c3a21">$1</em>') }} />
                   ))}
                 </div>
                 
                 {instabilities.length > 0 ? (
-                  <div style={{ color: '#ff5e57', marginTop: '15px', fontWeight: 'bold', padding: '10px', background: 'rgba(255, 94, 87, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 94, 87, 0.3)' }}>
-                    ⚠️ Risco de Colapso Arcano: {instabilities[0]}
+                  <div style={{ color: '#8b0000', marginTop: '15px', fontWeight: 'bold', padding: '10px', border: '2px dashed #8b0000', transform: 'rotate(-2deg)' }}>
+                    * P.S. Risco Severo: {instabilities[0]}!
                   </div>
                 ) : (
-                  <div style={{ color: '#1dd1a1', marginTop: '15px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    Matriz Rúnica Compilada com Sucesso - Risco de Refluxo Zerado.
+                  <div style={{ color: '#2a1a10', marginTop: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    ✔ A runa selou corretamente. Estável.
                   </div>
                 )}
               </div>
             )}
 
             {activeTab === 'DND5E' && dndBlock && (
-              <div style={{ background: 'rgba(255, 250, 240, 0.03)', padding: '24px', borderTop: '4px solid #d4af37', borderBottom: '4px solid #d4af37', fontFamily: 'serif', color: '#eaeaea', marginTop: '10px' }}>
-                <h3 style={{ margin: '0 0 5px 0', color: '#d4af37', fontFamily: 'Cinzel, serif', fontSize: '1.8rem', letterSpacing: '1px', textTransform: 'uppercase' }}>{dndBlock.name}</h3>
-                <div style={{ fontStyle: 'italic', fontSize: '0.95rem', color: '#b9a888', textTransform: 'lowercase', marginBottom: '15px', borderBottom: '1px solid rgba(212, 175, 55, 0.3)', paddingBottom: '10px' }}>{dndBlock.levelSchool}</div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '24px', borderTop: '4px double #5c3a21', borderBottom: '4px double #5c3a21', fontFamily: 'EB Garamond, serif', color: '#1a120b', marginTop: '10px' }}>
+                <h3 style={{ margin: '0 0 5px 0', color: '#8b0000', fontFamily: 'Cinzel, serif', fontSize: '1.8rem', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 'bold' }}>{dndBlock.name}</h3>
+                <div style={{ fontStyle: 'italic', fontSize: '1.1rem', color: '#5c3a21', marginBottom: '15px', borderBottom: '1px solid rgba(92, 58, 33, 0.3)', paddingBottom: '10px' }}>{dndBlock.levelSchool}</div>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, max-content) 1fr', gap: '8px 15px', fontSize: '0.95rem', marginBottom: '20px' }}>
-                  <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Tempo de Conjuração:</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, max-content) 1fr', gap: '8px 15px', fontSize: '1.1rem', marginBottom: '20px' }}>
+                  <div style={{ color: '#5c3a21', fontWeight: 'bold' }}>Tempo de Conjuração:</div>
                   <div>{dndBlock.castingTime}</div>
                   
-                  <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Alcance:</div>
+                  <div style={{ color: '#5c3a21', fontWeight: 'bold' }}>Alcance:</div>
                   <div>{dndBlock.range}</div>
                   
-                  <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Componentes:</div>
+                  <div style={{ color: '#5c3a21', fontWeight: 'bold' }}>Componentes:</div>
                   <div>{dndBlock.components}</div>
                   
-                  <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Duração:</div>
+                  <div style={{ color: '#5c3a21', fontWeight: 'bold' }}>Duração:</div>
                   <div>{dndBlock.duration}</div>
                 </div>
 
-                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '1rem', color: '#e0d8c0' }}>
+                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5', fontSize: '1.15rem' }}>
                     {dndBlock.fullText}
                 </div>
                 
                 {instabilities.length > 0 && (
-                  <div style={{ color: '#ff5e57', marginTop: '20px', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                    *A magia está instável e é sujeita a rolagens de contramágica na Tabela de Magia Selvagem (Dano ao Conjurador).*
+                  <div style={{ color: '#8b0000', marginTop: '20px', fontSize: '1.1rem', fontStyle: 'italic', fontWeight: 'bold' }}>
+                    *Anota à margem:* A magia parece instável. Falhas podem exigir rolagens na Tabela de Magia Selvagem.
                   </div>
                 )}
               </div>

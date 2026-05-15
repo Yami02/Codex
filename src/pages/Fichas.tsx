@@ -92,6 +92,7 @@ export const Fichas = () => {
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const [editingChar, setEditingChar] = useState<Character | null>(null);
   const [xpToAdd, setXpToAdd] = useState<number>(0);
+  const [hoveredCostId, setHoveredCostId] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('world_fichas_v2');
@@ -277,13 +278,20 @@ export const Fichas = () => {
                     className="w-8 bg-transparent font-apple text-2xl text-center text-[#8b0000] focus:outline-none mix-blend-multiply appearance-none"
                   />
                   <div className="flex flex-col mr-2">
-                     <button onClick={() => upgradePericia(idx, item.nivel)} disabled={editingChar.xp_disponivel < getUpgradeCost(item.nivel)} className="text-[#8b0000] disabled:opacity-30 p-0 m-0 leading-none hover:scale-125" style={{ filter: "url(#rough-edge)" }}>+</button>
+                     <button 
+                       onClick={() => upgradePericia(idx, item.nivel)} 
+                       disabled={editingChar.xp_disponivel < getUpgradeCost(item.nivel)} 
+                       onMouseEnter={() => setHoveredCostId(item.id)}
+                       onMouseLeave={() => setHoveredCostId(null)}
+                       className="text-[#8b0000] disabled:opacity-30 p-0 m-0 leading-none hover:scale-125" 
+                       style={{ filter: "url(#rough-edge)" }}
+                     >+</button>
                      <button onClick={() => refundPericia(idx, item.nivel)} disabled={item.nivel === 0} className="text-[#8b0000] disabled:opacity-30 p-0 m-0 leading-none hover:scale-125" style={{ filter: "url(#rough-edge)" }}>_</button>
                   </div>
                 </div>
                 
-                <span className="font-apple text-[10px] text-[#5c0a0a] opacity-0 group-hover:opacity-70 whitespace-nowrap absolute right-0 -bottom-3 rotate-[-2deg]">
-                  (Próx. Custo: {getUpgradeCost(item.nivel)} essências)
+                <span className={`font-apple text-[10px] ${hoveredCostId === item.id ? 'text-[#8b0000] opacity-100 scale-110 font-bold' : 'text-[#5c0a0a] opacity-0 group-hover:opacity-70'} whitespace-nowrap absolute right-0 -bottom-3 rotate-[-2deg] transition-all`}>
+                  (Custo: {getUpgradeCost(item.nivel)})
                 </span>
              </div>
           ))}
@@ -538,19 +546,32 @@ export const Fichas = () => {
                       
                       {/* Selo de Sangue (XP Widget) */}
                       <div className="absolute -top-4 right-0 lg:-right-4 flex flex-col items-center z-10 filter drop-shadow-md group">
-                         <div className="w-24 h-24 rounded-full relative flex flex-col items-center justify-center transition-transform hover:scale-105 cursor-pointer"
+                         {/* Essência Histórica (Ribbon) */}
+                         <div className="absolute -top-6 bg-[#d9c5a0] border border-[#8b5a2b] shadow-md px-3 py-1 flex flex-col items-center z-0" style={{ clipPath: 'polygon(0% 0%, 100% 0%, 95% 100%, 5% 100%)' }}>
+                           <span className="font-cinzel text-[8px] uppercase tracking-widest text-[#5c3a21] font-bold">Essência Histórica</span>
+                           <span className="font-serif text-sm font-bold text-[#3a1a0a]">{editingChar.xp_total}</span>
+                         </div>
+                         
+                         {/* Balança de Almas */}
+                         <div className={`w-28 h-28 mt-4 rounded-full relative flex flex-col items-center justify-center transition-all duration-300 cursor-pointer z-10 ${hoveredCostId ? 'animate-pulse drop-shadow-[0_0_15px_rgba(139,0,0,0.8)] scale-105' : 'hover:scale-105'}`}
                            style={{
                              background: 'radial-gradient(circle at 30% 30%, #8b0000 0%, #5c0a0a 50%, #2a0000 100%)',
                              filter: 'url(#rough-edge)',
-                             border: '1px solid #3a0000'
+                             border: '1px solid #3a0000',
+                             boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.5)'
                            }}
                          >
-                            <span className="font-cinzel text-[8px] text-[#ffccbc] uppercase tracking-widest opacity-90 mt-1">Alma</span>
-                            <span className="font-serif text-3xl text-[#ffccbc] font-bold leading-none my-1 drop-shadow-md">{editingChar.xp_disponivel}</span>
-                            <div className="w-10 h-px bg-[#ffccbc]/40 mb-1"></div>
-                            <span className="font-serif text-[10px] text-[#ffccbc]/80 leading-none">Paga: {editingChar.xp_total - editingChar.xp_disponivel}</span>
+                            <span className="font-cinzel text-[9px] text-[#ffccbc] uppercase tracking-widest opacity-90 mt-2">Alma Latente</span>
+                            <span className={`font-serif text-4xl font-bold leading-none my-1 drop-shadow-md transition-colors duration-300 ${hoveredCostId ? 'text-white' : 'text-[#ffccbc]'}`}>
+                              {editingChar.xp_disponivel}
+                            </span>
+                            <div className="w-12 h-px bg-[#ffccbc]/40 my-1"></div>
+                            <div className="flex flex-col items-center">
+                              <span className="font-cinzel text-[8px] text-[#ffccbc]/80 tracking-widest uppercase">Tributo Pago</span>
+                              <span className="font-serif text-xs text-[#ffccbc]/90 leading-none">{editingChar.xp_total - editingChar.xp_disponivel}</span>
+                            </div>
                          </div>
-                         <div className="absolute -bottom-4 right-0 flex items-center bg-[#f4ebd8] p-1 rounded-sm border border-[#5c3a21] shadow opacity-0 group-hover:opacity-100 transition-opacity">
+                         <div className="absolute -bottom-4 right-0 flex items-center bg-[#f4ebd8] p-1 rounded-sm border border-[#5c3a21] shadow opacity-0 group-hover:opacity-100 transition-opacity z-20">
                             <input 
                               type="number" 
                               value={xpToAdd || ''} 
@@ -624,11 +645,17 @@ export const Fichas = () => {
                                         className="w-10 text-center bg-transparent font-apple text-3xl text-[#8b0000] focus:outline-none mix-blend-multiply z-10 appearance-none drop-shadow-sm"
                                       />
                                   </div>
-                                  <div className="flex gap-2z-10 bg-[#e8dcc4]/90 px-1 rounded mt-[-4px]">
+                                  <div className="flex gap-2 z-10 bg-[#e8dcc4]/90 px-1 rounded mt-[-4px]">
                                     <button onClick={() => refundAttribute(attrKey)} disabled={attr.level===0} className="text-[#1a1512] hover:text-[#5c0a0a] disabled:opacity-30 p-0 m-0 leading-none text-xl font-bold font-apple hover:scale-125 w-4 cursor-pointer">-</button>
-                                    <button onClick={() => upgradeAttribute(attrKey)} disabled={editingChar.xp_disponivel < cost} className="text-[#1a1512] hover:text-[#5c0a0a] disabled:opacity-30 p-0 m-0 leading-none text-xl font-bold font-apple hover:scale-125 w-4 cursor-pointer">+</button>
+                                    <button 
+                                      onClick={() => upgradeAttribute(attrKey)} 
+                                      disabled={editingChar.xp_disponivel < cost} 
+                                      onMouseEnter={() => setHoveredCostId(`attr-${attrKey}`)}
+                                      onMouseLeave={() => setHoveredCostId(null)}
+                                      className="text-[#1a1512] hover:text-[#5c0a0a] disabled:opacity-30 p-0 m-0 leading-none text-xl font-bold font-apple hover:scale-125 w-4 cursor-pointer"
+                                    >+</button>
                                   </div>
-                                  <span className="absolute -bottom-4 right-[-20px] font-apple text-[10px] text-[#5e3e20] rotate-[-5deg] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-[#e8dcc4] px-1 shadow-sm">
+                                  <span className={`absolute -bottom-4 right-[-20px] font-apple text-[10px] ${hoveredCostId === `attr-${attrKey}` ? 'text-[#8b0000] opacity-100 scale-110 font-bold' : 'text-[#5e3e20] opacity-0 group-hover:opacity-100'} rotate-[-5deg] transition-all whitespace-nowrap bg-[#e8dcc4] px-1 shadow-sm`}>
                                     Custo: {cost}
                                   </span>
                                </div>
@@ -669,7 +696,21 @@ export const Fichas = () => {
                  </div>
 
                  {/* COLUMN 2: Mente e Treinamento */}
-                 <div className="flex flex-col gap-10">
+                 <div className="flex flex-col gap-10 relative">
+                   {/* Astrolabe Watermark */}
+                   <svg viewBox="0 0 500 500" className="absolute top-0 right-0 w-[120%] h-auto -z-10 opacity-[0.06] mix-blend-color-burn pointer-events-none transform -rotate-12 translate-x-[15%] -translate-y-[5%]">
+                     <circle cx="250" cy="250" r="240" fill="none" stroke="#2a1c14" strokeWidth="2"/>
+                     <circle cx="250" cy="250" r="230" fill="none" stroke="#2a1c14" strokeWidth="8" strokeDasharray="10 5"/>
+                     <circle cx="250" cy="250" r="180" fill="none" stroke="#2a1c14" strokeWidth="2"/>
+                     <line x1="10" y1="250" x2="490" y2="250" stroke="#2a1c14" strokeWidth="2"/>
+                     <line x1="250" y1="10" x2="250" y2="490" stroke="#2a1c14" strokeWidth="2"/>
+                     <line x1="80" y1="80" x2="420" y2="420" stroke="#2a1c14" strokeWidth="2"/>
+                     <line x1="80" y1="420" x2="420" y2="80" stroke="#2a1c14" strokeWidth="2"/>
+                     <circle cx="250" cy="250" r="80" fill="none" stroke="#2a1c14" strokeWidth="2"/>
+                     <circle cx="250" cy="250" r="20" fill="none" stroke="#2a1c14" strokeWidth="4"/>
+                     <path d="M 250 10 A 240 240 0 0 1 490 250 M 250 490 A 240 240 0 0 1 10 250" stroke="#2a1c14" strokeWidth="1" fill="none" strokeDasharray="5 5"/>
+                   </svg>
+                   
                    {renderPericias()}
                    {renderSimpleList('Vantagens', 'vantagens')}
                    {renderSimpleList('Desvantagens', 'desvantagens')}
@@ -677,7 +718,20 @@ export const Fichas = () => {
                  </div>
 
                  {/* COLUMN 3: Grimório e Arsenal */}
-                 <div className="flex flex-col gap-10">
+                 <div className="flex flex-col gap-10 relative">
+                   {/* Runic Circle Watermark */}
+                   <svg viewBox="0 0 500 500" className="absolute top-[20%] left-0 w-[140%] h-auto -z-10 opacity-[0.05] mix-blend-color-burn pointer-events-none transform rotate-12 -translate-x-[15%] translate-y-[10%]">
+                     <circle cx="250" cy="250" r="240" fill="none" stroke="#2a1c14" strokeWidth="4"/>
+                     <circle cx="250" cy="250" r="220" fill="none" stroke="#2a1c14" strokeWidth="1"/>
+                     <polygon points="250,30 440,370 60,370" fill="none" stroke="#2a1c14" strokeWidth="3"/>
+                     <polygon points="250,470 440,130 60,130" fill="none" stroke="#2a1c14" strokeWidth="3"/>
+                     <circle cx="250" cy="250" r="105" fill="none" stroke="#2a1c14" strokeWidth="2" strokeDasharray="10 10"/>
+                     <text x="250" y="25" textAnchor="middle" fill="#2a1c14" fontSize="30" fontFamily="serif">ᛟ</text>
+                     <text x="480" y="260" textAnchor="middle" fill="#2a1c14" fontSize="30" fontFamily="serif">ᚲ</text>
+                     <text x="250" y="495" textAnchor="middle" fill="#2a1c14" fontSize="30" fontFamily="serif">ᛉ</text>
+                     <text x="20" y="260" textAnchor="middle" fill="#2a1c14" fontSize="30" fontFamily="serif">ᚢ</text>
+                   </svg>
+
                    {renderSimpleList('Grimório (Magias & Fórmulas)', 'magias')}
                    {renderSimpleList('Armas & Armaduras', 'equipamentos')}
                    {renderSimpleList('Bagagem Comum', 'inventario')}

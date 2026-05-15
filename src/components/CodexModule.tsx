@@ -66,6 +66,7 @@ import { useNavigate } from 'react-router-dom';
         }
       });
       const [codexTab, setCodexTab] = useState<'TRANSLATOR' | 'TERMINAL'>('TRANSLATOR');
+      const [atmosphere, setAtmosphere] = useState<'CLASSIC'|'OBSERVATORY'|'FORGE'|'LIBRARY'|'ALTAR'|'SILVER'>('CLASSIC');
       const [path, setPath] = useState([]); 
       const [isDragOver, setIsDragOver] = useState(false);
       const [selectedNodeId, setSelectedNodeId] = useState(null);
@@ -261,8 +262,33 @@ import { useNavigate } from 'react-router-dom';
       const selectedNode = activeGraph.nodes.find(n => n.id === selectedNodeId);
 
       return (
-        <div className="app-container" style={{ display: 'flex', height: '100dvh', width: '100vw', overflow: 'hidden' }}>
+        <div className={`app-container codex-wood-desk atm-${atmosphere}`}>
           
+          {/* Atmosphere Selector */}
+          <div style={{ position: 'fixed', top: '15px', right: '15px', zIndex: 100, display: 'flex', gap: '8px' }}>
+            {['CLASSIC', 'OBSERVATORY', 'FORGE', 'LIBRARY', 'ALTAR', 'SILVER'].map(atm => (
+              <button 
+                key={atm}
+                onClick={() => setAtmosphere(atm as any)}
+                title={`Atmosfera: ${atm}`}
+                className="action-btn"
+                style={{
+                  padding: '4px 8px',
+                  minWidth: 'auto',
+                  border: atmosphere === atm ? '2px solid #d4af37' : '2px solid #5c3a21',
+                  opacity: atmosphere === atm ? 1 : 0.6
+                }}
+              >
+                {atm === 'CLASSIC' && '🏺'}
+                {atm === 'OBSERVATORY' && '✨'}
+                {atm === 'FORGE' && '🔥'}
+                {atm === 'LIBRARY' && '📚'}
+                {atm === 'ALTAR' && '🍃'}
+                {atm === 'SILVER' && '⚙️'}
+              </button>
+            ))}
+          </div>
+
           {selectedNode && !viewMode && (
             <div className="node-action-bar" key={selectedNode.id}>
               <div className="action-group">
@@ -480,27 +506,30 @@ import { useNavigate } from 'react-router-dom';
             </div>
 
             <div className={`canvas-container ${isDragOver ? 'drag-over' : ''} ${!viewMode ? 'editing' : ''}`} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
+              <div className="canvas-point-light"></div>
               <MagicCanvas graph={activeGraph} viewMode={viewMode} onNodeClick={handleNodeClick} onNodeDelete={handleNodeDelete} onLayerChange={handleLayerChange} onAngleChange={handleAngleChange} onEdgeClick={handleEdgeClick} onEdgeDelete={handleEdgeDelete} onKernelToggle={handleKernelToggle} onBackgroundClick={handleBackgroundClick} selectedNodeId={selectedNodeId} auraColor={globalAuraColor} orbitDash={globalOrbitDash} edgeColorMode={edgeColorMode} customEdgeColor={customEdgeColor} isGlobalRotating={isGlobalRotating} globalRotationSpeed={mainGraph.globalRotationSpeed || '120s'} />
             </div>
 
-            <div className="codex-panel" style={{ display: viewMode ? 'none' : 'block', marginTop: '2rem', border: '1px solid rgba(212, 175, 55, 0.4)', boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(212,175,55,0.1)', padding: '30px', borderRadius: '12px', width: '100%', boxSizing: 'border-box' }}>
-              <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px', marginBottom: '2rem' }}>
+            <div className="codex-panel" style={{ display: viewMode ? 'none' : 'block', marginTop: '1rem', borderTop: '2px solid rgba(92, 58, 33, 0.4)', padding: '20px', borderRadius: '0px', width: '100%', boxSizing: 'border-box', background: '#e6d8c3', boxShadow: '20px 30px 60px rgba(0,0,0,0.7), inset 0 0 120px rgba(139,90,43,0.4)', position: 'relative' }}>
+              {/* Note: In order to merge the parchment visual, removing margin-top if needed or making it look like a new piece of paper on the table */}
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(https://www.transparenttextures.com/patterns/aged-paper.png)', mixBlendMode: 'multiply', opacity: 0.8, pointerEvents: 'none' }} />
+              <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid rgba(139, 90, 43, 0.4)', paddingBottom: '15px', marginBottom: '2rem', position: 'relative', zIndex: 10 }}>
                 <h3 
                   onClick={() => setCodexTab('TRANSLATOR')}
-                  style={{ cursor: 'pointer', margin: 0, opacity: codexTab === 'TRANSLATOR' ? 1 : 0.5, color: '#d4af37', fontFamily: 'Cinzel, serif', fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '2px', textTransform: 'uppercase' }}
+                  style={{ cursor: 'pointer', margin: 0, opacity: codexTab === 'TRANSLATOR' ? 1 : 0.5, color: '#5c3a21', fontFamily: 'Cinzel, serif', fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '2px', textTransform: 'uppercase', mixBlendMode: 'multiply', fontWeight: 'bold' }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                  Tradução da Magia (Caminho de Ida)
+                  Tradução Rúnica & Notas
                 </h3>
                 <h3
                   onClick={() => setCodexTab('TERMINAL')}
-                  style={{ cursor: 'pointer', margin: 0, opacity: codexTab === 'TERMINAL' ? 1 : 0.5, color: '#d4af37', fontFamily: 'Cinzel, serif', fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '2px', textTransform: 'uppercase' }}
+                  style={{ cursor: 'pointer', margin: 0, opacity: codexTab === 'TERMINAL' ? 1 : 0.5, color: '#5c3a21', fontFamily: 'Cinzel, serif', fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '2px', textTransform: 'uppercase', mixBlendMode: 'multiply', fontWeight: 'bold' }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                  Terminal Codex (Caminho de Volta)
+                  Terminal (Rascunho)
                 </h3>
               </div>
-              <div style={{ margin: 0 }}>
+              <div style={{ margin: 0, position: 'relative', zIndex: 10, fontFamily: 'Caveat, cursive', color: '#1a120b', fontSize: '1.4rem', mixBlendMode: 'multiply' }}>
                 {codexTab === 'TRANSLATOR' ? (
                   <MagicTranslator graph={mainGraph} />
                 ) : (

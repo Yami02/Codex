@@ -90,11 +90,11 @@ interface EdgeVisualProps { edge: any; pos1: any; pos2: any; r1: any; r2: any; v
         <g key={edge.id}>
           {isDoubleLine ? (
             <>
-              <line x1={startX + nx*offset} y1={startY + ny*offset} x2={endX + nx*offset} y2={endY + ny*offset} stroke={stroke} strokeWidth="2" style={{ pointerEvents: 'none', filter: viewMode ? `drop-shadow(0 0 5px ${stroke})` : 'none', opacity: viewMode ? 0.8 : 1 }} />
-              <line x1={startX - nx*offset} y1={startY - ny*offset} x2={endX - nx*offset} y2={endY - ny*offset} stroke={stroke} strokeWidth="2" style={{ pointerEvents: 'none', filter: viewMode ? `drop-shadow(0 0 5px ${stroke})` : 'none', opacity: viewMode ? 0.8 : 1 }} />
+              <line x1={startX + nx*offset} y1={startY + ny*offset} x2={endX + nx*offset} y2={endY + ny*offset} stroke={stroke} strokeWidth="2" style={{ pointerEvents: 'none', filter: viewMode ? `drop-shadow(0 0 5px ${stroke})` : 'none', opacity: viewMode ? 0.8 : 1, mixBlendMode: viewMode ? 'multiply' : 'normal' }} />
+              <line x1={startX - nx*offset} y1={startY - ny*offset} x2={endX - nx*offset} y2={endY - ny*offset} stroke={stroke} strokeWidth="2" style={{ pointerEvents: 'none', filter: viewMode ? `drop-shadow(0 0 5px ${stroke})` : 'none', opacity: viewMode ? 0.8 : 1, mixBlendMode: viewMode ? 'multiply' : 'normal' }} />
             </>
           ) : (
-            <line x1={startX} y1={startY} x2={endX} y2={endY} stroke={stroke} strokeWidth={strokeWidth} style={{ pointerEvents: 'none', filter: viewMode ? `drop-shadow(0 0 5px ${stroke})` : 'none', opacity: viewMode ? 0.8 : 1 }} />
+            <line x1={startX} y1={startY} x2={endX} y2={endY} stroke={stroke} strokeWidth={strokeWidth} style={{ pointerEvents: 'none', filter: viewMode ? `drop-shadow(0 0 5px ${stroke})` : 'none', opacity: viewMode ? 0.8 : 1, mixBlendMode: viewMode ? 'multiply' : 'normal' }} />
           )}
           
           {startMarker && <g transform={`translate(${startX}, ${startY}) rotate(${angle})`} style={{ pointerEvents: 'none', filter: viewMode ? `drop-shadow(0 0 5px ${stroke})` : 'none' }}>{startMarker}</g>}

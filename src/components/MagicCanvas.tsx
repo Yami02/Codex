@@ -49,10 +49,19 @@ const MagicCanvas = ({ graph, viewMode, onNodeClick, onNodeDelete, onLayerChange
           viewBox={`0 0 ${canvasSize} ${canvasSize}`}
           width="100%" 
           height="100%"
-          style={{ cursor: (selectedNodeId && !viewMode) ? 'crosshair' : 'default', transition: 'all 0.5s', touchAction: 'none', display: 'block' }}
+          style={{ cursor: (selectedNodeId && !viewMode) ? 'crosshair' : 'default', transition: 'all 0.5s', touchAction: 'none', display: 'block', filter: 'url(#ink-spread)' }}
           onClick={viewMode ? null : onBackgroundClick}
         >
           <defs>
+            <filter id="ink-spread" x="-10%" y="-10%" width="120%" height="120%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.04 0.08" numOctaves="3" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+              <feGaussianBlur in="displaced" stdDeviation="0.4" result="blurred" />
+              <feMerge>
+                <feMergeNode in="blurred" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
             <filter id="neon"><feGaussianBlur stdDeviation="4" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             <filter id="strongNeon"><feGaussianBlur stdDeviation="6" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             <filter id="selectedGlow"><feGaussianBlur stdDeviation="8" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
