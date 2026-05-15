@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { Download, Upload, ArrowLeft, PlusCircle, Map, Target, Skull, Leaf, Compass, ChevronDown, ChevronRight, Trash2, Wand2, PenTool, Navigation, Save, Zap, ListTree, Castle, Users, Flag, Edit2 } from 'lucide-react';
+import { Download, Upload, ArrowLeft, PlusCircle, Map, Target, Skull, Leaf, Compass, ChevronDown, ChevronRight, Trash2, Wand2, PenTool, Navigation, Save, Zap, ListTree, Castle, Users, Flag, Edit2, Feather } from 'lucide-react';
 
 export const parseDice = (diceStr: string) => {
   const match = diceStr.toLowerCase().match(/(\d+)d(\d+)(?:\s*\+\s*(\d+))?/);
@@ -465,27 +465,86 @@ export const CriarMundo = () => {
   const rootItems = database.items.filter(i => !i.parentId);
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-950 font-sans text-zinc-100 selection:bg-amber-900/40">
-      
+    <div className="flex flex-col min-h-screen font-serif selection:bg-[#d4af37]/40 text-[#eaddc5]" style={{ backgroundColor: '#0a0806' }}>
+      <style>{`
+        .leather-strip {
+          background: linear-gradient(170deg, #1c140d 0%, #0d0805 100%);
+          border-right: 2px solid #3a2818;
+          box-shadow: inset -2px 0 10px rgba(0,0,0,0.8), 5px 0 15px rgba(0,0,0,0.5);
+        }
+        .rune-glow {
+          text-shadow: 0 0 10px #d4af37, 0 0 20px #d4af37;
+          color: #fff1ce;
+        }
+        .wax-seal {
+          background: radial-gradient(circle at 30% 30%, #a62b2b, #590f0f);
+          border: 2px solid #3d0808;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.5), inset 0 2px 5px rgba(255,255,255,0.2);
+          border-radius: 50%;
+          color: #ffcccc;
+          position: relative;
+        }
+        .wax-seal:after {
+          content: '';
+          position: absolute;
+          inset: 4px;
+          border-radius: 50%;
+          border: 1px dashed rgba(255,255,255,0.2);
+        }
+        .metal-plate {
+          background: linear-gradient(to bottom, #2b2521, #14110f);
+          border: 1px solid #4a3d32;
+          box-shadow: inset 0 1px 2px rgba(255,255,255,0.1), 0 4px 6px rgba(0,0,0,0.5);
+        }
+        .metal-plate.active {
+          box-shadow: inset 0 1px 1px rgba(0,0,0,0.5), 0 0 0 1px #d4af37;
+          border-color: #d4af37;
+        }
+        .ethereal-glow {
+          box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 0 10px rgba(59, 130, 246, 0.2);
+          border-color: #60a5fa !important;
+        }
+        .cartographer-field {
+          background: transparent !important;
+          border: 1px solid rgba(142, 108, 70, 0.4) !important;
+          border-radius: 2px !important;
+          font-family: 'EB Garamond', serif !important;
+          color: #eaddc5 !important;
+        }
+        .cartographer-field:focus {
+          border-color: #d4af37 !important;
+          box-shadow: 0 0 8px rgba(212, 175, 55, 0.2) !important;
+        }
+        @keyframes cosmic-fog {
+          0% { transform: scale(1) translate(0, 0); opacity: 0.1; }
+          33% { transform: scale(1.1) translate(2%, -2%); opacity: 0.2; }
+          66% { transform: scale(0.95) translate(-1%, 3%); opacity: 0.15; }
+          100% { transform: scale(1) translate(0, 0); opacity: 0.1; }
+        }
+        .cosmic-dust {
+          animation: cosmic-fog 25s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* Top Navbar */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-10">
+      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#3a2818] bg-[#0a0806]/90 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-4">
-          <Link to="/" className="text-zinc-400 hover:text-amber-500 transition-colors">
+          <Link to="/" className="text-[#8e6c46] hover:text-[#d4af37] transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-serif text-amber-500 tracking-tight">Codex Relacional</h1>
-            <p className="text-xs text-zinc-500 hidden sm:block">Gestão Universal e Forja Arcana via IA</p>
+            <h1 className="text-xl font-cinzel font-bold text-[#d4af37] tracking-wider">Mesa do Cartógrafo</h1>
+            <p className="text-sm font-serif text-[#8e6c46] hidden sm:block italic">Forja de mundos escuros e ancestrais</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium text-zinc-300 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-md cursor-pointer transition-colors">
-            <Upload className="w-4 h-4 text-emerald-500" />
-            <span className="hidden md:inline">Importar Codex</span>
+          <label className="flex items-center gap-2 px-3 py-1.5 text-xs font-cinzel tracking-widest text-[#d4af37] bg-black/40 hover:bg-black/60 border border-[#8e6c46]/50 rounded-sm cursor-pointer transition-colors uppercase shadow-inner">
+            <Upload className="w-4 h-4 text-[#8e6c46]" />
+            <span className="hidden md:inline">Importar</span>
             <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
           </label>
-          <button onClick={downloadJson} className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium text-zinc-950 bg-amber-500 hover:bg-amber-400 rounded-md transition-colors shadow-sm shadow-amber-900/20">
+          <button onClick={downloadJson} className="flex items-center gap-2 px-3 py-1.5 text-xs font-cinzel tracking-widest text-[#0a0806] bg-[#d4af37] hover:bg-[#c4a977] rounded-sm transition-colors uppercase shadow-[0_0_10px_rgba(212,175,55,0.3)]">
             <Download className="w-4 h-4" />
             <span className="hidden md:inline">Exportar Codex</span>
           </button>
@@ -493,13 +552,36 @@ export const CriarMundo = () => {
       </nav>
 
       {/* Main Layout */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
         
+        {/* Background Map Silhouette and Fog */}
+        <div className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center opacity-10 overflow-hidden">
+           <div className="absolute inset-0 bg-gradient-to-br from-[#120c08] to-transparent z-10" />
+           <div className="cosmic-dust absolute w-[150%] h-[150%] flex items-center justify-center">
+              <svg viewBox="0 0 800 800" className="w-full max-w-[1200px] h-auto stroke-[#d4af37] opacity-60">
+                 <circle cx="400" cy="400" r="380" fill="none" strokeWidth="2" strokeDasharray="5 10" />
+                 <circle cx="400" cy="400" r="340" fill="none" strokeWidth="1" />
+                 <circle cx="400" cy="400" r="200" fill="none" strokeWidth="0.5" strokeDasharray="1 4" />
+                 <path d="M400 20 L400 780 M20 400 L780 400" strokeWidth="1" />
+                 <path d="M130 130 L670 670 M130 670 L670 130" strokeWidth="0.5" />
+                 <polygon points="400,80 430,370 720,400 430,430 400,720 370,430 80,400 370,370" fill="none" strokeWidth="1.5" />
+              </svg>
+           </div>
+           <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.08)_0%,transparent_70%)] rounded-full blur-3xl cosmic-dust" style={{animationDelay: '-5s'}} />
+           <div className="absolute bottom-[-10%] right-[-10%] w-[90%] h-[90%] bg-[radial-gradient(ellipse_at_center,rgba(100,50,20,0.1)_0%,transparent_70%)] rounded-full blur-3xl cosmic-dust" style={{animationDelay: '-12s'}} />
+        </div>
+
         {/* Sidebar Categories */}
-        <aside className="w-full md:w-56 flex-shrink-0 border-b md:border-b-0 md:border-r border-zinc-800/60 bg-zinc-900/30 overflow-x-auto md:overflow-y-auto flex flex-col">
+        <aside className="w-full md:w-56 flex-shrink-0 leather-strip overflow-x-auto md:overflow-y-auto flex flex-col z-10 relative">
+          <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent opacity-30"></div>
+          
           <div className="p-4 flex flex-row md:flex-col gap-2">
-            <h3 className="hidden md:block text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-2 px-2">Adicionar</h3>
-            {tabs.map((tab) => (
+            <h3 className="hidden md:flex text-xs font-cinzel text-[#8e6c46] font-bold uppercase tracking-[0.2em] mb-2 px-2 items-center gap-2">
+              <Compass className="w-3 h-3" /> Atlas Rúnico
+            </h3>
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
               <button
                 key={tab.id}
                 onClick={() => {
@@ -508,76 +590,78 @@ export const CriarMundo = () => {
                    setFormData({ tipo: tab.id });
                    setAiPrompt('');
                 }}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${
-                  activeTab === tab.id ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                className={`flex items-center gap-3 px-3 py-3 rounded text-sm transition-all flex-shrink-0 border-b border-transparent ${
+                  isActive ? 'rune-glow bg-[#d4af37]/5 border-b-[#d4af37]/40' : 'text-[#8e6c46] hover:text-[#c4a977] hover:bg-black/20'
                 }`}
               >
-                {tab.icon}
-                <span className="capitalize">{tab.label}</span>
+                <div className={`${isActive ? 'opacity-100 text-[#d4af37]' : 'opacity-60 text-[#8e6c46]'}`}>{tab.icon}</div>
+                <span className="capitalize font-cinzel tracking-wider text-xs">{tab.label}</span>
               </button>
-            ))}
+            )})}
           </div>
 
-          <div className="hidden md:flex flex-col p-4 border-t border-zinc-800/60 flex-1 overflow-y-auto">
-             <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
-                <ListTree className="w-4 h-4" /> Navegação
+          <div className="hidden md:flex flex-col p-4 border-t border-[#3a2818]/60 flex-1 overflow-y-auto">
+             <h3 className="text-xs font-cinzel font-bold text-[#8e6c46] uppercase tracking-[0.2em] mb-3 px-2 flex items-center gap-2">
+                <ListTree className="w-3 h-3" /> Cartografia
              </h3>
-             <div className="space-y-1">
+             <div className="space-y-1 font-serif text-sm">
                {rootItems.filter(i => ['continente', 'bioma', 'regiao', 'civilizacao'].includes(i.tipo)).map(node => (
                  <GeoNavNode key={node.id} entity={node} allItems={database.items} />
                ))}
                {rootItems.filter(i => ['continente', 'bioma', 'regiao', 'civilizacao'].includes(i.tipo)).length === 0 && (
-                 <p className="text-xs text-zinc-600 italic px-2">Nenhuma geografia raiz.</p>
+                 <p className="text-xs text-[#5c442c] italic px-2">Atlas em branco.</p>
                )}
              </div>
           </div>
         </aside>
 
         {/* Forge Area */}
-        <main className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-zinc-950">
+        <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10">
           
           {/* Creation Panel */}
-          <div className="w-full lg:w-[480px] xl:w-[500px] flex-shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-zinc-800/60 overflow-y-auto shadow-[4px_0_24px_rgba(0,0,0,0.5)] z-0">
+          <div className="w-full lg:w-[480px] xl:w-[500px] flex-shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-[#3a2818]/60 overflow-y-auto shadow-2xl bg-[#0d0a08]/80 backdrop-blur-md">
             
             {/* Mode Toggles */}
-            <div className="flex border-b border-zinc-800/80 bg-zinc-900/50 sticky top-0 z-10 backdrop-blur-sm">
+            <div className="flex p-4 gap-4 sticky top-0 z-10 bg-[#0d0a08]/90 border-b border-[#3a2818]/80 backdrop-blur-md pt-6">
               <button 
                 onClick={() => setCreationMode('manual')}
-                className={`flex-1 flex justify-center items-center gap-2 py-4 text-sm font-semibold transition-all ${creationMode === 'manual' ? 'text-amber-500 border-b-2 border-amber-500 bg-amber-500/5' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`flex-1 flex flex-col justify-center items-center gap-2 py-3 rounded-md text-xs font-cinzel font-bold tracking-widest uppercase transition-all metal-plate ${creationMode === 'manual' ? 'active text-[#d4af37]' : 'text-[#8e6c46] hover:text-[#c4a977]'}`}
               >
-                <PenTool className="w-4 h-4" /> Escrever (Manual)
+                <Feather className="w-5 h-5 mb-1" />
+                Escrever
               </button>
               <button 
                 onClick={() => setCreationMode('ai')}
-                className={`flex-1 flex justify-center items-center gap-2 py-4 text-sm font-semibold transition-all ${creationMode === 'ai' ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/5' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`flex-1 flex flex-col justify-center items-center gap-2 py-3 rounded-md text-xs font-cinzel font-bold tracking-widest uppercase transition-all metal-plate ${creationMode === 'ai' ? 'ethereal-glow text-blue-300' : 'text-[#726488] hover:text-[#9084a3]'}`}
               >
-                <Wand2 className="w-4 h-4" /> Forja Arcana (IA)
+                <Wand2 className="w-5 h-5 mb-1 opacity-80" />
+                Forja Arcana
               </button>
             </div>
 
             <div className="p-6">
-              <h2 className="text-xl font-serif text-white mb-4 tracking-tight capitalize flex items-center gap-2">
-                Criando: <span className="text-amber-500">{activeTab}</span>
+              <h2 className="text-xl font-cinzel font-black text-[#d4af37] mb-6 tracking-wide flex items-center gap-3">
+                Preenchendo: <span className="text-[#eaddc5] opacity-90 uppercase">{activeTab}</span>
               </h2>
 
               {/* Context Picker */}
-              <div className="mb-6 bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/60">
-                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Navigation className="w-3.5 h-3.5" /> Vinculação Ancestral (Opcional)
+              <div className="mb-6 p-4 rounded-sm border border-[#8e6c46]/30 bg-black/20" style={{ backgroundImage: 'linear-gradient(45deg, rgba(212,175,55,0.03) 25%, transparent 25%, transparent 50%, rgba(212,175,55,0.03) 50%, rgba(212,175,55,0.03) 75%, transparent 75%, transparent)' }}>
+                <label className="block text-[11px] font-cinzel font-bold text-[#d4af37] uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+                  <Navigation className="w-3.5 h-3.5" /> Ancoragem Geográfica
                 </label>
                 <select 
                   value={selectedParentId || ''}
                   onChange={(e) => setSelectedParentId(e.target.value || null)}
-                  className="w-full bg-zinc-950 border border-zinc-700 text-zinc-200 rounded-lg px-3 py-3 text-sm outline-none focus:border-amber-500 transition-colors"
+                  className="w-full cartographer-field py-2 text-sm appearance-none outline-none cursor-pointer"
                 >
-                  <option value="">-- Entidade Solta (Raiz) --</option>
+                  <option value="" className="bg-[#140e0b] text-[#8e6c46]">-- Solto no Éter (Raiz) --</option>
                   {possibleParents.map(c => (
-                     <option key={c.id} value={c.id}>
+                     <option key={c.id} value={c.id} className="bg-[#140e0b] text-[#d4af37]">
                        [{c.tipo.substring(0,3).toUpperCase()}] {c.nome}
                      </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-zinc-500 mt-2">Dita à IA sobre qual contexto ela deve gerar este item.</p>
+                <p className="text-[10px] text-[#8e6c46] mt-2 italic font-serif">Referência utilizada pela Forja Arcana e pelo Mapa relacional.</p>
               </div>
 
               {/* Error Box */}
@@ -591,75 +675,71 @@ export const CriarMundo = () => {
 
               {/* IA FORGE MODE */}
               {creationMode === 'ai' && (
-                <motion.div initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} className="space-y-4">
-                  <p className="text-sm text-blue-200/60 bg-blue-950/20 p-4 rounded-lg border border-blue-900/30">
-                    A Forja Arcana usará a "Vinculação Ancestral" acima para deduzir clima, estilo e lore. Descreva um fragmento de ideia para dar a fagulha inicial. O formulário manual será preenchido com a resposta.
+                <motion.div initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} className="space-y-4 pt-2">
+                  <p className="text-sm font-serif italic text-blue-200/70 p-4 border border-blue-900/30 bg-blue-950/20 rounded-sm">
+                    A Forja invocará os sussurros do caos. Sua "Ancoragem Geográfica" proverá as correntes do destino. Escreva seu desejo primal abaixo e deixe a Névoa tricotar sua ideia.
                   </p>
                   <textarea
                     value={aiPrompt}
                     onChange={(e) => setAiPrompt(e.target.value)}
                     placeholder={`Ex: "Um necromante cego adaptado às dunas de areia negra"...`}
-                    className="w-full h-32 bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-xl p-4 text-sm resize-none outline-none focus:border-blue-500 focus:bg-zinc-800 transition-all placeholder:text-zinc-600 shadow-inner"
+                    className="w-full h-32 cartographer-field p-3 resize-none shadow-inner ethereal-glow"
                   />
                   <button
                     onClick={handleGenerateAI}
                     disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold tracking-wide transition-all bg-gradient-to-r from-blue-700 to-indigo-800 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 py-4 mt-2 text-sm font-cinzel font-bold tracking-widest uppercase transition-all border border-[#60a5fa] hover:bg-[#60a5fa]/10 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)] disabled:opacity-50 disabled:cursor-not-allowed bg-[#172554]/40"
                   >
-                    {isLoading ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-5 h-5 border-2 border-blue-200 border-t-transparent rounded-full" /> : <Wand2 className="w-5 h-5" />}
-                    {isLoading ? 'Conjurando Entidade...' : 'Sugerir com Magia'}
+                    {isLoading ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-5 h-5 border-2 border-blue-300 border-t-transparent rounded-full" /> : <Wand2 className="w-5 h-5" />}
+                    {isLoading ? 'Manipulando o Éter...' : 'Conjurar Ideia'}
                   </button>
                 </motion.div>
               )}
 
               {/* MANUAL MODE */}
               {creationMode === 'manual' && (
-                <motion.div initial={{opacity:0, x:-20}} animate={{opacity:1, x:0}} className="space-y-5">
+                <motion.div initial={{opacity:0, x:-20}} animate={{opacity:1, x:0}} className="space-y-6 pt-2 pb-10">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Nome</label>
-                    <input type="text" value={formData.nome || ''} onChange={e => setFormData({...formData, nome: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-100 focus:border-amber-500 outline-none" placeholder="Ex: Grifo de Basalto" />
+                    <label className="block text-[11px] font-cinzel font-bold text-[#8e6c46] tracking-widest uppercase mb-1">Nomenclatura Erudita</label>
+                    <input type="text" value={formData.nome || ''} onChange={e => setFormData({...formData, nome: e.target.value})} className="w-full cartographer-field p-2" placeholder="Ex: Grifo de Basalto" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Explicação (Lore/Descrição)</label>
-                    <textarea value={formData.explicacao || ''} onChange={e => setFormData({...formData, explicacao: e.target.value})} className="w-full h-24 bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-100 focus:border-amber-500 outline-none resize-none" placeholder="Narrativa de seu comportamento..." />
+                    <label className="block text-[11px] font-cinzel font-bold text-[#8e6c46] tracking-widest uppercase mb-1">Descrição do Códice</label>
+                    <textarea value={formData.explicacao || ''} onChange={e => setFormData({...formData, explicacao: e.target.value})} className="w-full h-32 cartographer-field p-3 resize-none" placeholder="Lenda e natureza..." />
                   </div>
 
                   {/* Monstros e Animais - Status específicos */}
                   {['monstro', 'animal'].includes(activeTab) && (
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-3 gap-6">
                       <div>
-                        <label className="block text-xs font-semibold text-zinc-400 mb-1">Vida (HP)</label>
-                        <input type="number" value={formData.hp || ''} onChange={e => setFormData({...formData, hp: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-100 focus:border-red-500 outline-none" placeholder="Ex: 120" />
+                        <label className="block text-[10px] font-cinzel font-bold text-[#991b1b] tracking-widest uppercase mb-1">Vigor</label>
+                        <input type="number" value={formData.hp || ''} onChange={e => setFormData({...formData, hp: e.target.value})} className="w-full cartographer-field text-[#fca5a5] border-b-[#7f1d1d] p-2 text-center" placeholder="Ex: 120" />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-zinc-400 mb-1">Nível Inicial</label>
-                        <input type="number" value={formData.nivel_inicial || ''} onChange={e => setFormData({...formData, nivel_inicial: parseInt(e.target.value) || 1})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-blue-400 focus:border-blue-500 outline-none" placeholder="Ex: 1" />
+                        <label className="block text-[10px] font-cinzel font-bold text-[#1e40af] tracking-widest uppercase mb-1">Nível Base</label>
+                        <input type="number" value={formData.nivel_inicial || ''} onChange={e => setFormData({...formData, nivel_inicial: parseInt(e.target.value) || 1})} className="w-full cartographer-field text-[#93c5fd] border-b-[#1e3a8a] p-2 text-center" placeholder="Ex: 1" />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-zinc-400 mb-1 flex justify-between items-center">
-                          Loots / Drops
-                          <button 
-                            type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, loots: [...(prev.loots || (prev.loot ? [prev.loot] : [])), ''] }))}
-                            className="text-amber-500 hover:text-amber-400 text-[10px] px-2 py-1 bg-amber-500/10 rounded"
-                          >
-                            + Add
+                        <label className="block text-[10px] font-cinzel font-bold text-[#8e6c46] tracking-widest mb-1 flex justify-between items-center uppercase">
+                          Despojos
+                          <button type="button" onClick={() => setFormData(prev => ({ ...prev, loots: [...(prev.loots || (prev.loot ? [prev.loot] : [])), ''] }))} className="text-[#d4af37] hover:text-white px-1">
+                            +
                           </button>
                         </label>
                         <div className="space-y-2">
                           {(formData.loots || (formData.loot ? [formData.loot] : [])).map((l, i) => (
-                            <div key={i} className="flex items-center gap-2">
+                            <div key={i} className="flex items-center gap-1">
                               <input type="text" value={l} onChange={e => {
                                 const arr = [...(formData.loots || (formData.loot ? [formData.loot] : []))];
                                 arr[i] = e.target.value;
                                 setFormData({...formData, loots: arr, loot: undefined});
-                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-sm text-amber-300 focus:border-amber-500 outline-none" placeholder="Ex: Couro rudimentar" />
+                              }} className="w-full cartographer-field p-1 text-xs" placeholder="..." />
                               <button type="button" onClick={() => {
                                 const arr = [...(formData.loots || (formData.loot ? [formData.loot] : []))];
                                 arr.splice(i, 1);
                                 setFormData({...formData, loots: arr, loot: undefined});
-                              }} className="p-2 bg-red-900 rounded text-white border border-red-800">
-                                <Trash2 className="w-4 h-4"/>
+                              }} className="text-[#7f1d1d] hover:text-red-500">
+                                <Trash2 className="w-3 h-3"/>
                               </button>
                             </div>
                           ))}
@@ -670,29 +750,25 @@ export const CriarMundo = () => {
 
                   {activeTab === 'planta' && (
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-400 mb-1 flex justify-between items-center">
-                          Loots / Coleta
-                          <button 
-                            type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, loots: [...(prev.loots || (prev.loot ? [prev.loot] : [])), ''] }))}
-                            className="text-emerald-500 hover:text-emerald-400 text-[10px] px-2 py-1 bg-emerald-500/10 rounded"
-                          >
-                            + Add
+                      <label className="block text-[10px] font-cinzel font-bold text-[#166534] tracking-widest uppercase mb-1 flex justify-between items-center border-b border-[#166534]/40 pb-1">
+                          Materiais Botânicos
+                          <button type="button" onClick={() => setFormData(prev => ({ ...prev, loots: [...(prev.loots || (prev.loot ? [prev.loot] : [])), ''] }))} className="text-[#4ade80] hover:text-white">
+                            +
                           </button>
                       </label>
-                      <div className="space-y-2">
+                      <div className="space-y-2 mt-2">
                           {(formData.loots || (formData.loot ? [formData.loot] : [])).map((l, i) => (
                             <div key={i} className="flex items-center gap-2">
                               <input type="text" value={l} onChange={e => {
                                 const arr = [...(formData.loots || (formData.loot ? [formData.loot] : []))];
                                 arr[i] = e.target.value;
                                 setFormData({...formData, loots: arr, loot: undefined});
-                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-sm text-emerald-300 focus:border-emerald-500 outline-none" placeholder="Ex: Seiva luminosa" />
+                              }} className="w-full cartographer-field p-2 text-sm text-[#86efac] border-b-[#166534]" placeholder="Ex: Seiva luminosa" />
                               <button type="button" onClick={() => {
                                 const arr = [...(formData.loots || (formData.loot ? [formData.loot] : []))];
                                 arr.splice(i, 1);
                                 setFormData({...formData, loots: arr, loot: undefined});
-                              }} className="p-2 bg-red-900 rounded text-white border border-red-800">
+                              }} className="text-[#7f1d1d] hover:text-red-500">
                                 <Trash2 className="w-4 h-4"/>
                               </button>
                             </div>
@@ -705,12 +781,12 @@ export const CriarMundo = () => {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-semibold text-zinc-400 mb-1">Alinhamento</label>
-                          <input type="text" value={formData.alinhamento || ''} onChange={e => setFormData({...formData, alinhamento: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-100 focus:border-amber-500 outline-none" placeholder="Ex: Neutro e Bom" />
+                          <label className="block text-[11px] font-cinzel font-bold text-[#8e6c46] tracking-widest uppercase mb-1">Alinhamento Mítico</label>
+                          <input type="text" value={formData.alinhamento || ''} onChange={e => setFormData({...formData, alinhamento: e.target.value})} className="w-full cartographer-field p-2" placeholder="Ex: Neutro e Bom" />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-zinc-400 mb-1">Hierarquia</label>
-                          <input type="text" value={formData.hierarquia || ''} onChange={e => setFormData({...formData, hierarquia: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-100 focus:border-amber-500 outline-none" placeholder="Ex: Monarquia absolutista..." />
+                          <label className="block text-[11px] font-cinzel font-bold text-[#8e6c46] tracking-widest uppercase mb-1">Estrutura de Poder</label>
+                          <input type="text" value={formData.hierarquia || ''} onChange={e => setFormData({...formData, hierarquia: e.target.value})} className="w-full cartographer-field p-2" placeholder="Ex: Monarquia absolutista..." />
                         </div>
                       </div>
                     </div>
@@ -718,18 +794,18 @@ export const CriarMundo = () => {
 
                   {['monstro', 'animal'].includes(activeTab) && (
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-400 mb-2">Atributos Base</label>
+                      <label className="block text-[11px] font-cinzel font-bold text-[#d4af37] tracking-widest uppercase mb-3 text-center border-b border-[#8e6c46] pb-1 mx-8">Essência Corporal</label>
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                         {['fisico', 'precisao', 'resistencia', 'mente', 'vontade', 'eloquencia'].map((attr) => (
-                           <div key={attr}>
-                             <span className="text-[10px] uppercase text-zinc-500 font-bold mb-1 block text-center">{attr}</span>
+                           <div key={attr} className="flex flex-col border border-[#8e6c46]/30 bg-black/40 p-1">
+                             <span className="text-[9px] font-cinzel font-bold tracking-widest uppercase text-[#8e6c46] mb-1 text-center">{attr.substring(0,3)}</span>
                              <input type="number" 
                                value={(formData.attributes as any)?.[attr] || ''} 
                                onChange={e => setFormData({
                                  ...formData, 
                                  attributes: { ...((formData.attributes || {fisico:10,precisao:10,resistencia:10,mente:10,vontade:10,eloquencia:10}) as any), [attr]: e.target.value }
                                })}
-                               className="w-full bg-zinc-900 border border-zinc-800 rounded p-2 text-center text-sm focus:border-amber-500 outline-none" />
+                               className="w-full bg-transparent border-none text-center text-sm font-serif text-[#eaddc5] outline-none" />
                            </div>
                         ))}
                       </div>
@@ -738,30 +814,30 @@ export const CriarMundo = () => {
 
                   {['monstro', 'animal'].includes(activeTab) && (
                     <div className="pt-2">
-                       <label className="block text-xs font-semibold text-zinc-400 mb-2 flex justify-between items-center">
-                         Ataques e Ações
+                       <label className="block text-[11px] font-cinzel font-bold text-[#d4af37] tracking-widest uppercase mb-2 flex justify-between items-center border-b border-[#8e6c46] pb-1">
+                         Arsenal Biológico
                          <button 
                            onClick={() => setFormData(prev => ({ ...prev, ataques: [...(prev.ataques || []), { nome: '', dano_base: '1d6 + 0', tipo: '', escala: '1d6 a cada 10 níveis' }] }))}
-                           className="text-amber-500 hover:text-amber-400 text-[10px] px-2 py-1 bg-amber-500/10 rounded"
+                           className="text-[10px] px-2 py-0.5 border border-[#8e6c46]/50 bg-black/30 hover:bg-[#d4af37] hover:text-black transition-colors font-serif uppercase tracking-wider"
                          >
-                           + Add Ação
+                           + Novo Gesto Mortífero
                          </button>
                        </label>
-                       <div className="space-y-3">
+                       <div className="space-y-3 mt-3">
                          {(formData.ataques || []).map((atk, idx) => (
-                           <div key={idx} className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg grid grid-cols-2 gap-2 relative">
+                           <div key={idx} className="p-3 bg-black/40 border border-[#8e6c46]/40 grid grid-cols-2 gap-3 relative shadow-inner">
                              <button 
                                onClick={() => setFormData(prev => ({ ...prev, ataques: prev.ataques?.filter((_, i) => i !== idx) }))}
-                               className="absolute -right-2 -top-2 bg-red-900 text-white rounded-full p-1 border border-red-800"
+                               className="absolute -right-2 -top-2 bg-[#590f0f] text-[#ffcccc] rounded-full p-1 border border-[#3d0808] hover:scale-110 transition-transform shadow-md"
                              >
                                <Trash2 className="w-3 h-3" />
                              </button>
                              <input type="text" placeholder="Nome (Ex: Coice)" value={atk.nome} onChange={e => {
                                const arr = [...(formData.ataques || [])]; arr[idx].nome = e.target.value; setFormData({...formData, ataques: arr});
-                             }} className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-xs focus:border-amber-500 outline-none" />
+                             }} className="w-full cartographer-field p-1 text-xs" />
                              <input type="text" placeholder="Dano (Ex: 2d6 + 4)" value={atk.dano_base} onChange={e => {
                                const arr = [...(formData.ataques || [])]; arr[idx].dano_base = e.target.value; setFormData({...formData, ataques: arr});
-                             }} className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-xs font-mono text-red-400 focus:border-amber-500 outline-none" />
+                             }} className="w-full cartographer-field border-b-[#991b1b] text-[#fca5a5] p-1 text-xs font-serif text-center" />
                              <input type="text" placeholder="Tipo (Ex: Fogo)" value={atk.tipo} onChange={e => {
                                const arr = [...(formData.ataques || [])]; arr[idx].tipo = e.target.value; setFormData({...formData, ataques: arr});
                              }} className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-xs focus:border-amber-500 outline-none" />
@@ -774,12 +850,17 @@ export const CriarMundo = () => {
                     </div>
                   )}
 
-                  <div className="pt-4 mt-4 border-t border-zinc-800/60 flex gap-2">
+                  <div className="pt-6 mt-8 border-t border-[#3a2818]/60 flex items-center justify-center gap-4">
                     <button
                       onClick={handleSaveForm}
-                      className="flex-1 flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold tracking-wide transition-all bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-900/20"
+                      className="group flex flex-col items-center justify-center cursor-pointer transform hover:scale-105 transition-transform"
                     >
-                      <Save className="w-5 h-5" /> {editingId ? 'Salvar Alterações' : 'Registrar no Codex'}
+                      <div className="w-20 h-20 wax-seal flex items-center justify-center transition-all group-hover:brightness-110">
+                         {editingId ? <Save className="w-8 h-8 opacity-90 drop-shadow-md" /> : <img src="data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23ffcccc' stroke-width='1.5'><path d='M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z'/><line x1='7' y1='7' x2='7' y2='7' stroke-linecap='round' stroke-width='2'/></svg>" className="w-8 h-8 opacity-80" alt="seal"/> }
+                      </div>
+                      <span className="mt-2 text-[10px] font-cinzel font-bold text-[#c4a977] uppercase tracking-[0.2em] group-hover:text-[#d4af37] transition-colors text-center shadow-black">
+                        {editingId ? 'Ressigilar' : 'Carimbar no Codex'}
+                      </span>
                     </button>
                     {editingId && (
                       <button
@@ -787,9 +868,9 @@ export const CriarMundo = () => {
                           setEditingId(null);
                           setFormData({ tipo: activeTab });
                         }}
-                        className="px-4 flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold tracking-wide transition-all bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                        className="px-4 py-2 font-cinzel uppercase text-xs font-bold text-[#8e6c46] hover:text-white border border-[#8e6c46]/40 hover:bg-[#8e6c46]/20 transition-all ml-4"
                       >
-                        Cancelar
+                        Descartar Papiro
                       </button>
                     )}
                   </div>
@@ -800,22 +881,28 @@ export const CriarMundo = () => {
           </div>
 
           {/* Viewer Area - Flat List dynamically rendered as Tree */}
-          <div className="flex-1 overflow-y-auto bg-zinc-950 p-6 md:p-8">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-serif text-white tracking-tight flex items-center gap-3">
-                  <Map className="w-6 h-6 text-amber-500" /> O Mundo Persistente ({database.items.length} Registros)
+          <div className="flex-1 overflow-y-auto p-6 md:p-10 z-10">
+            <div className="max-w-4xl mx-auto drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
+              <div className="flex items-center justify-between mb-8 border-b border-[#8e6c46]/30 pb-4">
+                <h2 className="text-2xl lg:text-3xl font-cinzel text-[#d4af37] tracking-widest font-black flex items-center gap-4 text-shadow-md">
+                  <Map className="w-8 h-8 text-[#8e6c46]" /> 
+                  Conhecimento Gravado
+                  <span className="text-sm font-serif italic text-[#8e6c46] opacity-70 ml-2">({database.items.length} Fragmentos)</span>
                 </h2>
               </div>
               
               {rootItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-32 text-center border border-dashed border-zinc-800/80 rounded-2xl bg-zinc-900/20">
-                  <Compass className="w-12 h-12 text-zinc-700 mb-4" />
-                  <h3 className="text-zinc-400 font-medium mb-2 text-lg">O Caos Primordial</h3>
-                  <p className="text-zinc-600 text-sm max-w-md">Para organizar o mundo, crie entidades no formulário ao lado. Começar por um Continente é uma boa prática.</p>
+                <div className="flex flex-col items-center justify-center py-40 text-center relative pointer-events-none group">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-60 transition-opacity duration-[2s]">
+                    <div className="w-64 h-64 border border-[#8e6c46]/30 rounded-full animate-spin-slow pointer-events-none" style={{animationDuration: '60s'}} />
+                    <div className="absolute w-48 h-48 border border-dashed border-[#8e6c46]/40 rounded-full animate-spin-reverse-slow pointer-events-none" style={{animationDuration: '40s'}} />
+                  </div>
+                  <Compass className="w-16 h-16 text-[#8e6c46] mb-6 drop-shadow-md relative z-10" />
+                  <h3 className="text-[#d4af37] font-cinzel text-xl tracking-[0.2em] mb-2 uppercase relative z-10">O Caos Primordial</h3>
+                  <p className="text-[#a48866] font-serif italic text-lg max-w-md relative z-10">O vazio aguarda a primeira fagulha de criação. Carimbe seu primeiro Continente nas névoas.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {rootItems.map(item => (
                     <EntityNode key={item.id} entity={item} allItems={database.items} level={0} onUpdateParent={handleUpdateParent} onDelete={handleDelete} onEdit={handleEdit} possibleParents={possibleParents} onCommitLevel={handleCommitLevel} />
                   ))}
@@ -836,11 +923,11 @@ const GeoNavNode = ({ entity, allItems, level = 0 }: { entity: Entity, allItems:
   return (
     <div className="flex flex-col">
       <div 
-        className="text-xs text-zinc-400 hover:text-amber-500 hover:bg-zinc-800/50 rounded px-2 py-1.5 cursor-pointer truncate flex items-center gap-2"
+        className="text-xs text-[#8e6c46] hover:text-[#d4af37] hover:bg-black/40 rounded px-2 py-1.5 cursor-pointer truncate flex items-center gap-2 transition-colors font-cinzel letter-spacing-wider"
         style={{ paddingLeft: `${(level * 8) + 8}px` }}
         title={entity.nome}
       >
-        {entity.tipo === 'continente' ? <Map className="w-3 h-3 text-amber-600" /> : entity.tipo === 'bioma' ? <Leaf className="w-3 h-3 text-emerald-600" /> : entity.tipo === 'regiao' ? <Compass className="w-3 h-3 text-purple-600" /> : entity.tipo === 'civilizacao' ? <Castle className="w-3 h-3 text-blue-500" /> : entity.tipo === 'povo' ? <Users className="w-3 h-3 text-amber-500"/> : <Flag className="w-3 h-3 text-rose-500" />}
+        {entity.tipo === 'continente' ? <Map className="w-3 h-3 text-[#d4af37]" /> : entity.tipo === 'bioma' ? <Leaf className="w-3 h-3 text-[#4ade80]" /> : entity.tipo === 'regiao' ? <Compass className="w-3 h-3 text-[#c084fc]" /> : entity.tipo === 'civilizacao' ? <Castle className="w-3 h-3 text-[#60a5fa]" /> : entity.tipo === 'povo' ? <Users className="w-3 h-3 text-[#fca5a5]"/> : <Flag className="w-3 h-3 text-[#ef4444]" />}
         {entity.nome}
       </div>
       {children.map(child => (
@@ -873,38 +960,38 @@ const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, onEdit,
    };
    
    return (
-      <div className={`border border-zinc-800 rounded-xl overflow-hidden shadow-sm bg-zinc-950 ${level > 0 ? (level === 1 ? 'mt-3 mb-2 ml-4 border-l-2 border-l-amber-900' : 'mt-2 mb-1 ml-6 border-l-2 border-l-zinc-700/50') : 'mb-4 shadow-[0_4px_24px_rgba(0,0,0,0.3)]'}`}>
+      <div className={`border border-[#3a2818] overflow-hidden ${level > 0 ? (level === 1 ? 'mt-4 mb-3 ml-6 border-l-2 border-l-[#8e6c46] rounded-sm' : 'mt-3 mb-2 ml-8 border-l border-l-[#8e6c46]/50 rounded-sm') : 'mb-6 shadow-[0_4px_24px_rgba(0,0,0,0.5)] rounded-md bg-[#120c08]/80 backdrop-blur-sm'}`}>
         
         {/* Header Node Row */}
-        <div className="p-3 md:p-4 bg-zinc-900/40 hover:bg-zinc-900/80 transition-colors flex flex-col md:flex-row md:items-start gap-4 justify-between relative group">
-           <div className="flex gap-3 flex-1 min-w-0">
-             <button onClick={() => setOpen(!open)} className={`mt-0.5 p-1 rounded hover:bg-zinc-800 transition-colors ${children.length ? 'text-zinc-300' : 'opacity-0 cursor-default'}`}>
-               {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        <div className="p-4 md:p-5 bg-gradient-to-r from-black/60 to-transparent hover:bg-black/80 transition-colors flex flex-col md:flex-row md:items-start gap-4 justify-between relative group border-b border-[#3a2818]/40">
+           <div className="flex gap-4 flex-1 min-w-0">
+             <button onClick={() => setOpen(!open)} className={`mt-1 p-1 hover:text-[#d4af37] transition-colors ${children.length ? 'text-[#8e6c46]' : 'opacity-0 cursor-default'}`}>
+               {open ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
              </button>
              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
                   {getIcon()}
-                  <h3 className={`font-serif tracking-tight truncate ${level === 0 ? 'text-lg text-white font-bold' : 'text-base text-zinc-200'}`}>
+                  <h3 className={`font-cinzel tracking-widest uppercase truncate ${level === 0 ? 'text-xl text-[#d4af37] font-black' : 'text-lg text-[#c4a977] font-bold'}`}>
                     {entity.nome}
                   </h3>
-                  <span className="text-[10px] uppercase font-bold text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                  <span className="text-[9px] uppercase tracking-widest font-bold text-[#8e6c46] border border-[#8e6c46]/30 bg-black/40 px-2 py-0.5 rounded-sm">
                     {entity.tipo}
                   </span>
                   
                   {/* Status Badges */}
-                  {(entity.nivel_atual || entity.nivel_inicial) ? <span className="bg-blue-950/30 text-blue-400 text-[10px] px-2 py-0.5 rounded border border-blue-900/30 flex items-center gap-1"><Zap className="w-3 h-3"/> Nível: {entity.nivel_atual || entity.nivel_inicial}</span> : null}
-                  {entity.hp && <span className="bg-red-950/40 text-red-400 text-[10px] px-2 py-0.5 rounded border border-red-900/30">HP: {entity.hp}</span>}
-                  {(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).length > 0 && <span className="bg-emerald-950/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded border border-emerald-900/30 line-clamp-1 max-w-[200px]" title={(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).join(', ')}>Loot: {(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).join(', ')}</span>}
+                  {(entity.nivel_atual || entity.nivel_inicial) ? <span className="bg-[#172554]/40 text-[#93c5fd] text-[10px] px-2 py-0.5 rounded-sm border border-[#1e3a8a] flex items-center gap-1 font-serif"><Zap className="w-3 h-3"/> Nível: {entity.nivel_atual || entity.nivel_inicial}</span> : null}
+                  {entity.hp && <span className="bg-[#450a0a]/40 text-[#fca5a5] text-[10px] px-2 py-0.5 rounded-sm border border-[#7f1d1d] font-serif">Vigor: {entity.hp}</span>}
+                  {(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).length > 0 && <span className="bg-[#022c22]/40 text-[#6ee7b7] text-[10px] px-2 py-0.5 rounded-sm border border-[#064e3b] line-clamp-1 max-w-[200px] font-serif" title={(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).join(', ')}>Despojos: {(entity.loots?.length ? entity.loots : (entity.loot ? [entity.loot] : [])).join(', ')}</span>}
                 </div>
-                <p className="text-zinc-400 text-sm leading-relaxed">{entity.explicacao}</p>
+                <p className="text-[#a48866] font-serif text-sm leading-relaxed italic">{entity.explicacao}</p>
 
                 {/* Attributes for monsters */}
                 {entity.attributes && (
-                  <div className="mt-3 flex gap-1 flex-wrap">
+                  <div className="mt-4 flex gap-2 flex-wrap">
                     {Object.entries(entity.attributes).map(([k, v]) => (
-                      <div key={k} className="bg-zinc-950 border border-zinc-800 px-2 py-1 rounded flex items-center justify-between min-w-[60px]">
-                        <span className="text-[9px] uppercase text-zinc-500 font-bold">{k}</span>
-                        <span className="text-xs text-zinc-300 font-serif">{String(v)}</span>
+                      <div key={k} className="bg-black/40 border border-[#8e6c46]/30 px-2 py-1 flex items-center justify-between min-w-[70px]">
+                        <span className="text-[9px] uppercase text-[#8e6c46] font-cinzel font-bold tracking-wider">{k.substring(0,3)}</span>
+                        <span className="text-sm text-[#eaddc5] font-serif">{String(v)}</span>
                       </div>
                     ))}
                   </div>
@@ -912,26 +999,26 @@ const EntityNode = ({ entity, allItems, level, onUpdateParent, onDelete, onEdit,
 
                 {/* Civilizacao fields */}
                 {entity.tipo === 'civilizacao' && (
-                  <div className="mt-3 space-y-2 w-full text-sm bg-blue-950/20 border border-blue-900/30 p-3 rounded text-zinc-300">
-                     {entity.alinhamento && <p><span className="text-blue-400/80 font-semibold uppercase text-[10px] tracking-wider mr-2">Alinhamento:</span> <span>{entity.alinhamento}</span></p>}
-                     {entity.hierarquia && <p><span className="text-blue-400/80 font-semibold uppercase text-[10px] tracking-wider mr-2">Hierarquia:</span> <span>{entity.hierarquia}</span></p>}
+                  <div className="mt-4 space-y-2 w-full text-sm bg-black/40 border border-[#d4af37]/20 p-4 font-serif text-[#eaddc5]">
+                     {entity.alinhamento && <p><span className="text-[#d4af37] font-cinzel font-bold uppercase text-[10px] tracking-wider mr-2">Alinhamento Mítico:</span> <span>{entity.alinhamento}</span></p>}
+                     {entity.hierarquia && <p><span className="text-[#d4af37] font-cinzel font-bold uppercase text-[10px] tracking-wider mr-2">Estrutura de Poder:</span> <span>{entity.hierarquia}</span></p>}
                   </div>
                 )}
 
                 {/* Attacks & Skills */}
                 {entity.ataques && entity.ataques.length > 0 && (
-                  <div className="mt-3 space-y-2 w-full">
-                     <span className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">Ações e Ataques</span>
-                     <div className="grid gap-2 grid-cols-1 md:grid-cols-2">
+                  <div className="mt-4 space-y-2 w-full">
+                     <span className="text-[10px] font-cinzel uppercase text-[#8e6c46] font-bold tracking-widest border-b border-[#8e6c46]/40 pb-1 flex">Arsenal Biológico</span>
+                     <div className="grid gap-3 grid-cols-1 md:grid-cols-2 mt-2">
                        {entity.ataques.map((atk: any, idx: number) => (
-                         <div key={idx} className="bg-zinc-950/80 border border-zinc-800 rounded p-2 flex flex-col gap-1 text-sm">
-                           <div className="flex justify-between items-center text-zinc-200 font-medium">
+                         <div key={idx} className="bg-black/60 border border-[#8e6c46]/30 p-3 flex flex-col gap-1 text-sm shadow-inner relative">
+                           <div className="flex justify-between items-center text-[#eaddc5] font-cinzel font-bold tracking-wide">
                              <span>{atk.nome}</span>
-                             <span className="text-red-400 bg-red-950/20 border border-red-900/50 px-1.5 py-0.5 rounded font-mono text-xs">{atk.dano_base}</span>
+                             <span className="text-[#fca5a5] border-b border-[#991b1b] px-1 font-serif text-sm">{atk.dano_base}</span>
                            </div>
-                           <div className="flex justify-between items-center text-[10px] text-zinc-500">
-                             <span>{atk.tipo}</span>
-                             {atk.escala && <span className="opacity-70">Escala: {atk.escala}</span>}
+                           <div className="flex justify-between items-center text-[10px] text-[#8e6c46] font-serif italic mt-1">
+                             <span className="uppercase not-italic font-sans tracking-wider">{atk.tipo}</span>
+                             {atk.escala && <span className="opacity-80">Evolui: {atk.escala}</span>}
                            </div>
                          </div>
                        ))}

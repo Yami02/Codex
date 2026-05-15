@@ -88,7 +88,7 @@ export const Home = () => {
         <div className="w-full md:w-1/2 flex flex-col justify-center space-y-6 md:pr-12">
           
           <div className="mb-10 text-center md:text-left">
-            <h1 className="font-cinzel text-5xl lg:text-6xl font-black text-[#4a3728] tracking-wider mb-2 ink-text uppercase">Codex Arcana</h1>
+            <h1 className="font-cinzel text-5xl lg:text-6xl font-black text-[#4a3728] tracking-wider mb-2 ink-text uppercase">RPG W4G</h1>
             
             {/* Hand-drawn divider */}
             <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
@@ -99,7 +99,7 @@ export const Home = () => {
                <div className="w-16 h-[1px] bg-[#4a3728] opacity-50"></div>
             </div>
             
-            <p className="text-xl lg:text-2xl text-[#5c4a3d] italic">O Compêndio Definitivo de Manipulação Etérea</p>
+            <p className="text-xl lg:text-2xl text-[#5c4a3d] italic">O manual e as ferramentas definitivas para o sistema.</p>
           </div>
 
           <nav className="flex flex-col space-y-4">
