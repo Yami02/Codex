@@ -491,7 +491,7 @@ export const LivroMonstros = () => {
 
                        {/* Curiosidades Apresadas */}
                        <div className="mt-auto bg-[#8b0000]/5 p-8 pb-16 transform rotate-[1deg] relative mx-4 mb-16">
-                          <h3 className="font-apple text-xl text-[#8b0000] font-bold mb-2 uppercase tracking-widest border-b border-[#8b0000]/20 inline-block">Curiosidades de Sobrevivência</h3>
+                          <h3 className="font-apple text-xl text-[#8b0000] font-bold mb-2  tracking-widest border-b border-[#8b0000]/20 inline-block">Curiosidades de Sobrevivência</h3>
                           <p className="font-apple text-2xl leading-snug ink-bleed-text opacity-95">
                             {monster.report}
                           </p>

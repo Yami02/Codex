@@ -36,44 +36,25 @@ const DraggableItem = ({ type, name, label, className, onAdd }: DraggableItemPro
            draggable 
            onDragStart={handleDragStart}
            onClick={(e) => { e.preventDefault(); onAdd && onAdd(type, name); }}
-           className={`relative flex flex-col items-center justify-end w-20 h-28 cursor-pointer group z-10 transition-transform duration-300 ease-out hover:scale-[1.15] hover:-translate-y-2 mb-6 ${className || ''}`}
+           className={`magic-flask z-10 mb-6 mx-auto ${className || ''}`}
+           style={{ '--element-color': vialColor } as React.CSSProperties}
+           title={name}
         >
-           {/* Glass Flask container */}
-           <div className="relative w-16 h-20 rounded-b-2xl rounded-t-lg border-[3px] border-white/20 shadow-[0_10px_20px_rgba(0,0,0,0.8),inset_0_5px_15px_rgba(255,255,255,0.2)] flex items-end justify-center overflow-hidden bg-black/40 backdrop-blur-sm">
-               
-               {/* Viscous liquid */}
-               <div className="absolute bottom-0 w-full transition-all duration-300" style={{ height: '70%', backgroundColor: vialColor, boxShadow: `0 0 20px ${vialGlow}, inset 0 -10px 20px rgba(0,0,0,0.6)` }}>
-                  
-                  {/* Wave effect CSS */}
-                  <div className="liquid-wave" style={{ filter: `drop-shadow(0 -2px 4px ${vialColor})` }}></div>
-                   
-                  {/* Element Specific Effects */}
-                  {name === 'FOGO' && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-paper.png')] mix-blend-overlay opacity-80 animate-[pulse_2s_infinite]" />}
-                  {name === 'AGUA' && <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_transparent_20%,_rgba(255,255,255,0.4)_100%)] opacity-60 animate-[ping_3s_infinite]" />}
-                  {name === 'AR' && <div className="absolute inset-0 bg-white/40 blur-md animate-[spin_4s_linear_infinite]" />}
-                  {name === 'TERRA' && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/moss.png')] mix-blend-overlay opacity-70" />}
-                  {name === 'SOMBRA' && <div className="absolute w-[200%] h-[200%] -top-1/2 -left-1/2 bg-[conic-gradient(from_0deg,transparent_0deg,rgba(0,0,0,0.8)_180deg,transparent_360deg)] animate-[spin_6s_linear_infinite]" />}
-                  {name === 'LUZ' && <div className="absolute inset-0 bg-white opacity-80 blur-sm animate-[pulse_1.5s_infinite]" />}
-               </div>
-               
-               {/* Stopper & Neck Inner Shade */}
-               <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-black/80 to-transparent"></div>
-               <div className="absolute top-0 w-8 h-4 bg-[#4a2a1a] border border-[#2a1a10] rounded-b-sm shadow-inner"></div>
-
-               {/* Inner Glow / Light reflection bounds */}
-               <div className="absolute inset-0 rounded-b-2xl rounded-t-lg shadow-[inset_0_0_10px_rgba(255,255,255,0.2)] pointer-events-none"></div>
-               <div className="absolute right-2 top-2 bottom-6 w-1 rounded-full bg-white/30 blur-[1px]"></div>
-
-               {/* Floating Rune */}
-               <div className="absolute inset-0 flex items-center justify-center pt-4">
-                 <span className="font-cinzel text-3xl font-bold relative z-10 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 text-white drop-shadow-md" style={{ textShadow: `0 0 15px ${vialGlow}, 0 0 30px ${vialGlow}` }}>{rune}</span>
-               </div>
+           {/* The pot opening (ellipse) */}
+           <div className="flask-opening"></div>
+           
+           {/* Inner liquid and waves */}
+           <div className="flask-liquid-container">
+               <div className="flask-liquid-waves"></div>
            </div>
 
-           {/* Diegetic Label Strip placed firmly on the front of the pot */}
-           <div className="absolute -bottom-3 bg-[#dcd0b3] bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] border border-[#8b5a2b] px-3 py-1 text-[11px] font-bold text-[#2a1a10] uppercase tracking-widest shadow-[0_5px_10px_rgba(0,0,0,0.8)] z-20 whitespace-nowrap" style={{ fontFamily: '"EB Garamond", serif' }}>
-              <div className="absolute -left-1.5 top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full bg-[#5c3a21] border border-[#2a1a10] shadow-sm"></div>
-              <div className="absolute -right-1.5 top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full bg-[#5c3a21] border border-[#2a1a10] shadow-sm"></div>
+           {/* Floating Rune */}
+           <div className="absolute inset-0 flex items-center justify-center pt-2 pointer-events-none">
+              <span className="font-cinzel text-3xl font-bold relative z-10 opacity-70 transition-all duration-300 text-white drop-shadow-md" style={{ textShadow: `0 0 15px ${vialGlow}, 0 0 30px ${vialGlow}` }}>{rune}</span>
+           </div>
+
+           {/* Diegetic Label Strip */}
+           <div className="flask-label">
               {label || name}
            </div>
         </div>
@@ -82,27 +63,21 @@ const DraggableItem = ({ type, name, label, className, onAdd }: DraggableItemPro
 
   if (isInkwell) {
      return (
-        <div 
-           draggable 
-           onDragStart={handleDragStart}
-           onClick={(e) => { e.preventDefault(); onAdd && onAdd(type, name); }}
-           className={`relative flex flex-col items-center justify-center w-20 h-24 cursor-pointer group z-10 transition-transform duration-300 ease-out hover:scale-[1.15] hover:-translate-y-2 mb-4 ${className || ''}`}
-        >
-           {/* Top-down obsidian pot */}
-           <div className="absolute w-16 h-16 rounded-full bg-[#0a0a0a] border-[3px] border-[#1a1a1a] shadow-[0_10px_15px_rgba(0,0,0,0.9),inset_0_-4px_10px_rgba(255,255,255,0.05)] flex items-center justify-center overflow-hidden">
-               {/* Absolute black liquid */}
-               <div className="relative w-14 h-14 rounded-full bg-black flex items-center justify-center overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,1)]">
-                  {/* Rune carved at the bottom, glowing through */}
-                  <div className="absolute inset-0 flex items-center justify-center transform translate-y-1 scale-90 opacity-40 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 transition-all duration-700">
-                    <span className="font-cinzel text-2xl font-bold text-white blur-[0.5px]" style={{ textShadow: `0 0 10px rgba(255,255,255,1), 0 0 20px rgba(255,255,255,0.8)` }}>{rune}</span>
-                  </div>
+        <div className={`obsidian-pot-wrapper z-10 mb-4 mx-auto ${className || ''}`}>
+           <div 
+              draggable 
+              onDragStart={handleDragStart}
+              onClick={(e) => { e.preventDefault(); onAdd && onAdd(type, name); }}
+              className="obsidian-pot"
+              title={name}
+           >
+               <div className="obsidian-liquid-container">
+                  <span className="obsidian-rune">{rune}</span>
                </div>
            </div>
-
-           {/* Diegetic Label Strip placed firmly on the front of the pot */}
-           <div className="absolute -bottom-1 bg-[#dcd0b3] bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] border border-[#8b5a2b] px-3 py-1 text-[11px] font-bold text-[#2a1a10] uppercase tracking-widest shadow-[0_5px_10px_rgba(0,0,0,0.8)] z-20 whitespace-nowrap group-hover:scale-110 transition-transform" style={{ fontFamily: '"EB Garamond", serif' }}>
-              <div className="absolute -left-1.5 top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full bg-[#5c3a21] border border-[#2a1a10] shadow-sm"></div>
-              <div className="absolute -right-1.5 top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full bg-[#5c3a21] border border-[#2a1a10] shadow-sm"></div>
+           
+           {/* Diegetic Label Strip */}
+           <div className="flask-label" style={{ bottom: '-10px' }}>
               {label || name}
            </div>
         </div>
