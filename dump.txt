@@ -1,0 +1,387 @@
+1:import React, { useState } from "react";
+2:import { Link } from "react-router-dom";
+3:
+4:const MOCK_MONSTERS = [
+5:  {
+6:    id: 1,
+7:    name: "Sombras (Shadows)",
+8:    imageUrl: "https://images.unsplash.com/photo-1542442436-1e64627d3148?q=80&w=1000&auto=format&fit=crop",
+9:    description: `Pessoas que "viram do avesso". Cascas vazias que consomem magia. Absorvem = Crescem.`,
+10:    report: `"Não fazem som. O mago estava babando. Ela cresceu o dobro."`,
+11:    baseCr: 1, baseAc: 12, baseHp: 16, conMod: 0, damageBaseStr: "1d6+2 for",
+12:    damageDiceCount: 1, damageDiceSides: 6, damageBonus: 2, damageType: "força"
+13:  },
+14:  {
+15:    id: 2,
+16:    name: "Porcos de Tetas (Teat-Pigs)",
+17:    imageUrl: "https://images.unsplash.com/photo-1516467508483-a7212febe31a?q=80&w=1000&auto=format&fit=crop",
+18:    description: `Aberrações sem patas dianteiras. Voam inflando seus próprios peitos flácidos.`,
+19:    report: `"Voavam batendo os peitos. Perdi o apetite por dias."`,
+20:    baseCr: 2, baseAc: 10, baseHp: 22, conMod: 2, damageBaseStr: "2d4+1 con",
+21:    damageDiceCount: 2, damageDiceSides: 4, damageBonus: 1, damageType: "contundente"
+22:  },
+23:  {
+24:    id: 3,
+25:    name: "Kimkris (Limo Amarelo)",
+26:    imageUrl: "https://images.unsplash.com/photo-1629814421293-8da5b42d721f?q=80&w=1000&auto=format&fit=crop",
+27:    description: `Fungo amarelo parasita. Dá força absurda, depois consome o hospedeiro internamente.`,
+28:    report: `"O lobo nos olhou, brilhava amarelo vivo."`,
+29:    baseCr: 3, baseAc: 13, baseHp: 18, conMod: 1, damageBaseStr: "1d8+3 acd",
+30:    damageDiceCount: 1, damageDiceSides: 8, damageBonus: 3, damageType: "ácido"
+31:  },
+32:  {
+33:    id: 4,
+34:    name: "Grimgar (Corvos)",
+35:    imageUrl: "https://images.unsplash.com/photo-1543329065-5c1cfba119c4?q=80&w=1000&auto=format&fit=crop",
+36:    description: `Um bando que compartilha a mesma mente e corpo transmorfo. Conhecimento distribuído.`,
+37:    report: `"Queimei um, mas os outros já sabiam de onde atirei."`,
+38:    baseCr: 4, baseAc: 14, baseHp: 25, conMod: 1, damageBaseStr: "2d6+2 per",
+39:    damageDiceCount: 2, damageDiceSides: 6, damageBonus: 2, damageType: "perfurante"
+40:  },
+41:  {
+42:    id: 5,
+43:    name: "Tecelão de Carne",
+44:    imageUrl: "https://images.unsplash.com/photo-1505503072223-2895690b29ce?q=80&w=1000&auto=format&fit=crop",
+45:    description: `Abelha gigante esquelética com asas de pele. Costura vítimas ainda vivas em casulos.`,
+46:    report: `"Costurava o recruta com tendões duros como aço."`,
+47:    baseCr: 5, baseAc: 15, baseHp: 40, conMod: 2, damageBaseStr: "2d8+3 per",
+48:    damageDiceCount: 2, damageDiceSides: 8, damageBonus: 3, damageType: "perfurante"
+49:  },
+50:];
+51:
+52:const toRoman = (num: number) => {
+53:  const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+54:  return roman[num - 1] || "X+";
+55:};
+56:
+57:export const LivroMonstros = () => {
+58:  const [selectedId, setSelectedId] = useState(MOCK_MONSTERS[0].id);
+59:  const [searchQuery, setSearchQuery] = useState("");
+60:  const [filterAttr, setFilterAttr] = useState<"todos" | "fisico" | "mistico">("todos");
+61:  const [bloodSplashes, setBloodSplashes] = useState<{ x: number; y: number; id: number }[]>([]);
+62:  const [level, setLevel] = useState(1);
+63:
+64:  const monster = MOCK_MONSTERS.find((m) => m.id === selectedId) || MOCK_MONSTERS[0];
+65:  const crDiff = (level - 1) * 2;
+66:  const targetCr = monster.baseCr + crDiff;
+67:  
+68:  const atributos = {
+69:    fisico: 10 + monster.conMod * 2 + crDiff,
+70:    precisao: 10 + monster.conMod + Math.floor(crDiff / 2),
+71:    resistencia: 10 + monster.conMod * 2 + Math.floor(crDiff / 1.5),
+72:    mente: 10 + Math.floor(targetCr / 2),
+73:    vontade: 10 + monster.conMod + Math.floor(crDiff / 2),
+74:    eloquencia: 8 + Math.floor(targetCr / 3),
+75:  };
+76:
+77:  const calculatedAc = monster.baseAc + Math.floor(crDiff / 2);
+78:  const calculatedHp = Math.floor(monster.baseHp * (1 + level * 0.4));
+79:  const dmgBonus = monster.damageBonus + Math.floor(crDiff / 2);
+80:  const finalDamageStr = `${monster.damageDiceCount + Math.floor(level/2)}d${monster.damageDiceSides} + ${dmgBonus} ${monster.damageType}`;
+81:
+82:  const handleCombatClick = (e: React.MouseEvent) => {
+83:    const rect = e.currentTarget.getBoundingClientRect();
+84:    const x = e.clientX - rect.left;
+85:    const y = e.clientY - rect.top;
+86:    const newSplash = { x, y, id: Date.now() };
+87:    setBloodSplashes((prev) => [...prev, newSplash]);
+88:    setTimeout(() => {
+89:      setBloodSplashes((prev) => prev.filter((s) => s.id !== newSplash.id));
+90:    }, 4000);
+91:  };
+92:
+93:  const filteredMonsters = MOCK_MONSTERS.filter((m) => {
+94:    if (searchQuery && !m.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+95:    if (filterAttr === "fisico" && m.conMod < 1) return false;
+96:    if (filterAttr === "mistico" && m.conMod >= 2) return false;
+97:    return true;
+98:  });
+99:
+100:  return (
+101:    <div className="h-[100vh] w-full overflow-hidden basalt-table flex font-serif text-[#dcd0b3]">
+102:      
+103:      {/* SVG Filters */}
+104:      <svg width="0" height="0" className="hidden">
+105:        <filter id="ink-bleed">
+106:          <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
+107:          <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.5 0" in="noise" result="coloredNoise" />
+108:          <feDisplacementMap in="SourceGraphic" in2="coloredNoise" scale="2" xChannelSelector="R" yChannelSelector="G" />
+109:        </filter>
+110:        <filter id="torn-edge">
+111:          <feTurbulence type="fractalNoise" baseFrequency="0.05" result="noise" />
+112:          <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+113:        </filter>
+114:      </svg>
+115:
+116:      <Link to="/" className="fixed top-4 right-8 text-[#dcd0b3] font-cinzel text-sm border border-[#dcd0b3]/30 px-3 py-1 hover:bg-[#dcd0b3]/10 transition-colors z-[100]">
+117:        [X] Cerrar Compêndio
+118:      </Link>
+119:
+120:      {/* --- LEFT: SIDEBAR BURNT PAPYRUS (15%) --- */}
+121:      <aside className="fixed left-0 top-0 h-full w-[15vw] burnt-papyrus z-[100] flex flex-col pt-8 pb-4">
+122:        {/* Top Compass Hole */}
+123:        <div className="absolute top-2 left-1/2 w-2 h-2 bg-black rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,1)]"></div>
+124:        
+125:        {/* Search Area */}
+126:        <div className="px-4 mb-8 mt-4">
+127:          <input 
+128:            type="text" 
+129:            value={searchQuery} 
+130:            onChange={(e) => setSearchQuery(e.target.value)} 
+131:            placeholder="[ Investigação ]" 
+132:            className="w-full bg-transparent border-b border-[#a6967f]/30 outline-none font-nanum text-[#dcd0b3] text-xl pb-1 italic placeholder-[#a6967f]/30 text-center" 
+133:          />
+134:        </div>
+135:
+136:        {/* Rune Filters */}
+137:        <div className="flex justify-center gap-6 px-4 mb-8">
+138:          <button 
+139:            onClick={() => setFilterAttr('todos')}
+140:            className={`font-apple text-xl transition-all ${filterAttr === "todos" ? "text-[#dcd0b3] drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] scale-110" : "text-[#8e7456] hover:text-[#a6967f]"}`}
+141:            title="Todos (Σ)"
+142:          >
+143:            Σ
+144:          </button>
+145:          <button 
+146:            onClick={() => setFilterAttr('fisico')}
+147:            className={`font-apple text-xl transition-all ${filterAttr === "fisico" ? "text-red-500 drop-shadow-[0_0_5px_rgba(220,38,38,0.8)] scale-110" : "text-[#8e7456] hover:text-[#a6967f]"}`}
+148:            title="Bestial (Δ)"
+149:          >
+150:            Δ
+151:          </button>
+152:          <button 
+153:            onClick={() => setFilterAttr('mistico')}
+154:            className={`font-apple text-xl transition-all ${filterAttr === "mistico" ? "text-blue-500 drop-shadow-[0_0_5px_rgba(59,130,246,0.8)] scale-110" : "text-[#8e7456] hover:text-[#a6967f]"}`}
+155:            title="Arcano (Ω)"
+156:          >
+157:            Ω
+158:          </button>
+159:        </div>
+160:
+161:        <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
+162:          {filteredMonsters.map((m, idx) => {
+163:            const num = toRoman(idx + 1);
+164:            const isActive = m.id === selectedId;
+165:            return (
+166:              <div 
+167:                key={m.id} 
+168:                onClick={() => { setSelectedId(m.id); setLevel(1); }}
+169:                className={`cursor-pointer mb-6 transform transition-all group flex items-baseline gap-2 ${isActive ? 'scale-105 ml-2' : 'hover:ml-1 opacity-60 hover:opacity-100'}`}
+170:              >
+171:                <span className="font-serif text-[#a6967f] text-sm w-6 text-right shrink-0">{num}.</span>
+172:                <span className={`font-nanum text-[22px] leading-none ${isActive ? 'text-[#eaddc5] border-b border-dashed border-[#eaddc5]/50' : 'text-[#a6967f]'}`}>
+173:                  {m.name.split(' (')[0]}
+174:                </span>
+175:              </div>
+176:            );
+177:          })}
+178:        </div>
+179:      </aside>
+180:
+181:      {/* --- CONTENT AREA --- */}
+182:      <div className="ml-[15vw] w-[85vw] h-full flex p-6 pl-10" style={{ transform: "scale(0.95)", transformOrigin: "center center" }}>
+183:        
+184:        {/* --- CENTER: MAIN PARCHMENT (Approx 60% of right area) --- */}
+185:        <div className="w-[65%] h-full relative z-20 flex flex-col math-papyros p-12 text-[#2a1a10]">
+186:          
+187:          {/* Main Scars */}
+188:          <div className="absolute top-1/4 left-8 w-[2px] h-[150px] bg-red-900/30 transform rotate-[15deg] blur-[0.5px]"></div>
+189:          <div className="absolute top-[20%] right-[30%] w-24 h-24 bg-black/10 rounded-full blur-xl mix-blend-multiply"></div>
+190:
+191:          {/* Header */}
+192:          <div className="text-center mb-6 border-b-2 border-dashed border-[#111]/20 pb-4">
+193:             <h1 className="font-apple text-6xl text-[#111] ink-bleed-text transform rotate-[-1deg]">{monster.name}</h1>
+194:          </div>
+195:
+196:          {/* Geometry Area */}
+197:          <div className="flex-1 relative flex items-center justify-center -mt-6">
+198:             
+199:             {/* Math annotations left */}
+200:             <div className="absolute left-0 top-[15%] w-40 font-serif text-[#3b2a1a] flex flex-col gap-10 opacity-80 text-xl z-20">
+201:               <div className="relative group">
+202:                 <p className="border-b border-[#3b2a1a]/40 inline-block mb-1 font-apple text-sm">Massa Crítica</p>
+203:                 <p className="font-apple text-3xl font-bold flex items-center gap-2">
+204:                   <span className="text-red-900 font-normal opacity-80 shadow-red-900">Φ</span> = {atributos.fisico}
+205:                 </p>
+206:                 <span className="absolute left-full ml-4 top-1/2 -translate-y-1/2 text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity italic">Coef. Físico</span>
+207:               </div>
+208:               <div className="relative group">
+209:                 <p className="border-b border-[#3b2a1a]/40 inline-block mb-1 font-apple text-sm">Ângulo de Inc.</p>
+210:                 <p className="font-apple text-3xl font-bold flex items-center gap-2">
+211:                   <span className="text-red-900 font-normal opacity-80 shadow-red-900">Δ</span> = {atributos.precisao}°
+212:                 </p>
+213:               </div>
+214:               <div className="relative group">
+215:                 <p className="border-b border-[#3b2a1a]/40 inline-block mb-1 font-apple text-sm">Coef. de Rigidez</p>
+216:                 <p className="font-apple text-3xl font-bold flex items-center gap-2">
+217:                   <span className="text-red-900 font-normal opacity-80 shadow-red-900">Ω</span> = {atributos.resistencia}
+218:                 </p>
+219:               </div>
+220:             </div>
+221:
+222:             {/* Right Math Annotations */}
+223:             <div className="absolute right-0 bottom-[15%] w-40 font-serif text-[#3b2a1a] flex flex-col gap-10 opacity-80 text-xl text-right z-20">
+224:               <div className="relative group flex flex-col items-end">
+225:                 <p className="border-b border-[#3b2a1a]/40 inline-block mb-1 font-apple text-sm">Freq. Ressonância</p>
+226:                 <p className="font-apple text-3xl font-bold flex items-center gap-2">
+227:                   <span className="text-red-900 font-normal opacity-80 shadow-red-900">Ψ</span> = {atributos.mente}hz
+228:                 </p>
+229:               </div>
+230:               <div className="relative group flex flex-col items-end">
+231:                 <p className="border-b border-[#3b2a1a]/40 inline-block mb-1 font-apple text-sm">Vet. Persistência</p>
+232:                 <p className="font-apple text-3xl font-bold flex items-center gap-2">
+233:                   <span className="text-red-900 font-normal opacity-80 shadow-red-900">Γ</span> = {atributos.vontade}
+234:                 </p>
+235:               </div>
+236:               <div className="relative group flex flex-col items-end">
+237:                 <p className="border-b border-[#3b2a1a]/40 inline-block mb-1 font-apple text-sm">Sum. Influência</p>
+238:                 <p className="font-apple text-3xl font-bold flex items-center gap-2">
+239:                   <span className="text-red-900 font-normal opacity-80 shadow-red-900">Σ</span> = {atributos.eloquencia}
+240:                 </p>
+241:               </div>
+242:             </div>
+243:
+244:             {/* Center Pentagram/Triangle Box */}
+245:             <div className="relative w-[450px] h-[450px] flex items-center justify-center group">
+246:                {/* Geometric Summoning Circle that gets more complex with level */}
+247:                <div className="absolute inset-[-30%] flex items-center justify-center pointer-events-none mix-blend-multiply opacity-50" style={{ right: 0 }}>
+248:                   <svg viewBox="0 0 200 200" className="w-full h-full stroke-[#4a3424] fill-none transition-all duration-1000 ease-in-out" style={{ transform: `rotate(${level * 15}deg)` }}>
+249:                     <circle cx="100" cy="100" r="90" strokeWidth={0.5 + level*0.1} strokeDasharray="5,5"/>
+250:                     <polygon points="100,10 185,130 15,130" strokeWidth={0.3 + level*0.1} />
+251:                     <polygon points="100,190 15,70 185,70" strokeWidth={0.3 + level*0.1}/>
+252:                     {level > 2 && (
+253:                       <circle cx="100" cy="100" r="50" strokeWidth={level*0.2} stroke="#8b0000" strokeDasharray="2,8" className="opacity-50 transition-opacity duration-1000 delay-150" />
+254:                     )}
+255:                     {level > 4 && (
+256:                       <rect x="36" y="36" width="128" height="128" transform="rotate(45 100 100)" strokeWidth={level*0.15} stroke="#5c3a21" className="opacity-60 transition-opacity duration-1000 delay-300" />
+257:                     )}
+258:                     {level > 6 && (
+259:                       <circle cx="100" cy="100" r="110" strokeWidth={1} stroke="#8b0000" strokeDasharray="1,4" className="opacity-80 transition-opacity duration-1000 delay-500" />
+260:                     )}
+261:                   </svg>
+262:                </div>
+263:                
+264:                {monster.imageUrl && (
+265:                  <img src={monster.imageUrl} alt={monster.name} className="charcoal-sketch max-w-[85%] max-h-[85%] object-cover relative z-10 opacity-90 drop-shadow-[0_15px_25px_rgba(0,0,0,0.6)] mix-blend-multiply rounded-full" />
+266:                )}
+267:                
+268:                {/* Pythagoras Note on body */}
+269:                <div className="absolute top-[15%] right-[5%] z-20 font-nanum text-red-900 border border-red-900/40 px-2 py-1 transform rotate-[10deg] opacity-70 bg-[#e3d7c1]/90 backdrop-blur-sm transition-opacity duration-1000" style={{ opacity: 0.4 + level * 0.08 }}>
+270:                  A² + B² <span className="opacity-70 mx-1">≈</span> {Math.floor(calculatedHp * 1.618)}
+271:                </div>
+272:             </div>
+273:          </div>
+274:
+275:          {/* Description Footer */}
+276:          <div className="mt-8 border-t-2 border-[#111]/10 pt-6 z-20 relative">
+277:            <p className="font-nanum text-[28px] text-[#222] leading-[1.3] ink-bleed-text text-justify columns-2 gap-8">
+278:              {monster.description}
+279:            </p>
+280:          </div>
+281:          
+282:          {/* Level Up Progressing Blood splashes mapped to level */}
+283:          {level > 3 && (
+284:            <div className="absolute top-1/4 right-1/4 bg-red-900 w-24 h-24 rounded-full blur-xl mix-blend-multiply opacity-20 pointer-events-none transition-opacity duration-[2000ms]"></div>
+285:          )}
+286:          {level > 5 && (
+287:            <div className="absolute bottom-1/3 left-1/3 bg-red-900 w-32 h-32 rounded-full blur-2xl mix-blend-multiply opacity-30 pointer-events-none transition-opacity duration-[2000ms]"></div>
+288:          )}
+289:          
+290:        </div>
+291:
+292:        {/* --- RIGHT: COMBAT NOTES (35%) --- */}
+293:        <div className="w-[35%] shrink-0 h-full relative z-40 pl-10 pr-6 pt-16 flex flex-col gap-10">
+294:          
+295:          {/* Main Combat Note */}
+296:          <div 
+297:            className="nota-combate p-6 w-full shadow-2xl relative cursor-pointer transform hover:scale-[1.02] transition-all bg-[#f5ead2]" 
+298:            style={{ transform: 'rotate(2.5deg)' }}
+299:            onClick={handleCombatClick}
+300:          >
+301:             <div className="absolute top-2 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-red-900/20 mix-blend-multiply filter blur-[1px]"></div>
+302:             <div className="absolute top-[14px] left-1/2 -translate-x-1/2 metal-clip w-4 h-10 transform rotate-[-5deg]"></div>
+303:
+304:             <h3 className="font-apple text-2xl font-bold text-[#8b0000] ink-bleed-text mt-4 mb-6 border-b border-[#8b0000]/30 pb-2 text-center uppercase tracking-widest">
+305:               Análise Empírica
+306:             </h3>
+307:
+308:             <div className="mb-6 font-apple">
+309:               <span className="block text-sm text-[#3b2a1a] opacity-80 mb-1 uppercase tracking-wider">Vetor Letal Estimado:</span>
+310:               <div className="text-3xl text-black font-bold ink-bleed-text">
+311:                 {finalDamageStr} <span className="text-[#8b0000] text-xl opacity-80">v/s</span>
+312:               </div>
+313:               <p className="text-sm mt-1 opacity-70 italic font-serif">Calculado via regressão de ferimentos nas vítimas.</p>
+314:             </div>
+315:
+316:             <div className="mb-4 font-apple border-l-2 border-[#8b0000]/40 pl-4 bg-[#8b0000]/5 p-2 py-3 rounded-r-sm">
+317:               <span className="block text-sm text-[#8b0000] mb-1 font-bold">Resistência Estrutural (V):</span>
+318:               <div className="text-3xl text-[#111] font-bold flex items-end gap-2">
+319:                 V <span className="text-xl font-normal opacity-70 mb-1 mx-1">≈</span> {calculatedHp} <span className="text-[#8b0000] text-xl opacity-80">units</span>
+320:               </div>
+321:               <p className="text-xs text-[#111] mt-1 opacity-60 italic font-serif">V² = ∫(Φ + Ω)dτ</p>
+322:             </div>
+323:
+324:             {targetCr > 4 && (
+325:               <div className="mt-6 pt-4 border-t border-dashed border-[#8b0000]/30 text-[#8b0000] text-sm font-nanum">
+326:                 <strong className="font-bold">Anomalia Estocástica Detectada!</strong> <br />O padrão fractal indica instabilidade crítica local. Abordagem cautelosa necessária.
+327:               </div>
+328:             )}
+329:
+330:             <div className="absolute -bottom-10 -right-4 font-nanum text-lg text-[#dcd0b3]/60 transform rotate-[-5deg]">
+331:               *Aperte para registrar embate.
+332:             </div>
+333:
+334:             {/* Dynamic Blood Splashes on the Note */}
+335:             {bloodSplashes.map((splash) => (
+336:                <div
+337:                  key={splash.id}
+338:                  className="absolute fresh-blood w-16 h-16 blur-[1px] pointer-events-none"
+339:                  style={{
+340:                    left: splash.x - 32,
+341:                    top: splash.y - 32,
+342:                    transform: `scale(${1 + Math.random()})`,
+343:                  }}
+344:                />
+345:             ))}
+346:          </div>
+347:
+348:          {/* Explorer's Quote Note */}
+349:          <div className="bg-[#e2dfcd] p-5 w-[90%] self-end shadow-xl transform rotate-[-2deg] border border-[#3b2a1a]/10 relative">
+350:             <div className="absolute -top-3 -left-3 w-6 h-6 bg-[#3b2a1a]/10 transform rotate-45 mix-blend-multiply"></div> 
+351:             <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-[#3b2a1a]/10 transform -rotate-45 mix-blend-multiply"></div> 
+352:             
+353:             <p className={`font-serif italic text-2xl text-[#2a1a10] leading-snug ink-bleed-text border-l-4 border-[#3b2a1a]/30 pl-4`}>
+354:                "{monster.report}"
+355:             </p>
+356:             <p className="text-right text-sm font-apple text-[#8b0000] mt-4 opacity-80">- Registro Obscuro</p>
+357:          </div>
+358:
+359:        </div>
+360:
+361:      </div>
+362:
+363:      {/* Level Up Selector - Absolute Centered Bottom */}
+364:      <div className="absolute bottom-8 left-[15vw] w-[85vw] flex justify-center z-50 pointer-events-none">
+365:        <div className="flex items-center gap-6 bg-[#16120e]/80 px-8 py-3 rounded-full border-2 border-[#5c3a21]/50 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.8)] pointer-events-auto">
+366:          <span className="font-cinzel text-sm text-[#dcd0b3] font-bold uppercase tracking-[0.2em] opacity-80">Grau de Ameaça</span>
+367:          <div className="flex gap-3">
+368:            {[1,2,3,4,5,6,7].map(l => {
+369:              const active = level >= l;
+370:              return (
+371:                <button 
+372:                  key={l}
+373:                  onClick={() => setLevel(l)}
+374:                  className={`w-8 h-8 flex items-center justify-center rounded-full border-2 font-apple text-base transition-all duration-300 ${active ? 'bg-[#8b0000] border-[#8b0000] text-[#e3d7c1] shadow-[0_0_15px_rgba(139,0,0,0.9)] scale-110' : 'bg-transparent border-[#5c3a21] text-[#a6967f] hover:bg-[#5c3a21]/30 hover:border-[#8e7456]'}`}
+375:                >
+376:                  {toRoman(l)}
+377:                </button>
+378:              );
+379:            })}
+380:          </div>
+381:        </div>
+382:      </div>
+383:
+384:    </div>
+385:  );
+386:};
+387:

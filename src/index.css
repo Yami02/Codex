@@ -1,8 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Nanum+Pen+Script&family=Shadows+Into+Light&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+html {
+  font-size: 14.4px;
+}
+
 body { margin: 0; background-color: #05040a; font-family: 'EB Garamond', serif; color: #e0d8c0; }
+
+.font-nanum {
+  font-family: 'Nanum Pen Script', cursive;
+}
+.font-apple {
+  font-family: 'Shadows Into Light', cursive;
+}
+.font-caveat {
+  font-family: 'Caveat', cursive;
+}
     
     /* Scrollbars Arcanos */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -479,15 +494,34 @@ body { margin: 0; background-color: #05040a; font-family: 'EB Garamond', serif; 
     .font-metal { font-family: 'Metal Mania', cursive; }
     .font-apple { font-family: 'Homemade Apple', cursive; }
     .font-finger { font-family: 'Finger Paint', cursive; }
+    .font-metamorphous { font-family: 'Metamorphous', cursive; }
+    .font-almendra { font-family: 'Almendra SC', serif; }
+    .font-nanum { font-family: 'Nanum Brush Script', cursive; }
+    .font-balthazar { font-family: 'Balthazar', serif; }
+    .font-cormorant { font-family: 'Cormorant Garamond', serif; }
     
     .monster-page {
-      background-color: #211a14;
-      background-image: 
-        radial-gradient(ellipse at center, rgba(30, 20, 15, 0.5) 0%, rgba(10, 5, 2, 0.95) 100%),
-        url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
-      background-blend-mode: multiply;
+      background-color: #05040a;
       /* Dagger cursor */
       cursor: url("data:image/svg+xml;utf8,<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M3 21L10 14L14 10L21 3L19 2L12 9L8 13L2 20L3 21Z' fill='%236b1313' stroke='black' stroke-width='1'/></svg>") 3 21, auto;
+    }
+    
+    .dark-wood-table {
+      background-color: #1a120c;
+      background-image: 
+        linear-gradient(rgba(10,5,0,0.6), rgba(10,5,0,0.8)),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+      background-blend-mode: multiply;
+      box-shadow: inset 0 0 150px rgba(0,0,0,1);
+    }
+    
+    .blood-altar-bg {
+      background-color: #120a06;
+      background-image: 
+        linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 5%, rgba(0,0,0,0) 95%, rgba(0,0,0,0.8) 100%),
+        radial-gradient(circle at center, rgba(138, 3, 3, 0.12) 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='leather'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' result='noise'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.12  0 1 0 0 0.06  0 0 1 0 0.03  0 0 0 0.4 0' in='noise'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23leather)'/%3E%3C/svg%3E");
+      box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
     }
     
     .cursed-paper {
@@ -640,56 +674,506 @@ body { margin: 0; background-color: #05040a; font-family: 'EB Garamond', serif; 
       mix-blend-mode: multiply;
     }
 
-    .cursed-paper-dark {
-      background-color: #1a1a1a;
+    .heavy-fiber-book-page {
+      background-color: #c2b280;
       background-image: 
-        radial-gradient(ellipse at center, rgba(30, 30, 30, 0.8) 0%, rgba(10, 10, 10, 0.95) 100%),
-        url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' result='noise'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.85 0 1 0 0 0.8 0 0 1 0 0.7 0 0 0 0.25 0'/%3E%3CfeBlend mode='multiply' in='SourceGraphic' in2='noise'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
-      box-shadow: 
-        inset 0 0 50px rgba(0, 0, 0, 0.9),
-        0 20px 50px rgba(0, 0, 0, 0.8);
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.8  0 1 0 0 0.7  0 0 1 0 0.6  0 0 0 0.25 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
       position: relative;
-      overflow: hidden;
-      color: #f0ead6;
-      border: 1px solid #333;
+      clip-path: polygon(0.5% 0.5%, 99% 0%, 99.5% 99%, 1% 100%, 0% 50%);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.9);
+      border: 1px solid #8c7353;
+      color: #1a1a1a;
+      border-radius: 2px;
     }
     
-    .cursed-paper-dark::after {
-      content: '';
+    .spine-shadow {
       position: absolute;
-      top: -10px; left: -10px; right: -10px; bottom: -10px;
-      border: 2px dashed #333;
-      border-radius: 4px;
+      top: 0; bottom: 0; left: 0;
+      width: 60px;
+      background: linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 30%, transparent 100%);
       pointer-events: none;
-      opacity: 0.3;
-    }
-
-    .vignette-pulse {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      box-shadow: inset 0 0 180px rgba(0,0,0,1);
-      pointer-events: none;
-      animation: vignette-breathe 4s infinite alternate ease-in-out;
       z-index: 10;
     }
-    
-    @keyframes vignette-breathe {
-      0% { transform: scale(0.98); opacity: 0.8; }
-      100% { transform: scale(1); opacity: 1; }
+
+    .big-coffee-stains {
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(92, 60, 33, 0.4) 0%, rgba(92,60,33, 0.1) 20%, transparent 40%),
+        radial-gradient(circle at 85% 70%, rgba(70, 40, 20, 0.3) 0%, rgba(70,40,20, 0.05) 30%, transparent 50%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.8  0 1 0 0 0.7  0 0 1 0 0.6  0 0 0 0.25 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
     }
 
-    .blood-gradient-text {
-      background: linear-gradient(to bottom, #d4cfb8 0%, #8b0000 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      display: inline-block;
-    }
-
-    .text-shadow-bone {
-      text-shadow: 2px 2px 4px rgba(0,0,0,1);
-    }
-    
-    .stain-brown-dark {
-      background: radial-gradient(circle, rgba(50, 30, 20, 0.5) 0%, transparent 70%);
+    .blood-splatter-dynamic::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: 
+        radial-gradient(circle at 25% 35%, rgba(138,3,3,0.7) 0%, rgba(100,5,5,0.4) 3%, transparent 6%),
+        radial-gradient(circle at 27% 38%, rgba(138,3,3,0.6) 0%, transparent 2%),
+        radial-gradient(circle at 75% 85%, rgba(100,5,5,0.8) 0%, rgba(70,5,5,0.3) 4%, transparent 10%);
       mix-blend-mode: multiply;
+      pointer-events: none;
+      z-index: 5;
     }
+
+    .coffee-blood-mixed {
+      background-image: 
+        radial-gradient(circle at 12% 25%, rgba(110, 40, 33, 0.5) 0%, rgba(92,60,33, 0.1) 20%, transparent 40%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.8  0 1 0 0 0.7  0 0 1 0 0.6  0 0 0 0.25 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
+    }
+    .coffee-blood-mixed::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: 
+        radial-gradient(circle at 14% 28%, rgba(138,3,3,0.8) 0%, transparent 8%);
+      mix-blend-mode: multiply;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .claw-scratches::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 150px,
+        rgba(40,20,10,0.3) 150px,
+        rgba(40,20,10,0.6) 152px,
+        transparent 153px,
+        transparent 160px,
+        rgba(40,20,10,0.3) 160px,
+        rgba(40,20,10,0.6) 162px,
+        transparent 163px,
+        transparent 170px,
+        rgba(40,20,10,0.3) 170px,
+        rgba(40,20,10,0.6) 172px,
+        transparent 173px
+      );
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .chalk-smudge {
+      background: radial-gradient(ellipse, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 80%);
+      border-radius: 50%;
+    }
+
+    .charcoal-text {
+      color: #1f1a18;
+      text-shadow: 0 0 2px rgba(0,0,0,0.4), 1px 1px 0px rgba(255,255,255,0.4);
+    }
+
+    .red-visceral-glow {
+      color: #990000;
+      text-shadow: 0 0 10px rgba(200,0,0,0.7), 2px 2px 4px rgba(0,0,0,0.8);
+      font-weight: 900;
+    }
+
+    .red-silk-ribbon {
+      position: absolute;
+      top: -20px; right: 80px;
+      width: 30px; height: 140px;
+      background: linear-gradient(to right, #8b0000, #5a0000, #8b0000);
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.6);
+      z-index: 2;
+      transform-origin: top center;
+      transform: rotate(3deg);
+    }
+    .red-silk-ribbon::after {
+      content: '';
+      position: absolute;
+      bottom: -15px; left: 0;
+      border-left: 15px solid #5a0000;
+      border-right: 15px solid #5a0000;
+      border-bottom: 15px solid transparent;
+    }
+
+    .dirty-fingerprint {
+      position: absolute;
+      width: 35px; height: 50px;
+      /* simple fingerprint simulation */
+      background: 
+        repeating-radial-gradient(ellipse at center, transparent 0, rgba(0,0,0,0.4) 1px, transparent 2px);
+      border-radius: 40%;
+      mix-blend-mode: multiply;
+      pointer-events: none;
+      z-index: 6;
+      opacity: 0.6;
+    }
+
+    .rusty-clip {
+      position: absolute;
+      top: -15px; left: 60px;
+      width: 25px; height: 60px;
+      background: linear-gradient(to right, #4a3c31, #2a2018, #5c4b3f);
+      border-radius: 12px;
+      box-shadow: 2px 5px 10px rgba(0,0,0,0.8), inset 1px 1px 2px rgba(255,255,255,0.2);
+      z-index: 20;
+    }
+    .rusty-clip::after {
+      content: '';
+      position: absolute;
+      top: 5px; bottom: 5px; left: 8px; right: 8px;
+      border: 2px solid #1a120c;
+      border-radius: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(10,5,0,0.5);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #3b2818;
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #5c3a21;
+    }
+
+    .custom-btn-shadow {
+      box-shadow: 0 8px 20px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.1);
+    }
+
+    @keyframes splatter-anim {
+      0% { opacity: 1; transform: scale(0.5); }
+      10% { transform: scale(1.2); }
+      100% { opacity: 0; transform: scale(1.5) translateY(20px); }
+    }
+
+    /* Dry blood spot */
+    .blood-spot-dry {
+      position: absolute;
+      background: radial-gradient(circle, rgba(60, 5, 5, 0.9) 0%, rgba(30, 5, 5, 0.7) 40%, transparent 70%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      mix-blend-mode: multiply;
+      transition: filter 0.3s;
+      pointer-events: auto;
+      z-index: 5;
+    }
+    .blood-spot-dry:hover {
+      filter: brightness(1.5) drop-shadow(0 0 5px rgba(255,0,0,0.5));
+    }
+
+    /* Stone Table Attributes */
+    .stone-table {
+      background: 
+        linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='stone'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='3'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23stone)'/%3E%3C/svg%3E");
+      border: 4px solid #3c4043;
+      border-image: linear-gradient(to bottom right, #5f6368, #202124) 1;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 5px 5px 15px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    
+    .stone-table::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+
+    /* Runic Circle */
+    .runic-circle-bg {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 140%; height: 140%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='45' fill='none' stroke='rgba(139, 0, 0, 0.4)' stroke-width='1' stroke-dasharray='4 2'/%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='rgba(139, 0, 0, 0.2)' stroke-width='0.5'/%3E%3Cpath d='M50 5 L50 95 M5 50 L95 50 M18 18 L82 82 M18 82 L82 18' stroke='rgba(139, 0, 0, 0.15)' stroke-width='0.5'/%3E%3C/svg%3E");
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+      animation: spin-ring-slow 60s linear infinite;
+      z-index: 0;
+      opacity: 0.6;
+    }
+    
+    .wis-particle {
+      position: absolute;
+      width: 4px; height: 4px;
+      background: #8a2be2;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #8a2be2, 0 0 20px #8a2be2;
+      animation: float-particle 3s ease-in-out infinite;
+      z-index: 1;
+    }
+
+    @keyframes float-particle {
+      0% { transform: translateY(0) scale(1); opacity: 0; }
+      50% { transform: translateY(-20px) scale(1.5); opacity: 1; }
+      100% { transform: translateY(-40px) scale(0.5); opacity: 0; }
+    }
+
+    /* Page Turn Animation */
+    @keyframes page-turn {
+      0% { transform: perspective(1000px) rotateY(0deg); opacity: 1; filter: blur(0); }
+      50% { transform: perspective(1000px) rotateY(-45deg); opacity: 0.5; filter: blur(4px); }
+      100% { transform: perspective(1000px) rotateY(0deg); opacity: 1; filter: blur(0); }
+    }
+    .page-turn-anim {
+      animation: page-turn 0.6s ease-in-out;
+    }
+
+    .clip-shield {
+      clip-path: polygon(50% 0%, 100% 15%, 100% 60%, 50% 100%, 0% 60%, 0% 15%);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+      background: linear-gradient(135deg, #444, #222);
+    }
+    .blood-drop-shape {
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: inset -5px -5px 10px rgba(0,0,0,0.5), 0 0 10px rgba(139,0,0,0.8);
+    }
+
+/* DIÁRIO ESQUEUOMÓRFICO NEW STYLES */
+.diary-paper {
+  background-color: #eaddc5;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(200, 180, 150, 0.1) 0%, rgba(150, 120, 90, 0.3) 100%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+  color: #1a1a1a;
+  text-rendering: optimizeLegibility;
+}
+
+.mesa-container {
+  background: #2a1c14 url('https://www.transparenttextures.com/patterns/wood-pattern.png');
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+}
+
+.nota-combate {
+  background: #f0e6cf;
+  transform: rotate(-2deg);
+  box-shadow: 2px 5px 15px rgba(0,0,0,0.3);
+  border-left: 2px solid rgba(0,0,0,0.1);
+  position: relative;
+}
+.nota-combate::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 15px;
+  background: rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  border-radius: 2px;
+}
+
+.search-bar {
+  background: transparent;
+  border: none;
+  border-bottom: 2px dashed #5e3e20;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  outline: none;
+  color: #1a1a1a;
+}
+.search-bar::placeholder {
+  color: rgba(94, 62, 32, 0.6);
+}
+
+.leather-tag {
+  background: #3e2723 url('https://www.transparenttextures.com/patterns/leather.png');
+  color: #d7ccc8;
+  padding: 8px 16px;
+  border-radius: 4px;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.5), inset 0 0 10px rgba(0,0,0,0.8);
+  border: 1px dashed #795548;
+  text-transform: uppercase;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 50;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.leather-tag:hover {
+  transform: translateY(-2px) rotate(1deg);
+  box-shadow: 2px 4px 8px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.8);
+  color: #ffccbc;
+}
+
+
+
+.imagem-monstro-papiro {
+  mix-blend-mode: multiply;
+  filter: grayscale(100%) contrast(1.2) sepia(0.3);
+  opacity: 0.85;
+}
+
+.papel-anexo {
+  background-color: #e6d8c3;
+  background-image: url('https://www.transparenttextures.com/patterns/aged-paper.png');
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.6), inset 0 0 40px rgba(94,62,32,0.4);
+  border: 1px solid #8b5a2b;
+  border-bottom: none;
+}
+
+.book-spine-left {
+  background: repeating-linear-gradient(
+    to right,
+    #2a1c14,
+    #4a3424 1px,
+    #e3d7c1 2px,
+    #e3d7c1 3px
+  );
+  box-shadow: inset -15px 0 30px rgba(0,0,0,0.6);
+}
+
+.book-spine-right {
+  background: repeating-linear-gradient(
+    to left,
+    #2a1c14,
+    #4a3424 1px,
+    #e3d7c1 2px,
+    #e3d7c1 3px
+  );
+  box-shadow: inset 15px 0 30px rgba(0,0,0,0.6);
+}
+
+.book-center-fold {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(20, 10, 5, 0.4) 30%,
+    rgba(20, 10, 5, 0.8) 50%,
+    rgba(20, 10, 5, 0.4) 70%,
+    transparent 100%
+  );
+}
+
+.book-page-bg {
+  background-color: #e6d8c3;
+  background-image: 
+    url('https://www.transparenttextures.com/patterns/aged-paper.png'),
+    radial-gradient(ellipse at center, transparent 40%, rgba(94,62,32,0.15) 100%);
+}
+
+.bookmark-tab {
+  background: #5c2018;
+  box-shadow: 2px 8px 15px rgba(0,0,0,0.4);
+  border: 1px solid #3a1008;
+  border-top: none;
+  border-radius: 0 0 2px 2px;
+}
+.bookmark-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: -1px;
+  width: 0;
+  height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-top: 15px solid #5c2018;
+}
+
+.writing-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.ink-bleed-text {
+  filter: url(#ink-bleed);
+  color: #111;
+  text-shadow: 0px 0px 1px rgba(0,0,0,0.5);
+}
+
+.charcoal-sketch {
+  filter: grayscale(1) contrast(1.5) sepia(0.3) brightness(1.1);
+  mix-blend-mode: multiply;
+  mask-image: radial-gradient(circle, black 40%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, black 40%, transparent 70%);
+  transition: filter 0.3s;
+}
+.charcoal-sketch:hover {
+  filter: grayscale(0.8) contrast(1.8) sepia(0.4) brightness(0.9);
+}
+
+.blood-drip-diary {
+  position: absolute;
+  width: 4px;
+  background: linear-gradient(to bottom, #4a0000 0%, #8b0000 20%, #8b0000 80%, transparent 100%);
+  border-radius: 4px;
+  mix-blend-mode: multiply;
+  opacity: 0.8;
+  z-index: 4;
+}
+
+.dry-blood {
+  background: radial-gradient(ellipse at center, rgba(61, 28, 28, 0.4) 0%, rgba(42, 11, 11, 0.2) 40%, transparent 70%);
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+}
+
+.fresh-blood {
+  background: radial-gradient(circle at center, rgba(139, 0, 0, 0.8) 0%, rgba(90, 0, 0, 0.5) 30%, rgba(60, 0, 0, 0.2) 50%, transparent 80%);
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+  z-index: 4;
+}
+
+.coffee-ring {
+  border: 4px solid rgba(59, 42, 26, 0.1);
+  border-radius: 50%;
+  mix-blend-mode: multiply;
+  z-index: 1;
+}
+
+.cigar-ash {
+  background: radial-gradient(circle, #555 20%, #333 60%, transparent 80%);
+  opacity: 0.7;
+}
+
+.paper-tear {
+  position: absolute;
+  /* wooden table seen through tear */
+  background-image: linear-gradient(rgba(10,5,0,0.8), rgba(10,5,0,0.8)), url("https://www.transparenttextures.com/patterns/wood-pattern.png");
+  background-color: #1a120c;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.9), inset 2px 2px 5px rgba(0,0,0,0.8), 0px 2px 5px rgba(0, 0, 0, 0.3);
+  filter: url(#torn-edge);
+  z-index: 4;
+}
+
+.paper-tear::after {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  filter: blur(1px);
+}
+
+.doodle-arrow {
+  fill: none;
+  stroke: #1a1a1a;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: url(#ink-bleed);
+}
+
+.metal-clip {
+  background: linear-gradient(135deg, #a0a0a0 0%, #606060 50%, #404040 100%);
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.5), inset 1px 1px 2px rgba(255,255,255,0.4);
+  border-radius: 8px;
+  z-index: 40;
+}
+.metal-clip::after {
+  content: '';
+  position: absolute;
+  top: 3px; bottom: 3px; left: 6px; right: 6px;
+  border: 1px solid rgba(0,0,0,0.6);
+  border-radius: 4px;
+}
