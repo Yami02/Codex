@@ -266,22 +266,22 @@ export const LivroMonstros = () => {
   return (
     <div className="flex flex-col h-[100dvh] monster-page text-[#3b2818] overflow-hidden select-none">
       
-      <div className="px-8 py-3 border-b-2 border-[#5c3a21] flex justify-between items-center bg-[#150f0a] shadow-xl z-20">
-        <div>
-          <h1 className="m-0 font-metal text-3xl text-[#a31c1c] tracking-wider drop-shadow-md">Bestiário Maldito</h1>
-          <span className="text-xs text-[#8a7d9b] font-serif italic">Registros manchados de sangue // Cuidado com as páginas soltas</span>
+      <div className="px-4 md:px-8 py-3 border-b-2 border-[#5c3a21] flex flex-col sm:flex-row justify-between items-center bg-[#150f0a] shadow-xl z-20 gap-3 sm:gap-0">
+        <div className="text-center sm:text-left">
+          <h1 className="m-0 font-metal text-2xl md:text-3xl text-[#a31c1c] tracking-wider drop-shadow-md">Bestiário Maldito</h1>
+          <span className="text-[10px] md:text-xs text-[#8a7d9b] font-serif italic">Registros manchados de sangue // Cuidado com as páginas soltas</span>
         </div>
-        <Link to="/" className="text-[#a31c1c] no-underline border border-[#5c3a21] hover:bg-[#a31c1c] hover:text-[#150f0a] px-4 py-2 text-sm transition-all font-metal uppercase tracking-widest">
+        <Link to="/" className="text-[#a31c1c] no-underline border border-[#5c3a21] hover:bg-[#a31c1c] hover:text-[#150f0a] px-3 md:px-4 py-2 text-xs md:text-sm transition-all font-metal uppercase tracking-widest text-center">
           Fugir do Arquivo
         </Link>
       </div>
 
-      <div className="flex flex-1 overflow-hidden flashback-filter font-serif relative">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden flashback-filter font-serif relative">
         { /* Blood drip effect for hard monsters */ }
         {(tier === 'Elite' || tier === 'Alpha' || tier === 'Lenda') && <div className="blood-drip" style={{height: targetCr >= 17 ? '150px' : (targetCr >= 11 ? '100px' : '50px')}}></div>}
         
         {/* Sidebar */}
-        <div className="w-[350px] border-r-2 border-[#3b2818] flex flex-col bg-[#0a0705] z-10 shadow-[5px_0_15px_rgba(0,0,0,0.8)] relative">
+        <div className="w-full md:w-[350px] h-[30vh] md:h-auto border-b-2 md:border-b-0 md:border-r-2 border-[#3b2818] flex flex-col bg-[#0a0705] z-10 shadow-[0_5px_15px_rgba(0,0,0,0.8)] md:shadow-[5px_0_15px_rgba(0,0,0,0.8)] relative">
           <div className="p-4 border-b border-[#3b2818]">
             <h2 className="font-metal text-xl m-0 text-[#8c6b4e] tracking-widest text-center shadow-black">Almas Condenadas</h2>
           </div>
@@ -308,40 +308,40 @@ export const LivroMonstros = () => {
           <div className={`max-w-4xl mx-auto cursed-paper-dark p-8 md:p-12 mb-10 transition-transform duration-300 ${targetCr >= 17 ? 'fear-shake' : ''}`}>
             <div className="vignette-pulse"></div>
             
-            <div className="flex flex-col md:flex-row gap-8 mb-8 relative z-10">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8 mb-8 relative z-10">
               
               {/* Imagem do Monstro */}
               {monster.imageUrl && (
-                <div className="w-full md:w-[350px] shrink-0 border-[3px] border-[#333] p-1 bg-[#111] rotate-1 hover:rotate-0 transition-transform shadow-2xl">
+                <div className="w-full md:w-[350px] shrink-0 border-[3px] border-[#333] p-1 bg-[#111] rotate-1 hover:rotate-0 transition-transform shadow-2xl mx-auto max-w-[300px] md:max-w-none">
                   <img src={monster.imageUrl} alt={monster.name} className="w-full h-auto block object-cover monster-sketch" />
                 </div>
               )}
 
-              <div className="flex-1 min-w-[300px]">
-                <h2 className="font-metal text-5xl m-0 mb-4 text-[#8b0000] drop-shadow-sm uppercase tracking-wider blood-gradient-text text-shadow-bone px-2">{monster.name}</h2>
-                <div className="text-[#d4cfb8] leading-relaxed mb-8 text-lg font-apple ink-writing font-bold drop-shadow-[0_0_1px_rgba(0,0,0,0.5)]">
+              <div className="flex-1 min-w-0">
+                <h2 className="font-metal text-3xl sm:text-4xl md:text-5xl m-0 mb-4 text-[#8b0000] drop-shadow-sm uppercase tracking-wider blood-gradient-text text-shadow-bone px-2">{monster.name}</h2>
+                <div className="text-[#d4cfb8] leading-relaxed mb-6 md:mb-8 text-base md:text-lg font-apple ink-writing font-bold drop-shadow-[0_0_1px_rgba(0,0,0,0.5)] max-w-full overflow-hidden">
                   {monster.description}
                 </div>
 
-                <div className="bg-[#111]/80 p-4 border border-dashed border-[#5c3a21] shadow-inner stain-brown-dark">
+                <div className="bg-[#111]/80 p-3 md:p-4 border border-dashed border-[#5c3a21] shadow-inner stain-brown-dark">
                   <h4 className="m-0 mb-2 text-[#8c6b4e] text-xs uppercase font-bold tracking-widest font-sans text-shadow-bone">Fragmento de Visão (Prompt)</h4>
-                  <p className="m-0 text-xs text-[#a37d5c] font-mono italic opacity-90 text-shadow-bone">
+                  <p className="m-0 text-[10px] md:text-xs text-[#a37d5c] font-mono italic opacity-90 text-shadow-bone break-words">
                     {monster.prompt}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="w-full h-[2px] bg-[#5c3a21] opacity-60 my-8 mx-auto relative z-10" />
+            <div className="w-full h-[2px] bg-[#5c3a21] opacity-60 my-6 md:my-8 mx-auto relative z-10" />
 
             {/* Slider Configuração */}
-            <h3 className="font-metal text-2xl mb-4 text-[#8b0000] tracking-widest text-center text-shadow-bone relative z-10">Ritual de Mutação</h3>
+            <h3 className="font-metal text-xl md:text-2xl mb-4 text-[#8b0000] tracking-widest text-center text-shadow-bone relative z-10">Ritual de Mutação</h3>
             
-            <div className="bg-[#111] p-6 border-[2px] border-[#333] shadow-[inset_0_0_20px_rgba(0,0,0,0.9)] mb-10 relative overflow-hidden z-10">
+            <div className="bg-[#111] p-4 md:p-6 border-[2px] border-[#333] shadow-[inset_0_0_20px_rgba(0,0,0,0.9)] mb-8 md:mb-10 relative overflow-hidden z-10">
                {targetCr >= 17 && <div className="absolute inset-0 stain-red opacity-30 pointer-events-none"></div>}
-              <div className="flex justify-between mb-4 items-center relative z-10">
-                <span className="text-lg text-[#d4cfb8] font-bold font-serif italic text-shadow-bone">Nível de Corrupção: <strong className="blood-gradient-text text-3xl font-metal not-italic ml-2">{targetCr}</strong></span>
-                <span className="text-xs border border-[#8b0000] bg-[#1a0a0a] text-[#d4cfb8] px-3 py-1 font-metal uppercase tracking-widest shadow-md text-shadow-bone">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0 mb-4 sm:items-center relative z-10">
+                <span className="text-base md:text-lg text-[#d4cfb8] font-bold font-serif italic text-shadow-bone">Nível de Corrupção: <strong className="blood-gradient-text text-2xl md:text-3xl font-metal not-italic ml-2">{targetCr}</strong></span>
+                <span className="text-[10px] md:text-xs border border-[#8b0000] bg-[#1a0a0a] text-[#d4cfb8] px-2 md:px-3 py-1 font-metal uppercase tracking-widest shadow-md text-shadow-bone self-start sm:self-auto">
                   Ameaça: <strong className="text-[#f0ead6] ml-1">{tier}</strong>
                 </span>
               </div>
@@ -354,55 +354,56 @@ export const LivroMonstros = () => {
                 onChange={(e) => setTargetCr(parseInt(e.target.value))}
                 className="w-full cursor-pointer opacity-80 hover:opacity-100 transition-opacity accent-[#8b0000] relative z-10"
               />
-              <div className="flex justify-between text-xs text-[#d4cfb8] mt-3 font-serif font-bold relative z-10 text-shadow-bone">
+              <div className="flex justify-between text-[10px] md:text-xs text-[#d4cfb8] mt-3 font-serif font-bold relative z-10 text-shadow-bone">
                 <span>Criatura Natural (CR {monster.baseCr})</span>
                 <span>Pesadelo Encarnado (CR 30)</span>
               </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-8 relative z-10">
+            <div className="flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
               {/* Stat Block Final */}
-              <div className="flex-1 min-w-[300px] border-t-4 border-b-4 border-double border-[#8b0000] py-6 px-4 relative bg-[#1a1a1a]/60 shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] stain-brown-dark rounded">
+              <div className="flex-1 min-w-0 border-t-4 border-b-4 border-double border-[#8b0000] py-4 md:py-6 px-3 md:px-4 relative bg-[#1a1a1a]/60 shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] stain-brown-dark rounded">
                 
-                <h2 className="font-metal text-4xl mb-1 tracking-widest text-[#8b0000] font-bold blood-gradient-text text-shadow-bone">
-                  {monster.name.split(' (')[0]} <span className="text-2xl text-[#d4cfb8]">[{targetCr}]</span>
+                <h2 className="font-metal text-2xl sm:text-3xl md:text-4xl mb-1 tracking-widest text-[#8b0000] font-bold blood-gradient-text text-shadow-bone break-words">
+                  {monster.name.split(' (')[0]} <span className="text-xl md:text-2xl text-[#d4cfb8]">[{targetCr}]</span>
                 </h2>
                 
-                <div className="text-[#a37d5c] text-sm mb-4 font-serif italic font-bold text-shadow-bone">
+                <div className="text-[#a37d5c] text-xs md:text-sm mb-4 font-serif italic font-bold text-shadow-bone">
                   Horror Anômalo ({tier})
                 </div>
                 
-                <div className="border-t border-b border-[#333] py-4 text-[#f0ead6] font-serif font-semibold text-lg leading-relaxed text-shadow-bone relative z-20">
-                  <div><strong className="font-metal text-2xl uppercase tracking-wider text-[#8b0000]">Defesa:</strong> {calculatedAc} {crDiff > 0 && <span className="text-[#a37d5c] text-sm">(+{Math.floor(crDiff/2)} Escamas Caleadas)</span>}</div>
-                  <div><strong className="font-metal text-2xl uppercase tracking-wider text-[#8b0000]">Vitalidade:</strong> {calculatedHp} {hpMulti > 1 && <span className="text-[#a37d5c] text-sm">(x{hpMulti} Carne Sobressalente)</span>}</div>
-                  <div><strong className="font-metal text-2xl uppercase tracking-wider text-[#8b0000]">Movimentação:</strong> {monster.speed.replace('ft', ' pés').replace('Fly', 'Voo').replace('Burrow', 'Escavação').replace('Swim', 'Nado')}</div>
+                <div className="border-t border-b border-[#333] py-4 text-[#f0ead6] font-serif font-semibold text-base md:text-lg leading-relaxed text-shadow-bone relative z-20">
+                  <div><strong className="font-metal text-xl md:text-2xl uppercase tracking-wider text-[#8b0000]">Defesa:</strong> {calculatedAc} {crDiff > 0 && <span className="text-[#a37d5c] text-xs md:text-sm">(+{Math.floor(crDiff/2)} Escamas)</span>}</div>
+                  <div><strong className="font-metal text-xl md:text-2xl uppercase tracking-wider text-[#8b0000]">Vitalidade:</strong> {calculatedHp} {hpMulti > 1 && <span className="text-[#a37d5c] text-xs md:text-sm">(x{hpMulti} Carne)</span>}</div>
+                  <div><strong className="font-metal text-xl md:text-2xl uppercase tracking-wider text-[#8b0000]">Movimentação:</strong> {monster.speed.replace('ft', ' pés').replace('Fly', 'Voo').replace('Burrow', 'Escavação').replace('Swim', 'Nado')}</div>
                   
-                  <div className="grid grid-cols-2 gap-4 mt-6 text-left bg-[#111]/80 border border-[#333] p-4 shadow-inner relative z-20 stain-brown-dark">
-                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Bone className="w-5 h-5 text-[#E2D1B3]"/><span className="text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Corporal</span></div><strong className="font-metal text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.fisico}</strong></div>
-                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Eye className="w-5 h-5 text-[#E2D1B3]"/><span className="text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Psique</span></div><strong className="font-metal text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.mente}</strong></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-6 text-left bg-[#111]/80 border border-[#333] p-3 md:p-4 shadow-inner relative z-20 stain-brown-dark">
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Bone className="w-4 h-4 md:w-5 md:h-5 text-[#E2D1B3]"/><span className="text-[10px] md:text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Corporal</span></div><strong className="font-metal text-2xl md:text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.fisico}</strong></div>
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Eye className="w-4 h-4 md:w-5 md:h-5 text-[#E2D1B3]"/><span className="text-[10px] md:text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Psique</span></div><strong className="font-metal text-2xl md:text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.mente}</strong></div>
                     
-                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Flame className="w-5 h-5 text-[#E2D1B3]"/><span className="text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Letalidade</span></div><strong className="font-metal text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.precisao}</strong></div>
-                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Skull className="w-5 h-5 text-[#E2D1B3]"/><span className="text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Determinação</span></div><strong className="font-metal text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.vontade}</strong></div>
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Flame className="w-4 h-4 md:w-5 md:h-5 text-[#E2D1B3]"/><span className="text-[10px] md:text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Letalidade</span></div><strong className="font-metal text-2xl md:text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.precisao}</strong></div>
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Skull className="w-4 h-4 md:w-5 md:h-5 text-[#E2D1B3]"/><span className="text-[10px] md:text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Determinação</span></div><strong className="font-metal text-2xl md:text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.vontade}</strong></div>
 
-                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Droplets className="w-5 h-5 text-[#E2D1B3]"/><span className="text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Vigor</span></div><strong className="font-metal text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.resistencia}</strong></div>
-                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Ghost className="w-5 h-5 text-[#E2D1B3]"/><span className="text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Sussurros</span></div><strong className="font-metal text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.eloquencia}</strong></div>
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Droplets className="w-4 h-4 md:w-5 md:h-5 text-[#E2D1B3]"/><span className="text-[10px] md:text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Vigor</span></div><strong className="font-metal text-2xl md:text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.resistencia}</strong></div>
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Ghost className="w-4 h-4 md:w-5 md:h-5 text-[#E2D1B3]"/><span className="text-[10px] md:text-xs text-[#E2D1B3] uppercase font-bold font-sans tracking-widest">Sussurros</span></div><strong className="font-metal text-2xl md:text-3xl text-[#E2D1B3] font-bold text-shadow-bone">{atributos.eloquencia}</strong></div>
                   </div>
                 </div>
 
                 <div className="my-6 text-shadow-bone">
-                  <h4 className="font-metal text-3xl text-[#8b0000] m-0 mb-3 border-b border-[#333] pb-1">Espólios e Ações</h4>
-                  <ul className="m-0 pl-5 text-[#f0ead6] text-base font-serif font-semibold space-y-2 marker:text-[#8b0000]">
+                  <h4 className="font-metal text-2xl md:text-3xl text-[#8b0000] m-0 mb-3 border-b border-[#333] pb-1">Espólios e Ações</h4>
+                  <ul className="m-0 pl-4 md:pl-5 text-[#f0ead6] text-sm md:text-base font-serif font-semibold space-y-2 marker:text-[#8b0000]">
                     <li>
                       <strong className="text-[#a37d5c]">Ataque Sombrio:</strong> {finalDamageStr.replace('força', 'Poder Bruto').replace('perfurante', 'Perfuração').replace('contundente', 'Esmagamento').replace('ácido', 'Corrosão').replace('cortante', 'Lâminas')}
                     </li>
                     <li>
-                      <strong className="text-[#a37d5c]">{abilitiesText.split(':')[0]}:</strong> <span className="font-apple text-xl text-[#f0ead6] font-black tracking-wide ml-1">{abilitiesText.includes(':') ? abilitiesText.split(':')[1] : abilitiesText}</span>
+                      <strong className="text-[#a37d5c]">{abilitiesText.split(':')[0]}:</strong> <span className="font-apple text-lg md:text-xl text-[#f0ead6] font-black tracking-wide ml-1">{abilitiesText.includes(':') ? abilitiesText.split(':')[1] : abilitiesText}</span>
                     </li>
                     <li>
                       <strong className="text-[#a37d5c]">Terror (CD):</strong> {saveDc} (Evitar Desespero)
                     </li>
                   </ul>
                 </div>
+
 
                 {extraFeatures.length > 0 && (
                    <div className="mt-8 p-4 bg-[#8b0000]/10 border-l-[4px] border-[#8b0000] stain-red">
@@ -415,20 +416,20 @@ export const LivroMonstros = () => {
               </div>
 
               {/* Logs do Output */}
-              <div className="flex-1 min-w-[300px] flex flex-col">
-                <h3 className="font-finger text-2xl m-0 mb-3 text-[#d4cfb8] font-bold text-shadow-bone">Anotações do Pesquisador</h3>
-                <div className="bg-[#111]/80 border border-[#333] p-5 font-apple text-xl text-[#f0ead6] font-bold leading-relaxed shadow-[inset_0_0_20px_rgba(0,0,0,0.9)] flex-1 min-h-[300px] stain-brown-dark rounded">
+              <div className="flex-1 min-w-0 md:min-w-[300px] flex flex-col">
+                <h3 className="font-finger text-xl md:text-2xl m-0 mb-3 text-[#d4cfb8] font-bold text-shadow-bone">Anotações do Pesquisador</h3>
+                <div className="bg-[#111]/80 border border-[#333] p-4 md:p-5 font-apple text-lg md:text-xl text-[#f0ead6] font-bold leading-relaxed shadow-[inset_0_0_20px_rgba(0,0,0,0.9)] flex-1 min-h-[300px] stain-brown-dark rounded">
                   {logs.length === 0 ? (
                      <p className="text-[#a37d5c] opacity-80 text-shadow-bone">"A besta ainda se encontra em seu estado infantil... por enquanto."</p>
                   ) : (
-                    <div className="ink-writing flex flex-col space-y-4 pt-2">
+                    <div className="ink-writing flex flex-col space-y-3 md:space-y-4 pt-2">
                        {logs.map((log, i) => (
-                         <div key={i} className="flex gap-2 text-shadow-bone">
+                         <div key={i} className="flex gap-2 text-shadow-bone break-words">
                            <span className="text-[#8b0000] font-sans">†</span>
                            <span>{log.replace('Processando Upgrade...', 'O sangue ferve...').replace('Aplicado.', 'desperto!').replace('Refinamento Rúnico', 'Pele esticada e endurecida').replace('Kernel de Entropia', 'Garras mais afiadas, dentes maiores...').replace('Conectividade duplicada', 'Surgem novos apêndices... que nojo.')}</span>
                          </div>
                        ))}
-                       <div className="mt-6 border-t-2 border-dashed border-[#5c3a21] pt-4 text-[#8b0000] font-metal text-2xl tracking-wider text-center text-shadow-bone">
+                       <div className="mt-4 md:mt-6 border-t-2 border-dashed border-[#5c3a21] pt-4 text-[#8b0000] font-metal text-xl md:text-2xl tracking-wider text-center text-shadow-bone">
                          "A NATUREZA SE CURVA A ESTE HORROR."
                        </div>
                     </div>
