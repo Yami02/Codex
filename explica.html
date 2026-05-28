@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Magia — Compilador Arcano</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Share+Tech+Mono&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b12;
+    --surface: #0d1220;
+    --border: rgba(100,160,255,0.15);
+    --accent: #4a9eff;
+    --accent2: #c07aff;
+    --accent3: #50e8b0;
+    --accent4: #ffb84a;
+    --text: #ccd6f6;
+    --muted: #5a6890;
+    --danger: #ff6b6b;
+    --gold: #ffd080;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lato', sans-serif;
+    font-weight: 300;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* starfield */
+  #stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse at 20% 30%, rgba(74,158,255,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(192,122,255,0.04) 0%, transparent 60%);
+  }
+  #stars::before, #stars::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 15% 85%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 50%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.4) 0%, transparent 100%);
+  }
+
+  /* progress bar */
+  #progress-bar {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+    z-index: 100;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* nav */
+  #nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center;
+    gap: 20px; padding: 16px;
+    background: linear-gradient(transparent, rgba(8,11,18,0.95));
+    z-index: 50;
+  }
+  .nav-btn {
+    background: rgba(74,158,255,0.1);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 8px 20px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { background: rgba(74,158,255,0.2); border-color: var(--accent); }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+  #slide-counter { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--muted); min-width: 60px; text-align: center; }
+
+  /* dot nav */
+  #dot-nav { display: flex; gap: 6px; align-items: center; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .dot.active { background: var(--accent); box-shadow: 0 0 6px var(--accent); width: 18px; border-radius: 3px; }
+
+  /* slides container */
+  #slides { flex: 1; position: relative; overflow: hidden; z-index: 1; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 44px 60px 80px;
+    opacity: 0; transform: translateX(40px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; transform: translateX(0); pointer-events: all; }
+  .slide.exit { opacity: 0; transform: translateX(-40px); }
+
+  /* slide label */
+  .slide-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 32px; font-weight: 600;
+    color: #fff; line-height: 1.2;
+    margin-bottom: 28px;
+    text-shadow: 0 0 30px rgba(74,158,255,0.3);
+  }
+  h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 22px; font-weight: 600;
+    color: #fff; margin-bottom: 16px;
+  }
+  h3 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; color: var(--accent2);
+    letter-spacing: 1px; margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  p { font-size: 15px; line-height: 1.8; color: var(--text); margin-bottom: 12px; }
+
+  /* grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .card.blue::before { background: var(--accent); }
+  .card.purple::before { background: var(--accent2); }
+  .card.green::before { background: var(--accent3); }
+  .card.gold::before { background: var(--gold); }
+  .card.red::before { background: var(--danger); }
+
+  /* formula blocks */
+  .formula-block {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(74,158,255,0.2);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    margin: 10px 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    line-height: 2;
+    color: #a8c8ff;
+    overflow-x: auto;
+  }
+  .formula-block .comment { color: var(--muted); font-size: 11px; }
+  .formula-block .highlight { color: var(--accent3); }
+  .formula-block .key { color: var(--gold); }
+  .formula-block .op { color: var(--accent2); }
+  .formula-block .num { color: var(--danger); }
+
+  /* math display */
+  .math {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(192,122,255,0.25);
+    border-left: 3px solid var(--accent2);
+    padding: 16px 20px;
+    margin: 10px 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    line-height: 2.2;
+    color: #ddc8ff;
+    text-align: center;
+  }
+  .math .frac { display: inline-block; text-align: center; vertical-align: middle; }
+  .math .frac .num-part { display: block; border-bottom: 1px solid currentColor; padding: 0 4px; }
+  .math .frac .den-part { display: block; padding: 0 4px; }
+
+  /* vector display */
+  .vector-wrap { display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap; margin: 12px 0; }
+  .vector-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(74,158,255,0.2);
+    padding: 10px 0;
+    min-width: 140px;
+    text-align: center;
+    position: relative;
+  }
+  .vector-box::before, .vector-box::after {
+    content: ''; position: absolute;
+    top: 0; bottom: 0; width: 3px;
+    border-color: rgba(74,158,255,0.5);
+    border-style: solid;
+  }
+  .vector-box::before { left: 0; border-width: 1px 0 1px 3px; border-right: none; }
+  .vector-box::after { right: 0; border-width: 1px 3px 1px 0; border-left: none; }
+  .vector-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; color: var(--accent);
+    margin-bottom: 6px; display: block;
+  }
+  .vector-row {
+    display: flex; justify-content: space-between;
+    padding: 3px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+  }
+  .vector-row .k { color: var(--muted); font-size: 11px; }
+  .vector-row .v { color: var(--accent3); }
+
+  /* tag pills */
+  .pill {
+    display: inline-block;
+    background: rgba(74,158,255,0.1);
+    border: 1px solid rgba(74,158,255,0.3);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    padding: 3px 10px; margin: 3px;
+  }
+  .pill.purple { background: rgba(192,122,255,0.1); border-color: rgba(192,122,255,0.3); color: var(--accent2); }
+  .pill.green { background: rgba(80,232,176,0.1); border-color: rgba(80,232,176,0.3); color: var(--accent3); }
+  .pill.gold { background: rgba(255,184,74,0.1); border-color: rgba(255,184,74,0.3); color: var(--gold); }
+  .pill.red { background: rgba(255,107,107,0.1); border-color: rgba(255,107,107,0.3); color: var(--danger); }
+
+  /* flow pipeline */
+  .pipeline { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 12px 0; }
+  .pipe-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; color: var(--text);
+    white-space: nowrap;
+  }
+  .pipe-arrow { color: var(--accent); font-size: 16px; padding: 0 4px; }
+
+  /* divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  /* table */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 1px; text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .tbl td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl .mono { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--accent3); }
+  .tbl .eq { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--accent); }
+
+  /* glow heading accent */
+  .accent-text { color: var(--accent); }
+  .accent2-text { color: var(--accent2); }
+  .accent3-text { color: var(--accent3); }
+  .gold-text { color: var(--gold); }
+  .danger-text { color: var(--danger); }
+
+  /* big number */
+  .big-num { font-family: 'Cinzel', serif; font-size: 48px; color: var(--accent); opacity: 0.15; position: absolute; right: 24px; top: 12px; }
+
+  /* collapse table */
+  .collapse-row { display: flex; align-items: stretch; margin-bottom: 8px; }
+  .collapse-d10 {
+    width: 38px; display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .collapse-content { flex: 1; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-left: none; font-size: 13px; }
+  .collapse-title { font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; margin-bottom: 3px; }
+
+  /* cover special */
+  .cover-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; letter-spacing: 4px;
+    color: var(--accent2); text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+  .cover-line { width: 60px; height: 1px; background: var(--accent); margin: 0 auto 36px; box-shadow: 0 0 10px var(--accent); }
+
+  /* scroll inside slide */
+  .slide { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .slide.active .card { animation: fadeUp 0.4s ease both; }
+  .slide.active .card:nth-child(2) { animation-delay: 0.06s; }
+  .slide.active .card:nth-child(3) { animation-delay: 0.12s; }
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+<div id="progress-bar" style="width:0%"></div>
+
+<div id="slides">
+
+  <!-- SLIDE 0: CAPA -->
+  <div class="slide active" data-index="0">
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; text-align:center;">
+      <div class="slide-tag" style="text-align:center; margin-bottom:20px;">Sistema Arcano v1.0</div>
+      <h1 style="font-size:42px; text-align:center; margin-bottom:12px;">O Compilador Arcano</h1>
+      <div class="cover-subtitle">Linguagem · Matemática · Grafos · Execução</div>
+      <div class="cover-line"></div>
+      <p style="max-width:560px; margin:0 auto; text-align:center; font-size:16px; line-height:2;">
+        Seu sistema mágico não é uma lista de feitiços.<br>
+        É uma <span class="accent-text">linguagem formal</span> com gramática, tipos, semântica e transformação matemática.<br>
+        Este documento explica como ela funciona por dentro.
+      </p>
+      <div style="margin-top:36px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+        <span class="pill">Núcleo → Vetor</span>
+        <span class="pill purple">Kernel → Dimensão</span>
+        <span class="pill green">Aditivo → Transformação</span>
+        <span class="pill gold">Camada → Soma</span>
+        <span class="pill red">Colapso → Erro fatal</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 1: OVERVIEW DO SISTEMA -->
+  <div class="slide" data-index="1">
+    <div class="slide-tag">01 — Visão Geral</div>
+    <h1>O que é o sistema</h1>
+    <p>Toda magia é construída em <span class="accent-text">camadas</span>. A base é o <strong>Núcleo</strong>, que define qual elemento existe. Sobre ele empilham-se <strong>Kernels</strong> (propriedades físicas), <strong>Aditivos</strong> (modificadores), <strong>Conectivos</strong> (operadores lógicos) e <strong>Subciclos</strong> (blocos reutilizáveis). O compilador percorre tudo isso e produz um resultado ou um colapso.</p>
+
+    <div class="pipeline" style="margin: 16px 0;">
+      <div class="pipe-step">Código Arcano</div><div class="pipe-arrow">→</div>
+      <div class="pipe-step">Lexer/Parser</div><div class="pipe-arrow">→</div>
+      <div class="pipe-step">AST/Grafo</div><div class="pipe-arrow">→</div>
+      <div class="pipe-step">Semântica</div><div class="pipe-arrow">→</div>
+      <div class="pipe-step">Matemática</div><div class="pipe-arrow">→</div>
+      <div class="pipe-step" style="border-color:var(--accent3); color:var(--accent3);">Conjuração</div>
+      <div class="pipe-arrow" style="color:var(--danger)">|</div>
+      <div class="pipe-step" style="border-color:var(--danger); color:var(--danger);">Colapso</div>
+    </div>
+
+    <div class="grid-2" style="margin-top:12px;">
+      <div class="card blue">
+        <h3>Hierarquia</h3>
+        <p style="font-size:13px; margin:0;">Núcleo → Kernels → Aditivos → Subciclos → Camadas → Resultado. Cada nível depende do anterior.</p>
+      </div>
+      <div class="card purple">
+        <h3>Execução</h3>
+        <p style="font-size:13px; margin:0;">Lido de dentro para fora. O subciclo mais interno é resolvido primeiro, depois propagado para as camadas externas.</p>
+      </div>
+      <div class="card green">
+        <h3>Grafo</h3>
+        <p style="font-size:13px; margin:0;">Tudo em <code style="font-family:monospace; color:var(--accent3)">{}</code> é um grafo completo. As dependências formam um DAG direcionado sem ciclos.</p>
+      </div>
+      <div class="card gold">
+        <h3>Tipos</h3>
+        <p style="font-size:13px; margin:0;">Conectivos são tipados. <code style="font-family:monospace; color:var(--gold)">eco -- aumento</code> é inválido. O compilador rejeita antes de executar.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: NÚCLEO -->
+  <div class="slide" data-index="2">
+    <div class="slide-tag">02 — Fundação</div>
+    <h1>O Núcleo <span class="accent-text">N</span></h1>
+    <p>O Núcleo é o ponto de partida de toda magia. Matematicamente, ele é representado como um <span class="accent2-text">vetor coluna</span> onde cada linha corresponde a um Kernel — uma propriedade física mensurável daquele elemento.</p>
+
+    <div class="math">
+      <span class="accent2-text">N</span> = 
+      ⎡ <span class="accent3-text">k₁</span> ⎤<br>
+      ⎢ <span class="accent3-text">k₂</span> ⎥  &nbsp;&nbsp;<span style="color:var(--muted); font-size:12px;">onde cada kᵢ é um kernel do elemento</span><br>
+      ⎢ <span class="accent3-text">k₃</span> ⎥<br>
+      ⎣ <span class="accent3-text">kₙ</span> ⎦
+    </div>
+
+    <p style="margin-top:8px;">Cada elemento tem seus kernels naturais com valores padrão:</p>
+
+    <div class="vector-wrap">
+      <div>
+        <span class="vector-label">N_fogo</span>
+        <div class="vector-box">
+          <div class="vector-row"><span class="k">entropia</span><span class="v">amb</span></div>
+          <div class="vector-row"><span class="k">volume</span><span class="v">2cm³</span></div>
+          <div class="vector-row"><span class="k">estado</span><span class="v">plasma</span></div>
+          <div class="vector-row"><span class="k">força</span><span class="v">fraca</span></div>
+          <div class="vector-row"><span class="k">morfologia</span><span class="v">livre</span></div>
+        </div>
+      </div>
+      <div>
+        <span class="vector-label">N_água</span>
+        <div class="vector-box">
+          <div class="vector-row"><span class="k">entropia</span><span class="v">amb</span></div>
+          <div class="vector-row"><span class="k">volume</span><span class="v">2cm³</span></div>
+          <div class="vector-row"><span class="k">estado</span><span class="v">líquido</span></div>
+          <div class="vector-row"><span class="k">força</span><span class="v">fraca</span></div>
+          <div class="vector-row"><span class="k">morfologia</span><span class="v">livre</span></div>
+        </div>
+      </div>
+      <div>
+        <span class="vector-label">N_ar</span>
+        <div class="vector-box">
+          <div class="vector-row"><span class="k">entropia</span><span class="v">amb</span></div>
+          <div class="vector-row"><span class="k">volume</span><span class="v">2cm³</span></div>
+          <div class="vector-row"><span class="k">estado</span><span class="v">gasoso</span></div>
+          <div class="vector-row"><span class="k">velocidade</span><span class="v">0</span></div>
+          <div class="vector-row"><span class="k">morfologia</span><span class="v">livre</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:13px; color:var(--muted); margin-top:8px;">* "amb" = temperatura ambiente. "2cm³" = volume padrão. Esses valores são o estado inicial antes de qualquer aditivo.</p>
+  </div>
+
+  <!-- SLIDE 3: KERNELS -->
+  <div class="slide" data-index="3">
+    <div class="slide-tag">03 — Dimensões</div>
+    <h1>Os Kernels <span class="accent2-text">K</span></h1>
+    <p>Um Kernel é uma <span class="accent2-text">dimensão mensurável</span> dentro de um núcleo. Ele funciona como uma variável de estado — tem um valor padrão e pode ser modificado por aditivos. Na notação <span class="accent-text">K_elemento</span> indicamos o kernel de um elemento específico.</p>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Kernel</th>
+          <th>Descrição</th>
+          <th>Padrão</th>
+          <th>Elemento principal</th>
+          <th>Impacto no resultado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">entropia</td><td>Temperatura / calor</td><td class="eq">ambiente</td><td><span class="pill" style="margin:0; font-size:10px;">fogo</span></td><td>dano de calor/frio, área</td></tr>
+        <tr><td class="mono">volume</td><td>Quantidade de matéria</td><td class="eq">2 cm³</td><td><span class="pill" style="margin:0; font-size:10px; background:rgba(74,158,255,0.1);">água</span></td><td>escala da magia</td></tr>
+        <tr><td class="mono">morfologia</td><td>Forma / geometria</td><td class="eq">natural</td><td><span class="pill" style="margin:0; font-size:10px; background:rgba(100,100,100,0.15); border-color:rgba(150,150,150,0.3); color:#aaa;">sombra</span></td><td>formato da magia</td></tr>
+        <tr><td class="mono">estado</td><td>Fase da matéria</td><td class="eq">elemento</td><td><span class="pill" style="margin:0; font-size:10px; background:rgba(74,158,255,0.1);">água/terra</span></td><td>sólido/líquido/gás/plasma</td></tr>
+        <tr><td class="mono">onda</td><td>Luz / som emitido</td><td class="eq">elemento</td><td><span class="pill" style="margin:0; font-size:10px; background:rgba(255,230,80,0.1); border-color:rgba(255,230,80,0.3); color:#ffe84a;">luz</span></td><td>luminosidade, som</td></tr>
+        <tr><td class="mono">força</td><td>Atração / repulsão</td><td class="eq">fraca</td><td><span class="pill" style="margin:0; font-size:10px; background:rgba(192,122,255,0.1); border-color:rgba(192,122,255,0.3); color:var(--accent2);">caos</span></td><td>impulso, dano de força</td></tr>
+        <tr><td class="mono">velocidade</td><td>Rapidez de movimento</td><td class="eq">0</td><td><span class="pill" style="margin:0; font-size:10px; background:rgba(80,232,176,0.1); border-color:rgba(80,232,176,0.3); color:var(--accent3);">ar</span></td><td>alcance, iniciativa</td></tr>
+        <tr><td class="mono">complexidade</td><td>Precisão / estrutura</td><td class="eq">simples</td><td><span class="pill" style="margin:0; font-size:10px; background:rgba(100,200,255,0.1); border-color:rgba(100,200,255,0.3); color:#64c8ff;">ordem</span></td><td>nível de detalhe mágico</td></tr>
+      </tbody>
+    </table>
+
+    <div class="formula-block" style="margin-top:14px;">
+      <span class="comment">// Notação: K_elemento extrai o kernel de um núcleo</span><br>
+      <span class="key">K_fogo</span> = N_fogo<span class="op">[</span><span class="highlight">entropia</span><span class="op">]</span> &nbsp;&nbsp;<span class="comment">// retorna o valor de entropia do núcleo fogo</span><br>
+      <span class="key">K_sombra</span> = N_sombra<span class="op">[</span><span class="highlight">morfologia</span><span class="op">]</span> &nbsp;<span class="comment">// retorna a morfologia da sombra</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: ADITIVOS -->
+  <div class="slide" data-index="4">
+    <div class="slide-tag">04 — Transformações</div>
+    <h1>Os Aditivos <span class="accent3-text">A</span></h1>
+    <p>Aditivos são <span class="accent3-text">funções de transformação</span> que modificam os valores de um kernel dentro do vetor do núcleo. Cada aditivo opera sobre uma dimensão específica e produz um novo vetor.</p>
+
+    <div class="grid-2">
+      <div>
+        <h3>Aumento</h3>
+        <div class="math" style="text-align:left; font-size:13px;">
+          A_aumento(K_i) = K_i + <span style="color:var(--gold)">Δ</span><br>
+          <span style="color:var(--muted); font-size:11px;">Δ = quantidade fixa por nível</span>
+        </div>
+        <div class="formula-block">
+          <span class="comment">// Aumentar entropia do fogo</span><br>
+          <span class="key">A_aum</span>(K_fogo<span class="op">[</span><span class="highlight">entropia</span><span class="op">]</span>) = entropia <span class="op">+</span> <span class="num">Δ</span>
+        </div>
+      </div>
+      <div>
+        <h3>Redução</h3>
+        <div class="math" style="text-align:left; font-size:13px;">
+          A_redução(K_i) = K_i − <span style="color:var(--gold)">Δ</span><br>
+          <span style="color:var(--muted); font-size:11px;">Δ = quantidade fixa por nível</span>
+        </div>
+        <div class="formula-block">
+          <span class="comment">// Reduzir calor de uma área</span><br>
+          <span class="key">A_red</span>(K_fogo<span class="op">[</span><span class="highlight">entropia</span><span class="op">]</span>) = entropia <span class="op">−</span> <span class="num">Δ</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <h3>Regras de tipo — nem todo aditivo opera em todo kernel</h3>
+    <table class="tbl">
+      <thead><tr><th>Expressão</th><th>Válido?</th><th>Motivo</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">entropia -- aumento</td><td style="color:var(--accent3)">✓ sim</td><td>entropia ∈ tipo escalável</td></tr>
+        <tr><td class="mono">força -- aumento</td><td style="color:var(--accent3)">✓ sim</td><td>força ∈ tipo escalável</td></tr>
+        <tr><td class="mono">eco -- aumento</td><td style="color:var(--danger)">✗ não</td><td>eco ∉ tipo escalável → colapso</td></tr>
+        <tr><td class="mono">controle -- aumento</td><td style="color:var(--danger)">✗ não</td><td>controle ∉ tipo escalável → colapso</td></tr>
+        <tr><td class="mono">aumento -- ponto -- ponto -- ponto</td><td style="color:var(--accent3)">✓ sim</td><td>aumenta a área do efeito</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SLIDE 5: CAMADAS E RESULTADO -->
+  <div class="slide" data-index="5">
+    <div class="slide-tag">05 — Álgebra das Camadas</div>
+    <h1>Camadas <span class="gold-text">C</span> e o Resultado Final</h1>
+    <p>Uma magia completa é construída empilhando <span class="gold-text">camadas</span> sobre o núcleo. Cada camada <span class="gold-text">Cᵢ</span> é um conjunto de aditivos, kernels modificados e subciclos. O resultado final é obtido somando tudo.</p>
+
+    <div class="math">
+      <span style="color:var(--muted); font-size:12px;">// Uma camada</span><br>
+      <span class="gold-text">Cᵢ</span> = <span class="accent2-text">N</span> + A₁ + A₂ + ... + Aₖ &nbsp;&nbsp;<span style="color:var(--muted); font-size:12px;">(k aditivos)</span>
+    </div>
+
+    <div class="math">
+      <span style="color:var(--muted); font-size:12px;">// Resultado final: núcleo + soma de todas as camadas</span><br>
+      <span class="accent3-text">R</span> = <span class="accent2-text">N</span> + <span style="color:var(--muted)">Σ</span><sub style="font-size:10px;">i=1</sub><sup style="font-size:10px;">n</sup> <span class="gold-text">Cᵢ</span>
+    </div>
+
+    <h3 style="margin-top:16px;">Exemplo — Bola de Fogo</h3>
+    <div class="formula-block">
+      <span class="comment">// Código arcano:</span><br>
+      <span class="highlight">[Fogo ==c (ponto--ponto)] -- ponto ({ponto--ponto--ponto} -- aum⁴) -- (gatilho--ponto) ({KFogo} -- aum⁴) (KTerra)esfera</span><br><br>
+      <span class="comment">// Decomposição em camadas:</span><br>
+      <span class="key">N</span>        = N_fogo = [entropia_amb, volume_2cm³, estado_plasma, ...]<br>
+      <span class="key">C₁</span>       = N + A_ponto + A_ponto &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// define o "gatilho de lançamento"</span><br>
+      <span class="key">C₂</span>       = N + A_aum + A_aum + A_aum + A_aum &nbsp;<span class="comment">// área × 4</span><br>
+      <span class="key">C₃</span>       = K_fogo + A_aum×4 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// entropia ×4 → dano alto</span><br>
+      <span class="key">C₄</span>       = K_terra → morfologia: esfera &nbsp;&nbsp;<span class="comment">// forma final</span><br><br>
+      <span class="highlight">R</span>        = N + C₁ + C₂ + C₃ + C₄
+    </div>
+
+    <div class="card gold" style="margin-top:12px;">
+      <p style="font-size:13px; margin:0;"><span class="gold-text">Leitura:</span> Cada aditivo <em>aum</em> aplicado a entropia acrescenta <strong>+Δ</strong> ao vetor. Quatro aumentos = <strong>entropia + 4Δ</strong>. A camada C₃ sozinha é responsável pelo alto dano de fogo da bola de fogo.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: SUBCICLOS -->
+  <div class="slide" data-index="6">
+    <div class="slide-tag">06 — Recursão</div>
+    <h1>Subciclos <span class="accent2-text">( )</span></h1>
+    <p>Subciclos são <span class="accent2-text">blocos de escopo</span> — análogos a funções ou parênteses matemáticos. Eles são resolvidos <em>antes</em> do ciclo externo, de dentro para fora. O resultado de um subciclo se torna um aditivo para a camada superior.</p>
+
+    <div class="math">
+      <span style="color:var(--muted); font-size:12px;">// Resolução recursiva: subciclo mais interno primeiro</span><br>
+      resolve<span class="accent2-text">(</span> A₁ <span class="op">--</span> A₂ <span class="accent2-text">)</span> → <span class="accent3-text">resultado_parcial</span><br>
+      ciclo_externo + <span class="accent3-text">resultado_parcial</span> → resultado_final
+    </div>
+
+    <div class="formula-block">
+      <span class="comment">// Exemplo: mover algo com a voz</span><br>
+      <span class="highlight">({ponto -- ponto} -- vocal) -- estado</span><br><br>
+      <span class="comment">// Ordem de execução:</span><br>
+      <span class="num">1.</span> resolve <span class="key">(ponto -- ponto)</span>         → "dois pontos de ancoragem"<br>
+      <span class="num">2.</span> resolve <span class="key">resultado + vocal</span>     → "controle por voz sobre dois pontos"<br>
+      <span class="num">3.</span> aplica <span class="key">-- estado</span>             → "move o estado do objeto entre os pontos"
+    </div>
+
+    <div class="grid-2" style="margin-top:16px;">
+      <div class="card purple">
+        <h3>Ciclo Primitivo</h3>
+        <p style="font-size:13px; margin:0;">Um subciclo que contém um triângulo isósceles interno. É a forma mais simples e estável de subciclo. Exige mínimo 3 componentes.</p>
+      </div>
+      <div class="card blue">
+        <h3>Regra do Triângulo</h3>
+        <p style="font-size:13px; margin:0;">Uma magia com menos de 2 componentes (aditivos ou subnúcleos) é <span class="danger-text">instável</span>. O grafo precisa fechar — mínimo 3 nós para conectividade.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: CONECTIVOS E GRAFOS -->
+  <div class="slide" data-index="7">
+    <div class="slide-tag">07 — Grafos</div>
+    <h1>Conectivos e Grafos</h1>
+    <p>Os conectivos são os <span class="accent3-text">operadores de relação</span> entre nós do grafo mágico. Cada conectivo define o tipo de aresta no grafo dirigido da magia.</p>
+
+    <table class="tbl">
+      <thead><tr><th>Símbolo</th><th>Nome</th><th>Tipo de aresta</th><th>Semântica</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">--</td><td>And</td><td><span class="pill green" style="margin:0; font-size:10px;">adição</span></td><td>conecta e acumula os dois lados</td></tr>
+        <tr><td class="mono">&lt;==&gt;</td><td>Or</td><td><span class="pill" style="margin:0; font-size:10px;">alternativa</span></td><td>executa um lado ou o outro</td></tr>
+        <tr><td class="mono">==c</td><td>Contém</td><td><span class="pill purple" style="margin:0; font-size:10px;">atribuição</span></td><td>atribui característica de um subciclo</td></tr>
+        <tr><td class="mono">&lt;--&gt;</td><td>Xor</td><td><span class="pill gold" style="margin:0; font-size:10px;">exclusão</span></td><td>um lado exclui o outro</td></tr>
+        <tr><td class="mono">==</td><td>Corrente</td><td><span class="pill red" style="margin:0; font-size:10px;">sequencial</span></td><td>execução em tick, depende de gatilho</td></tr>
+        <tr><td class="mono">--&gt;</td><td>Se/Então</td><td><span class="pill" style="margin:0; font-size:10px; background:rgba(255,184,74,0.1); border-color:rgba(255,184,74,0.3); color:var(--gold)">condicional</span></td><td>lógica de gatilho: espera 1 tick e executa</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="divider">
+    <h3>Estrutura de grafo — tudo em { } é grafo completo</h3>
+    <div class="formula-block">
+      <span class="comment">// {A -- B -- C} = grafo completo: A↔B, B↔C, A↔C</span><br>
+      <span class="comment">// Formalmente: ∀ nós u,v ∈ {}: existe aresta u→v</span><br><br>
+      <span class="key">{ponto -- ponto -- ponto}</span><br>
+      <span class="comment">// = triângulo completo — 3 nós, 3 arestas — geometria mínima válida</span><br><br>
+      <span class="key">Fogo ==c (ponto -- ponto)</span><br>
+      <span class="comment">// = atribui a característica "dois pontos" ao núcleo fogo</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: O COMPILADOR -->
+  <div class="slide" data-index="8">
+    <div class="slide-tag">08 — Compilador</div>
+    <h1>O que o Compilador faz</h1>
+    <p>O compilador executa <span class="accent-text">seis verificações obrigatórias</span> em ordem. Se qualquer etapa falhar, a magia não executa e o resultado é um Colapso Arcano.</p>
+
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(74,158,255,0.1); color:var(--accent);">1</div>
+        <div class="collapse-content">
+          <div class="collapse-title" style="color:var(--accent);">SINTAXE</div>
+          <div>Os tokens estão na ordem correta? Os parênteses fecham? Os símbolos existem?</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(192,122,255,0.1); color:var(--accent2);">2</div>
+        <div class="collapse-content">
+          <div class="collapse-title" style="color:var(--accent2);">SEMÂNTICA</div>
+          <div>Os conectivos fazem sentido? Os tipos são compatíveis? <code style="font-family:monospace; font-size:12px">eco -- aumento</code> é rejeitado aqui.</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(80,232,176,0.1); color:var(--accent3);">3</div>
+        <div class="collapse-content">
+          <div class="collapse-title" style="color:var(--accent3);">TOPOLOGIA</div>
+          <div>O grafo é válido? A magia tem mínimo 3 nós (triângulo)? Todos os nós em { } estão conectados?</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(255,184,74,0.1); color:var(--gold);">4</div>
+        <div class="collapse-content">
+          <div class="collapse-title" style="color:var(--gold);">RESOLUÇÃO MATEMÁTICA</div>
+          <div>Calcula R = N + ΣCᵢ. Aplica todas as transformações de kernel. Infere dano, área, custo, duração.</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(255,107,107,0.1); color:var(--danger);">5</div>
+        <div class="collapse-content">
+          <div class="collapse-title" style="color:var(--danger);">ESTABILIDADE</div>
+          <div>A mana do conjurador suporta o custo? A magia não entra em loop infinito? O resultado é fisicamente coerente?</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(80,232,176,0.1); color:var(--accent3); font-size:18px;">✓</div>
+        <div class="collapse-content" style="border-color:rgba(80,232,176,0.3);">
+          <div class="collapse-title" style="color:var(--accent3);">EXECUÇÃO</div>
+          <div>Todas as verificações passaram → magia conjurada com sucesso.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: COLAPSO ARCANO -->
+  <div class="slide" data-index="9">
+    <div class="slide-tag">09 — Tratamento de Erro</div>
+    <h1>Colapso Arcano <span class="danger-text">(1d10)</span></h1>
+    <p>Quando o compilador detecta um estado inválido em execução, o feitiço falha e produz um <span class="danger-text">Colapso Arcano</span>. O d10 determina a severidade — análogo a níveis de exceção.</p>
+
+    <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(255,0,0,0.15); color:#ff3030; font-size:20px; font-weight:700;">1</div>
+        <div class="collapse-content" style="border-color:rgba(255,50,50,0.3);">
+          <div class="collapse-title" style="color:#ff3030;">CATASTRÓFICO — Singularidade Dimensional</div>
+          <div style="font-size:12px;">Implosão do núcleo → buraco negro temporário. 9m de raio, dano massivo. Inconsciente + Exaustão.</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(255,50,50,0.12); color:#ff5555;">2</div>
+        <div class="collapse-content" style="border-color:rgba(255,80,80,0.25);">
+          <div class="collapse-title" style="color:#ff5555;">CRÍTICO — Efeito Bumerangue Absoluto</div>
+          <div style="font-size:12px;">Vetor colapsa para dentro. O próprio conjurador absorve dobro do dano original.</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(255,80,50,0.1); color:#ff7755;">3</div>
+        <div class="collapse-content" style="border-color:rgba(255,100,80,0.2);">
+          <div class="collapse-title" style="color:#ff7755;">GRAVE — Fenda Conjuracional</div>
+          <div style="font-size:12px;">Rasga o tecido da realidade. Um elemental hostil do elemento usado surge e ataca imediatamente.</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(255,130,50,0.1); color:#ffaa55;">5–6</div>
+        <div class="collapse-content" style="border-color:rgba(255,150,80,0.2);">
+          <div class="collapse-title" style="color:#ffaa55;">MÉDIO — Choque / Exaustão de Afinidade</div>
+          <div style="font-size:12px;">Dano psíquico ou perda de acesso ao núcleo usado até descanso longo.</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(255,200,50,0.08); color:#ffcc55;">7–9</div>
+        <div class="collapse-content" style="border-color:rgba(255,200,80,0.15);">
+          <div class="collapse-title" style="color:#ffcc55;">LEVE / INCÔMODO — Estigma, Eco ou Sujeira Arcana</div>
+          <div style="font-size:12px;">Vulnerabilidade temporária, armadilha residual ou penalidade social/furtividade.</div>
+        </div>
+      </div>
+      <div class="collapse-row">
+        <div class="collapse-d10" style="background:rgba(80,232,176,0.08); color:var(--accent3);">10</div>
+        <div class="collapse-content" style="border-color:rgba(80,232,176,0.2);">
+          <div class="collapse-title" style="color:var(--accent3);">INOFENSIVO — Dissipação Fria</div>
+          <div style="font-size:12px;">A magia simplesmente falha. Recurso gasto, mas nenhum dano. Análogo a um <code style="font-family:monospace">warning</code>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: MAPA GERAL -->
+  <div class="slide" data-index="10">
+    <div class="slide-tag">10 — Resumo</div>
+    <h1>O Sistema Completo</h1>
+    <div class="grid-2">
+      <div>
+        <div class="card blue">
+          <div class="big-num">N</div>
+          <h3>Núcleo</h3>
+          <p style="font-size:13px; margin:0;">Vetor coluna. Cada linha é um kernel. Estado inicial do elemento.</p>
+          <div class="math" style="margin-top:8px; font-size:12px; text-align:left;">N = [k₁, k₂, ..., kₙ]ᵀ</div>
+        </div>
+        <div class="card purple" style="margin-top:12px;">
+          <div class="big-num">K</div>
+          <h3>Kernel</h3>
+          <p style="font-size:13px; margin:0;">Dimensão física dentro do núcleo: entropia, volume, morfologia, velocidade, força…</p>
+          <div class="math" style="margin-top:8px; font-size:12px; text-align:left;">K_fogo = N_fogo[entropia]</div>
+        </div>
+        <div class="card green" style="margin-top:12px;">
+          <div class="big-num">A</div>
+          <h3>Aditivo</h3>
+          <p style="font-size:13px; margin:0;">Função de transformação sobre um kernel. Muda o valor de uma dimensão do vetor.</p>
+          <div class="math" style="margin-top:8px; font-size:12px; text-align:left;">A_aum(Kᵢ) = Kᵢ + Δ</div>
+        </div>
+      </div>
+      <div>
+        <div class="card gold">
+          <div class="big-num">C</div>
+          <h3>Camada / Subciclo</h3>
+          <p style="font-size:13px; margin:0;">Conjunto de aditivos aplicados sobre o núcleo. Resolvidos de dentro para fora.</p>
+          <div class="math" style="margin-top:8px; font-size:12px; text-align:left;">Cᵢ = N + A₁ + A₂ + ... + Aₖ</div>
+        </div>
+        <div class="card blue" style="margin-top:12px; border-top-color: var(--accent3);">
+          <div class="big-num" style="color:var(--accent3)">R</div>
+          <h3>Resultado</h3>
+          <p style="font-size:13px; margin:0;">Soma de todas as camadas sobre o núcleo. O compilador infere dano, área, custo, duração.</p>
+          <div class="math" style="margin-top:8px; font-size:12px; text-align:left; color:#a0ffda;">R = N + Σᵢ Cᵢ</div>
+        </div>
+        <div class="card red" style="margin-top:12px;">
+          <div class="big-num" style="color:var(--danger);">!</div>
+          <h3>Colapso Arcano</h3>
+          <p style="font-size:13px; margin:0;">Qualquer verificação falha → exceção. Severidade determinada por 1d10. De warning a fatal exception.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #slides -->
+
+<!-- BOTTOM NAV -->
+<div id="nav">
+  <button class="nav-btn" id="btn-prev" onclick="go(-1)" disabled>← PREV</button>
+  <div id="dot-nav"></div>
+  <span id="slide-counter">01 / 11</span>
+  <button class="nav-btn" id="btn-next" onclick="go(1)">NEXT →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  const dotNav = document.getElementById('dot-nav');
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotNav.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 350);
+    current = n;
+    slides[current].classList.add('active');
+    update();
+  }
+
+  function go(dir) {
+    const next = current + dir;
+    if (next < 0 || next >= total) return;
+    goTo(next);
+  }
+
+  function update() {
+    document.getElementById('btn-prev').disabled = current === 0;
+    document.getElementById('btn-next').disabled = current === total - 1;
+    document.getElementById('slide-counter').textContent = String(current + 1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0');
+    document.getElementById('progress-bar').style.width = ((current / (total - 1)) * 100) + '%';
+    document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i === current));
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+  });
+
+  update();
+</script>
+</body>
+</html>
