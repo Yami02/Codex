@@ -18,9 +18,10 @@ vive dentro do próprio app: botão **❓ Ajuda** no Codex (`src/components/Help
 6. [Conectivos de Aresta (Edges)](#6-conectivos-de-aresta-edges)
 7. [Os 32 Colégios (Fusão)](#7-os-32-colégios-fusão)
 8. [Capacitor / Gatilho](#8-capacitor--gatilho)
-9. [Selo Arcano](#9-selo-arcano)
-10. [Onde cada coisa mora no código](#10-onde-cada-coisa-mora-no-código)
-11. [Ideias em Aberto (ainda não implementadas)](#11-ideias-em-aberto-ainda-não-implementadas)
+9. [Economia de Mana e Nível Máximo](#9-economia-de-mana-e-nível-máximo)
+10. [Selo Arcano](#10-selo-arcano)
+11. [Onde cada coisa mora no código](#11-onde-cada-coisa-mora-no-código)
+12. [Ideias em Aberto (ainda não implementadas)](#12-ideias-em-aberto-ainda-não-implementadas)
 
 ---
 
@@ -158,6 +159,35 @@ específico do que o Núcleo. Cada um escala a magia por "Aumento"
 | Estado | Complexibilidade | Paralisado (Constituição) |
 | Caos | Complexibilidade | Atordoado (Constituição) |
 
+### 5.1 Intensidade de Kernel e a Lei do Combo
+
+Cada Kernel carrega um `level` (1-5, como Gatilho — `KERNEL_INTENSITY_LEVELS`
+em `engine/constants.ts`) que escala sua contribuição ao buffer
+**proporcionalmente**: nível 1 é o de sempre (+1 no eixo), nível 5
+multiplica por 5 (`scaleAttrs` em `engine/compiler.ts`). É o que torna real
+a ideia de "aumentar a Força da Terra ou seu Tamanho/Volume aumenta o
+dano" — subir o Kernel de Força soma mais `strength`, subir o de Volume
+soma mais `volume`, e os dois alimentam `computeDamageDice` (que já somava
+`entropy + strength + volume + order`).
+
+**A Lei do Combo de Kernels**: subir um único Kernel sozinho custa só o
+que ele já custa (proporcional ao nível, sem sobretaxa). Subir **dois ou
+mais** Kernels ao mesmo tempo na mesma magia soma uma sobretaxa de
+`complexity` — o motor pune combinar eixos de escala, não usar um eixo
+forte isolado:
+
+```
+excesso = soma, pra cada Kernel escalado (nível > 1), de (nível − 1)
+sobretaxa = excesso × (quantidade de Kernels escalados − 1)
+```
+
+Ex: dois Kernels a nível 5 cada (excesso 4+4=8, 2 eixos) → sobretaxa
+`8 × (2−1) = 8`. Três Kernels a nível 5 cada (excesso 12, 3 eixos) →
+sobretaxa `12 × (3−1) = 24` — cresce com quantos eixos são empilhados, não
+só com o quanto cada um subiu. A sobretaxa soma direto em `complexity`, o
+que eleva nível, CD e custo em mana (§9) de tabela — sem lógica especial
+espalhada por outros lugares. Avisado como `[COMBO DE KERNELS]`.
+
 ## 6. Conectivos de Aresta (Edges)
 
 `engine/compiler.ts` (`ASTGraph.edges`, `PatternMatcher.matchAndTransform`).
@@ -252,7 +282,58 @@ carregar (N turnos) + Gatilho de X"`), e o texto final ganha um bloco
 > magia carregada o bastante dura um ano") — Manter continua sendo o
 > único eixo de duração por enquanto.
 
-## 9. Selo Arcano
+## 9. Economia de Mana e Nível Máximo
+
+`engine/constants.ts` (`MANA_POR_NIVEL`, `MANA_NIVEL_MAX`,
+`PRESTIGE_ARCHETYPES`) + `engine/compiler.ts` (`computeManaCost`).
+
+O teto de progressão "normal" deste sistema é o **nível 10** (não o 20 do
+D&D 5e) — mas com o **dobro** do total de pontos de mana de um mago
+padrão de D&D nesse teto (referência do usuário: 133; aqui, **260**). A
+curva usa a mesma ideia de "cada vez mais caro" da Lei do Combo de
+Kernels: crescimento quadrático (`mana(n) ≈ 2.6 × n²`) em vez de fatias
+iguais por nível, batendo exatamente em 260 no nível 10:
+
+| Nível | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Pool de mana | 3 | 10 | 23 | 42 | 65 | 94 | 127 | 166 | 211 | 260 |
+
+Toda magia compilada agora tem um **custo em mana** próprio
+(`computeManaCost`), também quadrático em cima do nível da própria magia
+mais potência/complexidade brutas do buffer — o que inclui automaticamente
+qualquer sobretaxa da Lei do Combo de Kernels, já que ela soma direto em
+`complexity`:
+
+```
+manaCost = nível² + ⌊potency / 2⌋ + ⌊complexity / 2⌋
+```
+
+Uma magia de nível 10 custa uma fatia grande do pool daquele nível, não o
+pool inteiro — dá pra conjurar mais de uma vez por descanso, não só uma.
+
+**Acima do nível 10** a progressão normal não continua — o compilador
+marca a magia com `requiresPrestige: true` e um aviso
+`[REQUER ARQUÉTIPO DE PRESTÍGIO]`. A ideia (do usuário) é que, dali em
+diante, ganhar poder não é mais "mais mana": é ganhar acesso a um
+**Arquétipo de Prestígio** — um pacote de regras qualitativamente
+diferente (o usuário citou "Necromante" como exemplo), não um número
+maior.
+
+> **Estado da mecânica**: só o **portão estrutural** foi implementado —
+> `MANA_POR_NIVEL`/`MANA_NIVEL_MAX`/`requiresPrestige` são reais e
+> calculados pelo compilador. `PRESTIGE_ARCHETYPES` hoje tem só uma
+> entrada-exemplo (Necromante) **sem nenhuma regra própria** — nenhum
+> arquétipo concede capacidades novas ainda. Também não existe, em lugar
+> nenhum do app, o conceito de um personagem com uma reserva de mana que
+> se gasta entre magias ao longo de uma sessão: `manaCost` e
+> `manaPoolAtLevel` são números informativos por magia, calculados a
+> partir do grafo, não um recurso rastreado. Isto é o alicerce da ideia de
+> "nível infinito via mana" registrada em §12.1 — não a implementação
+> completa dela (lá, o nível em si seria derivado de quanta mana o
+> conjurador decide gastar; aqui, o nível continua vindo de
+> `computeSpellLevel`, e a mana é só reportada ao lado).
+
+## 10. Selo Arcano
 
 `engine/sigil.ts`. Gera um glifo único e determinístico pra cada magia
 compilada, baseado no "Gorilla of Destiny's Spell Writing Guide": um
@@ -263,13 +344,13 @@ outra já usada) por valor possível daquele atributo.
 `cyclicallyUniqueBinaryNumbers(n)` foi validado byte a byte contra o
 dicionário do livro original.
 
-## 10. Onde cada coisa mora no código
+## 11. Onde cada coisa mora no código
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `MANIFESTACAO_TABLE` — ver §1.1). |
+| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `KERNEL_INTENSITY_LEVELS` — §5.1, `MANIFESTACAO_TABLE` — §1.1, `MANA_POR_NIVEL`/`PRESTIGE_ARCHETYPES` — §9). |
 | `types/magic.ts` | Interfaces de nó/aresta/grafo; reexporta os enums de `constants.ts`. |
-| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (inclui as regras dos conectivos de aresta — §6), álgebra do buffer, geração de texto. |
+| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (conectivos de aresta — §6, Lei do Combo de Kernels — §5.1), álgebra do buffer (`computeManaCost` — §9), geração de texto. |
 | `engine/colleges.ts` | Tabela dos 32 Colégios, a Lei da Simetria, e `listColleges()` (lista os 32 com a chave de formação, pro Grande Tomo exibir sem duplicar a tabela). |
 | `engine/sigil.ts` | Gerador do Selo Arcano. |
 | `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado. |
@@ -288,7 +369,7 @@ dicionário do livro original.
 > independentes, sem um componente-livro compartilhado ainda), não um
 > componente reaproveitado.
 
-## 11. Ideias em Aberto (ainda não implementadas)
+## 12. Ideias em Aberto (ainda não implementadas)
 
 Três ideias levantadas pelo usuário numa sessão de brainstorm, explicitamente
 adiadas ("não vou fazer agora, no momento" / "só documentar tudo por
@@ -296,7 +377,17 @@ agora"). A terceira (conectivos de aresta) já foi implementada desde então
 — ver a nota no fim desta seção. As outras duas continuam em aberto, só
 documentadas, sem código.
 
-### 11.1 Nível infinito via mana investida (curva tipo Fibonacci)
+### 12.1 Nível infinito via mana investida (curva tipo Fibonacci)
+
+> **Atualização**: um primeiro passo concreto na direção desta ideia foi
+> implementado — ver §9 (Economia de Mana e Nível Máximo). O que existe
+> hoje é um teto fixo (nível 10) com um pool de mana por nível e um custo
+> em mana por magia, calculados de verdade pelo compilador. O que **ainda
+> não** existe é a parte mais radical desta ideia original: nível deixar
+> de vir de `computeSpellLevel` (buffer/complexidade) e passar a ser
+> **puramente derivado** de quanta mana o conjurador decide gastar, sem
+> categoria de nível separada. Os parágrafos abaixo são o registro
+> original da ideia, mantidos como estavam.
 
 Ideia central: **nível deixa de ser uma categoria escolhida e passa a ser
 puramente uma função da mana gasta**. Não existe "escolher lançar nível 3"
@@ -325,7 +416,7 @@ derivado disso.
   vira um novo campo de buffer ou um recurso externo ao grafo (atributo do
   personagem, não da magia).
 
-### 11.2 "Nível 0" / conjuração ambiental + Kernel de Absorção
+### 12.2 "Nível 0" / conjuração ambiental + Kernel de Absorção
 
 Ideia de magia de custo zero (ou muito reduzido) quando conjurada **a
 favor do ambiente**, e cara ou impossível quando contra ele.
@@ -355,7 +446,7 @@ favor do ambiente**, e cara ou impossível quando contra ele.
   fogo→cura); e se isso é um `KernelType` novo ou um modo do Gatilho
   existente.
 
-### ~~10.3 Conectivos de aresta são decorativos~~ — resolvido
+### ~~12.3 Conectivos de aresta são decorativos~~ — resolvido
 
 Esta era a terceira ideia registrada aqui. **Já foi implementada** (regras
 reais pra AND/OR/XOR/SE_ENTAO/ATRIBUICAO/CORRENTE) — ver §6 (Conectivos de

@@ -40,8 +40,10 @@ const ADITIVOS = [
 
 const OUTROS = [
   { t: 'Kernel', d: 'Um "modo" mais específico dentro de um Subcírculo. Ex: o Kernel de Entropia deixa a magia causar — ou impedir — que algo esquente, esfrie, apodreça ou se desgaste. Cada Kernel controla uma coisa específica que pode ou não acontecer.' },
+  { t: 'Intensidade de Kernel', d: 'Com um Kernel selecionado, +/− ajusta o nível dele (1-5): quanto mais alto, mais forte aquele eixo específico fica (ex: mais Força = mais dano). Mas subir DOIS Kernels ao mesmo tempo custa bem mais caro que subir só um — combinar eixos de escala tem uma sobretaxa.' },
   { t: 'Colégio', d: 'O resultado de uma Fusão: Fogo + Terra vira o Colégio da Transmutação (Metal); Luz + Compor vira o Colégio da Bênção. Cada Colégio tem seu próprio nome e vocabulário.' },
   { t: 'Selo Arcano', d: 'Um símbolo único gerado pra cada magia compilada, baseado nos atributos dela — nunca dois selos iguais para magias diferentes.' },
+  { t: 'Custo em Mana', d: 'Toda magia mostra quanto custaria de mana, e quanto seria o "tanque" de mana de um conjurador naquele nível (teto: nível 10). Passar do nível 10 marca a magia como precisando de um Arquétipo de Prestígio — ideia registrada, ainda sem regras próprias.' },
 ];
 
 // Clique numa aresta (a linha entre dois nós) para trocar o tipo dela —

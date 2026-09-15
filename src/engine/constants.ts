@@ -302,6 +302,62 @@ export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> =
   [KernelType.CAOS]: 'Complexibilidade',
 };
 
+// INTENSIDADE DE KERNEL: cada Kernel carrega um `level` (1-5, como
+// Gatilho) que escala sua contribuição ao buffer proporcionalmente — nível
+// 1 é o de sempre (+1 no eixo), nível 5 multiplica por 5. É o que torna
+// real a ideia de "aumentar a força da Terra ou seu tamanho aumenta o
+// dano": subir o nível do Kernel de Força soma mais `strength`, subir o
+// de Volume soma mais `volume`, e ambos alimentam computeDamageDice.
+export interface KernelIntensityInfo {
+  level: number;
+  name: string;
+}
+
+export const KERNEL_INTENSITY_LEVELS: Record<number, KernelIntensityInfo> = {
+  1: { level: 1, name: 'Base' },
+  2: { level: 2, name: 'Reforçada' },
+  3: { level: 3, name: 'Potente' },
+  4: { level: 4, name: 'Violenta' },
+  5: { level: 5, name: 'Máxima' },
+};
+export const KERNEL_LEVEL_MIN = 1;
+export const KERNEL_LEVEL_MAX = 5;
+
+// LEI DO COMBO DE KERNELS: subir UM Kernel é custo normal (ele já é
+// proporcional ao nível). Subir DOIS OU MAIS Kernels ao mesmo tempo na
+// mesma magia soma uma sobretaxa de `complexity` — o motor pune combinar
+// eixos de escala, não usar um eixo forte sozinho. A sobretaxa cresce com
+// o excesso total de níveis E com quantos eixos estão sendo empilhados
+// (ver `kernelComboPenalty` em engine/compiler.ts): 2 Kernels empilhados
+// custam mais que a soma dos dois isolados, 3 custam ainda mais que isso.
+
+// ECONOMIA DE MANA: o teto de progressão "normal" deste sistema é o nível
+// 10 (não o 20 do D&D) — mas com o dobro do total de pontos de mana de um
+// mago padrão de D&D nesse teto (referência do usuário: 133; aqui, 260).
+// A curva usa a mesma ideia de "cada vez mais caro" do combo de Kernels:
+// crescimento quadrático (mana(n) ≈ 2.6 × n²) em vez de fatias iguais por
+// nível, batendo exatamente em 260 no nível 10.
+export const MANA_NIVEL_MAX = 10;
+export const MANA_POR_NIVEL: Record<number, number> = {
+  1: 3, 2: 10, 3: 23, 4: 42, 5: 65, 6: 94, 7: 127, 8: 166, 9: 211, 10: 260,
+};
+
+// ARQUÉTIPOS DE PRESTÍGIO: além do nível 10, a progressão não é mais "mais
+// mana" — é acesso a um arquétipo que muda QUALITATIVAMENTE o que o
+// conjurador pode fazer (regras novas, não um número maior). Isto é só o
+// portão estrutural (`requiresPrestige` em engine/compiler.ts) e um
+// placeholder de nome — nenhum arquétipo tem conteúdo/regras próprias
+// implementadas ainda; fica registrado como próximo passo.
+export interface PrestigeArchetypeInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export const PRESTIGE_ARCHETYPES: Record<string, PrestigeArchetypeInfo> = {
+  NECROMANTE: { id: 'NECROMANTE', name: 'Necromante', description: 'Exemplo de Arquétipo de Prestígio citado pelo usuário — ainda sem regras próprias implementadas.' },
+};
+
 // MANIFESTAÇÃO: a mesma combinação exata de alcance/forma/teste sempre
 // produz a mesma palavra — nunca duas magias com a mesma geometria saem
 // com nomes de manifestação diferentes por acaso. Isso é o que torna o

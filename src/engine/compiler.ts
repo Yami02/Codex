@@ -11,6 +11,7 @@ import {
   KERNEL_SCALE_AXIS,
   AdditiveDescriptions,
   MANIFESTACAO_TABLE,
+  MANA_NIVEL_MAX, MANA_POR_NIVEL,
 } from './constants';
 import { resolveCollege, polaritySymmetryDelta } from './colleges';
 
@@ -47,7 +48,9 @@ export class AdditiveASTNode extends ASTNode {
 }
 
 export class KernelASTNode extends ASTNode {
-  constructor(id: string, public kernelType: string, public subGraph: ASTGraph) { super(id); }
+  // `level` (1-5) escala proporcionalmente a contribuição do Kernel ao
+  // buffer — ver KERNEL_INTENSITY_LEVELS em engine/constants.ts.
+  constructor(id: string, public kernelType: string, public subGraph: ASTGraph, public level?: number) { super(id); }
   accept(visitor: ASTVisitor) { visitor.visitKernel(this); }
 }
 
@@ -103,7 +106,7 @@ export class GraphToASTBuilder {
         ast.addNode(new AdditiveASTNode(n.id, n.additiveType || n.name, n.level, n.fusionElement, n.triggerType));
       } else if (n.type === NodeType.KERNEL || n.type === NodeType.SUBCIRCLE) {
         const subAst = n.magicGraph ? this.build(n.magicGraph) : new ASTGraph();
-        ast.addNode(new KernelASTNode(n.id, n.additiveType || n.element || n.name || 'SUBCIRCLE', subAst));
+        ast.addNode(new KernelASTNode(n.id, n.additiveType || n.element || n.name || 'SUBCIRCLE', subAst, n.level));
       }
     }
 
@@ -544,6 +547,21 @@ export class PatternMatcher {
       const kernelsAtivos = kernelsAtivosNodes.length;
       const mainKernel = kernelsAtivos > 0 ? kernelsAtivosNodes[0].kernelType : null;
 
+      // --- LEI DO COMBO DE KERNELS: escalar um único Kernel (nível > 1)
+      // já é proporcional (ver KERNEL_INTENSITY_LEVELS). Escalar DOIS OU
+      // MAIS ao mesmo tempo soma uma sobretaxa de complexidade — o excesso
+      // total de níveis multiplicado por (quantos eixos - 1), pra crescer
+      // com o número de eixos combinados, não só com o quanto cada um
+      // subiu. Ex: dois Kernels a +2 níveis cada custam mais que a soma
+      // dos dois isolados; três custam ainda mais que isso.
+      const scaledKernels = kernelsAtivosNodes.filter(k => (k.level ?? 1) > 1);
+      let kernelComboPenalty = 0;
+      if (scaledKernels.length >= 2) {
+          const totalExcess = scaledKernels.reduce((sum, k) => sum + ((k.level ?? 1) - 1), 0);
+          kernelComboPenalty = totalExcess * (scaledKernels.length - 1);
+          instabilities.push(`[COMBO DE KERNELS] ${scaledKernels.length} eixos escalados juntos (${scaledKernels.map(k => k.kernelType).join(', ')}); combiná-los soma +${kernelComboPenalty} de complexidade além do custo normal de cada um.`);
+      }
+
       return {
           finalElement,
           fusionElement,
@@ -564,6 +582,7 @@ export class PatternMatcher {
           totalComponents: allNodes.length,
           kernelsAtivos,
           mainKernel,
+          kernelComboPenalty,
           transmutationLogs: logs,
           topologicalInstabilities: instabilities
       };
@@ -600,6 +619,18 @@ function mergeAttrs(a: SpellBuffer, b: SpellBuffer): SpellBuffer {
   return res;
 }
 
+// Multiplica só os eixos numéricos de um conjunto de atributos por um
+// fator — usado pela intensidade de Kernel (nível 1-5): nível 1 mantém o
+// mesmo +1 de sempre (fator 1), nível 5 multiplica por 5. Condição/
+// resistência (strings) e tags (arrays) não escalam, só os números.
+function scaleAttrs(attrs: SpellBuffer, factor: number): SpellBuffer {
+  const res: SpellBuffer = {};
+  for (const key in attrs) {
+      res[key] = typeof attrs[key] === 'number' ? attrs[key] * factor : attrs[key];
+  }
+  return res;
+}
+
 // magnitude = soma dos eixos "físicos" que dão peso a um efeito (entropia,
 // força, volume, ordem). alcance/duração somam meio ponto de dado cada —
 // um feitiço mais abrangente ou mais longo tende a carregar mais peso.
@@ -615,6 +646,16 @@ function computeSpellLevel(buffer: SpellBuffer, eventCount: number): number {
 
 function computeDC(level: number, buffer: SpellBuffer): number {
   return 10 + Math.floor(level / 2) + Math.floor((buffer.potency || 0) / 2);
+}
+
+// Custo em mana: cresce ao quadrado do nível (mesma curva não-linear do
+// pool de mana por conjurador, ver MANA_POR_NIVEL) + potência/complexidade
+// brutas do buffer — inclui automaticamente qualquer sobretaxa da Lei do
+// Combo de Kernels, já que ela soma direto em `complexity`. Nível 1 custa
+// pouco; nível 10 (o teto de progressão normal) custa uma fatia grande do
+// pool daquele nível, não o pool inteiro — dá pra conjurar mais de uma vez.
+function computeManaCost(level: number, buffer: SpellBuffer): number {
+  return Math.max(1, level * level + Math.floor((buffer.potency || 0) / 2) + Math.floor((buffer.complexity || 0) / 2));
 }
 
 // Aura (alcance 3) é sempre teste; Alcance (2) + Esfera Remota (forma 3)
@@ -691,7 +732,10 @@ export class MagicCompilerEngine {
               buffer = mergeAttrs(buffer, NodeAttributesDict[node.fusionElement] || {});
           }
       } else if (node instanceof KernelASTNode) {
-          buffer = mergeAttrs(buffer, NodeAttributesDict[node.kernelType] || {});
+          // Intensidade do Kernel (1-5, padrão 1): escala proporcionalmente
+          // sua contribuição ao buffer — nível 1 é o +1 de sempre, nível 5
+          // multiplica por 5. Ver KERNEL_INTENSITY_LEVELS.
+          buffer = mergeAttrs(buffer, scaleAttrs(NodeAttributesDict[node.kernelType] || {}, node.level ?? 1));
       }
     }
 
@@ -701,6 +745,13 @@ export class MagicCompilerEngine {
         buffer = mergeAttrs(buffer, { complexity: patterns.chainHops });
     }
     buffer.chainHops = patterns.chainHops;
+
+    // Lei do Combo de Kernels: dois ou mais Kernels escalados juntos (nível
+    // > 1 cada) somam uma sobretaxa de complexidade além do que cada um já
+    // contribui isoladamente — ver PatternMatcher.kernelComboPenalty.
+    if (patterns.kernelComboPenalty > 0) {
+        buffer = mergeAttrs(buffer, { complexity: patterns.kernelComboPenalty });
+    }
 
     // A Lei da Simetria: Criar (fusão com COMPOR) é a versão permanente e
     // cara — soma complexidade/potência (que elevam nível e CD via as
@@ -826,6 +877,15 @@ export class MagicCompilerEngine {
     const rangeStr = isPersonalOnly ? 'Pessoal' : (isTrulyEmpty ? 'Nenhum / Instável' : (formaInfo ? formaInfo.rangeStr : pontoInfo.rangeStr));
     const level = computeSpellLevel(buffer, events.length);
     const dc = computeDC(level, buffer);
+    const manaCost = computeManaCost(level, buffer);
+    // Nível 10 é o teto de progressão "normal" (ver MANA_POR_NIVEL). Acima
+    // disso, mais mana não resolve — só um Arquétipo de Prestígio (ainda
+    // sem conteúdo/regras próprias implementadas) libera o próximo passo.
+    const requiresPrestige = level > MANA_NIVEL_MAX;
+    const manaPoolAtLevel = MANA_POR_NIVEL[Math.min(Math.max(level, 1), MANA_NIVEL_MAX)];
+    if (requiresPrestige) {
+        semanticErrors.push(`[REQUER ARQUÉTIPO DE PRESTÍGIO] Esta magia calcula nível ${level}, acima do teto de progressão normal (nível ${MANA_NIVEL_MAX}). Só seria alcançável através de um Arquétipo de Prestígio (ex: Necromante) — sistema ainda sem regras próprias implementadas; por ora, é só um aviso.`);
+    }
     const durationStr = manterInfo.duration;
 
     // D&D 5e Block Processing
@@ -1097,6 +1157,12 @@ export class MagicCompilerEngine {
       // MANIFESTACAO_TABLE) — a mesma combinação de alcance/forma/teste/modo
       // sempre resolve pro mesmo nome, nunca varia por acaso.
       manifestation: manifestName ? { name: manifestName } : null,
+      // Economia de mana (ver §"Economia de Mana" em engine/constants.ts):
+      // custo desta magia, o pool de referência de um conjurador no mesmo
+      // nível dela (teto 10), e se ela já exige um Arquétipo de Prestígio.
+      manaCost,
+      manaPoolAtLevel,
+      requiresPrestige,
       needsDC: isSaveBased && dc > 10 && !isDeterministic,
       // 'MOVER' | 'PERCEBER' | null — diz à UI que a magia não tem dano/cura.
       mode: moverInfo ? 'MOVER' : perceberInfo ? 'PERCEBER' : null,

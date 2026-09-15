@@ -17,7 +17,7 @@ const MagicTranslator = ({ graph }: any) => {
         const result = MagicCompilerEngine.execute(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode, college, capacitor, manifestation } = result;
+        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode, college, capacitor, manifestation, manaCost, manaPoolAtLevel, requiresPrestige } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
 
         // Selo Arcano: assinatura geométrica única desta magia compilada,
@@ -114,7 +114,18 @@ const MagicTranslator = ({ graph }: any) => {
                   <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{capacitor.name} ({capacitor.cargas}) — Gatilho: {capacitor.trigger.name}</div>
                 </div>
               )}
+              <div style={{ background: 'rgba(46,139,87,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(46,139,87,0.3)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#2e8b57', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Custo em Mana</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{manaCost} <span style={{ fontWeight: 'normal', fontSize: '0.8rem', color: '#5c3a21' }}>(pool nível {level}: {manaPoolAtLevel})</span></div>
+              </div>
             </div>
+
+            {requiresPrestige && (
+              <div style={{ background: 'rgba(139,0,0,0.08)', padding: '14px', borderRadius: '4px', border: '1px solid rgba(139,0,0,0.4)', marginBottom: '25px', color: '#8b0000' }}>
+                <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Requer Arquétipo de Prestígio</div>
+                <div style={{ fontSize: '0.95rem' }}>Nível {level} está acima do teto de progressão normal (nível 10). Um conjurador comum não alcança isto sem um Arquétipo de Prestígio (ex: Necromante) — sistema ainda sem regras próprias implementadas.</div>
+              </div>
+            )}
 
             {/* Additional Info Toggle */}
             <div style={{ marginBottom: '25px' }}>

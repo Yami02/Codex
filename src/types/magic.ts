@@ -115,6 +115,10 @@ export interface KernelNode extends BaseNode {
   type: NodeType.KERNEL;
   additiveType: string;
   magicGraph: MagicGraph;
+  // Intensidade do Kernel (1-5, como Gatilho) — escala proporcionalmente
+  // a contribuição dele ao buffer. Ver KERNEL_INTENSITY_LEVELS em
+  // engine/constants.ts e a Lei do Combo de Kernels.
+  level?: number;
 }
 
 export type MagicNode = CoreNode | AdditiveNode | SubCircleNode | KernelNode;

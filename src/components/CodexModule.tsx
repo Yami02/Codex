@@ -17,7 +17,8 @@ import HelpGuide from './HelpGuide';
       MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
       PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX,
       GATILHO_LEVELS, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX,
-      TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE
+      TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE,
+      KERNEL_INTENSITY_LEVELS, KERNEL_LEVEL_MIN, KERNEL_LEVEL_MAX,
     } from '../magicConstants';
     import { resolveCollege } from '../engine/colleges';
 
@@ -38,6 +39,23 @@ import HelpGuide from './HelpGuide';
       [AdditiveType.MOVER]: { min: MOVER_LEVEL_MIN, max: MOVER_LEVEL_MAX, table: MOVER_LEVELS, defaultLevel: MOVER_LEVEL_MIN, axisLabel: 'Distância' },
       [AdditiveType.PERCEBER]: { min: PERCEBER_LEVEL_MIN, max: PERCEBER_LEVEL_MAX, table: PERCEBER_LEVELS, defaultLevel: PERCEBER_LEVEL_MIN, axisLabel: 'Profundidade' },
       [AdditiveType.GATILHO]: { min: GATILHO_LEVEL_MIN, max: GATILHO_LEVEL_MAX, table: GATILHO_LEVELS, defaultLevel: GATILHO_LEVEL_MIN, axisLabel: 'Carga do Capacitor' },
+    };
+
+    // Kernels também são "de nível" (1-5): sobem a intensidade do próprio
+    // eixo físico (Força, Entropia, Volume...) proporcionalmente — ver
+    // KERNEL_INTENSITY_LEVELS e a Lei do Combo de Kernels em
+    // engine/compiler.ts (escalar dois ou mais Kernels juntos custa mais
+    // que a soma dos dois isolados).
+    const LEVELED_KERNELS = {
+      [KernelType.ENTROPIA]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Entropia' },
+      [KernelType.FORCA]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Força' },
+      [KernelType.VOLUME]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Tamanho / Volume' },
+      [KernelType.SOM]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Som' },
+      [KernelType.LUMINOSIDADE]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Luminosidade' },
+      [KernelType.ORDEM]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Ordem' },
+      [KernelType.MORFOLOGIA]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Morfologia' },
+      [KernelType.ESTADO]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Estado' },
+      [KernelType.CAOS]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Caos' },
     };
 
     // Mostra, no tooltip do Núcleo, qual condição ele impõe e com qual
@@ -207,7 +225,7 @@ import { useNavigate } from 'react-router-dom';
           }
         }
         else if (item.type === NodeType.SUBCIRCLE) newGraph.nodes.push({ id: newId, type: NodeType.SUBCIRCLE, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
-        else if (item.type === NodeType.KERNEL) newGraph.nodes.push({ id: newId, type: NodeType.KERNEL, additiveType: item.name, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
+        else if (item.type === NodeType.KERNEL) newGraph.nodes.push({ id: newId, type: NodeType.KERNEL, additiveType: item.name, level: KERNEL_LEVEL_MIN, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
 
         setMainGraph(updateNestedGraph(mainGraph, path, newGraph));
       };
@@ -242,7 +260,7 @@ import { useNavigate } from 'react-router-dom';
           }
         }
         else if (type === NodeType.SUBCIRCLE) newGraph.nodes.push({ id: newId, type: NodeType.SUBCIRCLE, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
-        else if (type === NodeType.KERNEL) newGraph.nodes.push({ id: newId, type: NodeType.KERNEL, additiveType: name, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
+        else if (type === NodeType.KERNEL) newGraph.nodes.push({ id: newId, type: NodeType.KERNEL, additiveType: name, level: KERNEL_LEVEL_MIN, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
 
         setMainGraph(updateNestedGraph(mainGraph, path, newGraph));
       };
@@ -288,7 +306,7 @@ import { useNavigate } from 'react-router-dom';
       };
 
       const handleLevelChange = (node, delta) => {
-        const leveled = LEVELED_ADDITIVES[node.additiveType];
+        const leveled = node.type === NodeType.KERNEL ? LEVELED_KERNELS[node.additiveType] : LEVELED_ADDITIVES[node.additiveType];
         if (!leveled) return;
         const current = node.level ?? leveled.defaultLevel;
         const newLevel = Math.max(leveled.min, Math.min(leveled.max, current + delta));
@@ -301,6 +319,8 @@ import { useNavigate } from 'react-router-dom';
             const newNode = { ...n, type: mode, additiveType: kernelType };
             if (mode === NodeType.SUBCIRCLE) {
               delete newNode.customMorphology;
+            } else if (mode === NodeType.KERNEL && newNode.level == null) {
+              newNode.level = KERNEL_LEVEL_MIN;
             }
             return newNode;
           }
@@ -376,8 +396,8 @@ import { useNavigate } from 'react-router-dom';
                 </div>
               </div>
 
-              {selectedNode.type === NodeType.ADDITIVE && LEVELED_ADDITIVES[selectedNode.additiveType] && (() => {
-                const leveled = LEVELED_ADDITIVES[selectedNode.additiveType];
+              {(selectedNode.type === NodeType.ADDITIVE ? LEVELED_ADDITIVES[selectedNode.additiveType] : selectedNode.type === NodeType.KERNEL ? LEVELED_KERNELS[selectedNode.additiveType] : null) && (() => {
+                const leveled = selectedNode.type === NodeType.KERNEL ? LEVELED_KERNELS[selectedNode.additiveType] : LEVELED_ADDITIVES[selectedNode.additiveType];
                 const currentLevel = selectedNode.level ?? leveled.defaultLevel;
                 const info = leveled.table[currentLevel];
                 return (
