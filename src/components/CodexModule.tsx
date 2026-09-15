@@ -22,6 +22,14 @@ import MagicDSLTerminal from './MagicDSLTerminal';
       [AdditiveType.MANTER]: { min: MANTER_LEVEL_MIN, max: MANTER_LEVEL_MAX, table: MANTER_LEVELS, defaultLevel: 1, axisLabel: 'Duração' },
     };
 
+    // Mostra, no tooltip do Núcleo, qual condição ele impõe e com qual
+    // atributo o alvo resiste — mesma tabela que o compilador usa.
+    const coreConditionTooltip = (elementName) => {
+      const attrs = NodeAttributesDict[elementName];
+      if (!attrs || !attrs.debuffs || !attrs.debuffs.length) return elementName;
+      return `${elementName} — impõe ${attrs.debuffs.join(', ')} (resistência de ${attrs.saveAbility})`;
+    };
+
     import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -475,12 +483,12 @@ import { useNavigate } from 'react-router-dom';
               
               <h3 style={{ fontSize: '1.1rem', color: '#ff793f', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #ff793f', paddingLeft: '8px' }}>Núcleo (Elemental)</h3>
               <div className="sidebar-grid">
-                {['FOGO', 'AGUA', 'TERRA', 'AR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" onAdd={handleDirectAdd} />)}
+                {['FOGO', 'AGUA', 'TERRA', 'AR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" description={coreConditionTooltip(c)} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#f1c40f', marginTop: '1.5rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #f1c40f', paddingLeft: '8px' }}>Núcleo (Dualidade)</h3>
               <div className="sidebar-grid">
-                {['LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" onAdd={handleDirectAdd} />)}
+                {['LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" description={coreConditionTooltip(c)} onAdd={handleDirectAdd} />)}
               </div>
               
               <h3 style={{ fontSize: '1.1rem', color: '#3498db', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #3498db', paddingLeft: '8px' }}>Aditivos</h3>

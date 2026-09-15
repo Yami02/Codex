@@ -38,7 +38,7 @@ const DraggableItem = ({ type, name, label, className, onAdd, description }: Dra
            onClick={(e) => { e.preventDefault(); onAdd && onAdd(type, name); }}
            className={`magic-flask z-10 mb-6 mx-auto ${className || ''}`}
            style={{ '--element-color': vialColor } as React.CSSProperties}
-           title={name}
+           title={description || name}
         >
            {/* The pot opening (ellipse) */}
            <div className="flask-opening"></div>

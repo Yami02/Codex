@@ -175,30 +175,37 @@ export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> =
   [KernelType.CAOS]: 'Complexibilidade',
 };
 
+// Habilidade de resistência que a vítima usa contra a condição do efeito.
+// Segue a convenção do 5e: controle físico -> Força; veneno/atordoamento/
+// paralisia/cegueira -> Constituição; ilusão/trapaça sensorial ->
+// Inteligência; medo/compulsão mental -> Sabedoria.
+export type SaveAbility = 'Força' | 'Destreza' | 'Constituição' | 'Inteligência' | 'Sabedoria' | 'Carisma';
+
 export const NodeAttributesDict: Record<string, any> = {
-  [CoreElement.FOGO]: { thermal: +6, entropy: +3, tags: ['Fogo'] },
-  [CoreElement.AGUA]: { volume: +4, tags: ['Água'] },
-  [CoreElement.TERRA]: { strength: +5, mass: +3, tags: ['Terra'] },
-  [CoreElement.AR]: { wave: +2, sonic: +2, tags: ['Ar'] },
-  [CoreElement.LUZ]: { wave: +5, lumen: +6, tags: ['Luz'] },
-  [CoreElement.SOMBRA]: { morphology: +4, lumen: -4, tags: ['Sombra'] },
-  [CoreElement.COMPOR]: { order: +5, tags: ['Composição'] },
-  [CoreElement.DECOMPOR]: { chaos: +5, tags: ['Decomposição'] },
-  
+  [CoreElement.FOGO]: { thermal: +6, entropy: +3, tags: ['Fogo'], debuffs: ['Queimando'], saveAbility: 'Destreza' as SaveAbility },
+  [CoreElement.AGUA]: { volume: +4, tags: ['Água'], debuffs: ['Lento'], saveAbility: 'Constituição' as SaveAbility },
+  [CoreElement.TERRA]: { strength: +5, mass: +3, tags: ['Terra'], debuffs: ['Retido'], saveAbility: 'Força' as SaveAbility },
+  [CoreElement.AR]: { wave: +2, sonic: +2, tags: ['Ar'], debuffs: ['Empurrado'], saveAbility: 'Força' as SaveAbility },
+  [CoreElement.LUZ]: { wave: +5, lumen: +6, tags: ['Luz'], debuffs: ['Cego'], saveAbility: 'Constituição' as SaveAbility },
+  [CoreElement.SOMBRA]: { morphology: +4, lumen: -4, tags: ['Sombra'], debuffs: ['Amedrontado'], saveAbility: 'Sabedoria' as SaveAbility },
+  [CoreElement.COMPOR]: { order: +5, tags: ['Composição'], debuffs: ['Enfeitiçado'], saveAbility: 'Sabedoria' as SaveAbility },
+  [CoreElement.DECOMPOR]: { chaos: +5, tags: ['Decomposição'], debuffs: ['Exausto'], saveAbility: 'Constituição' as SaveAbility },
+
   [AdditiveType.AUMENTO]: { potency: +3, complexity: +1 },
   [AdditiveType.REDUCAO]: { potency: -2, complexity: +1 },
   [AdditiveType.PONTO]: { precision: +5, tags: ['PONTO'] },
   [AdditiveType.CONTROLE]: { complexity: +2, tags: ['CONTROL'] },
   [AdditiveType.MANTER]: { complexity: +1, tags: ['MANTER'] },
-  
-  // Kernel Defaults (Buffers)
-  [KernelType.ENTROPIA]: { thermal: 0, entropy: 1, entropyBuffer: true, tags: ['KERNEL', 'ENTROPIA'] },
-  [KernelType.MORFOLOGIA]: { morphology: 1, morphologyBuffer: true, tags: ['KERNEL', 'MORFOLOGIA'] },
-  [KernelType.ESTADO]: { phase: 1, stateBuffer: true, tags: ['KERNEL', 'ESTADO'] },
-  [KernelType.LUMINOSIDADE]: { lumen: 1, lumenBuffer: true, tags: ['KERNEL', 'LUMINOSIDADE'] },
-  [KernelType.SOM]: { sonic: 1, waveBuffer: true, tags: ['KERNEL', 'SOM'] },
-  [KernelType.FORCA]: { strength: 1, strengthBuffer: true, tags: ['KERNEL', 'FORCA'] },
-  [KernelType.VOLUME]: { volume: 1, volumeBuffer: true, tags: ['KERNEL', 'VOLUME'] },
-  [KernelType.ORDEM]: { order: 1, orderBuffer: true, tags: ['KERNEL', 'ORDEM'] },
-  [KernelType.CAOS]: { chaos: 1, chaosBuffer: true, tags: ['KERNEL', 'CAOS'] }
+
+  // Kernel Defaults (Buffers): mais específicos que o Núcleo, por isso
+  // sobrescrevem a condição/habilidade de resistência dele quando ativos.
+  [KernelType.ENTROPIA]: { thermal: 0, entropy: 1, entropyBuffer: true, tags: ['KERNEL', 'ENTROPIA'], debuffs: ['Envenenado'], saveAbility: 'Constituição' as SaveAbility },
+  [KernelType.MORFOLOGIA]: { morphology: 1, morphologyBuffer: true, tags: ['KERNEL', 'MORFOLOGIA'], debuffs: ['Enfeitiçado'], saveAbility: 'Inteligência' as SaveAbility },
+  [KernelType.ESTADO]: { phase: 1, stateBuffer: true, tags: ['KERNEL', 'ESTADO'], debuffs: ['Paralisado'], saveAbility: 'Constituição' as SaveAbility },
+  [KernelType.LUMINOSIDADE]: { lumen: 1, lumenBuffer: true, tags: ['KERNEL', 'LUMINOSIDADE'], debuffs: ['Cego'], saveAbility: 'Constituição' as SaveAbility },
+  [KernelType.SOM]: { sonic: 1, waveBuffer: true, tags: ['KERNEL', 'SOM'], debuffs: ['Atordoado'], saveAbility: 'Constituição' as SaveAbility },
+  [KernelType.FORCA]: { strength: 1, strengthBuffer: true, tags: ['KERNEL', 'FORCA'], debuffs: ['Retido'], saveAbility: 'Força' as SaveAbility },
+  [KernelType.VOLUME]: { volume: 1, volumeBuffer: true, tags: ['KERNEL', 'VOLUME'], debuffs: ['Empurrado'], saveAbility: 'Força' as SaveAbility },
+  [KernelType.ORDEM]: { order: 1, orderBuffer: true, tags: ['KERNEL', 'ORDEM'], debuffs: ['Enfeitiçado'], saveAbility: 'Sabedoria' as SaveAbility },
+  [KernelType.CAOS]: { chaos: 1, chaosBuffer: true, tags: ['KERNEL', 'CAOS'], debuffs: ['Atordoado'], saveAbility: 'Constituição' as SaveAbility }
 };

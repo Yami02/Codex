@@ -344,8 +344,18 @@ export class MagicCompilerEngine {
           currentAttrs = this.mergeAttrs(currentAttrs, NodeAttributesDict[node.element] || {});
       } else if (node instanceof AdditiveASTNode) {
           currentAttrs = this.mergeAttrs(currentAttrs, NodeAttributesDict[node.additiveType] || {});
+      } else if (node instanceof KernelASTNode) {
+          // Um Kernel é mais específico que o Núcleo puro: sua condição e
+          // habilidade de resistência (ver NodeAttributesDict) sobrescrevem
+          // a do elemento base, já que ele é processado depois na travessia.
+          currentAttrs = this.mergeAttrs(currentAttrs, NodeAttributesDict[node.kernelType] || {});
       }
     }
+
+    // Condição imposta pelo efeito e habilidade usada para resisti-la.
+    // Vêm do elemento (Núcleo) e, se houver, são refinadas pelo Kernel ativo.
+    const saveAbility: string = currentAttrs.saveAbility || 'Destreza';
+    const activeDebuffs: string[] = currentAttrs.debuffs || [];
 
     // Régua de alcance/duração: uma só tabela (PONTO_LEVELS/MANTER_LEVELS)
     // alimenta tanto o texto curto da ficha quanto o bloco formal D&D 5e,
@@ -433,7 +443,7 @@ export class MagicCompilerEngine {
         if (isHealing) {
              dndFullText = `Uma aura de vitalidade emana de você (ou de um ponto ancorado), envolvendo tudo ao redor. Cada criatura dentro do alcance da aura recupera ${healDamage} pontos de vida enquanto permanecer na área.`;
         } else {
-             dndFullText = `Uma aura de energia primordial emana de você, consumindo o espaço ao redor. Cada criatura na área sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de Destreza (CD ${dc}) para reduzir à metade.`}`;
+             dndFullText = `Uma aura de energia primordial emana de você, consumindo o espaço ao redor. Cada criatura na área sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`}`;
         }
     } else if (patterns.pontoLevel === 2) {
         if (isHealing) {
@@ -453,6 +463,19 @@ export class MagicCompilerEngine {
         dndFullText += ` A energia se estabiliza num capacitor autossustentável, persistindo indefinidamente sem exigir concentração contínua do conjurador — até que seja dissipada por vontade própria ou por magia antagônica.`;
     } else if (patterns.manterLevel === 2 || patterns.manterLevel === 3) {
         dndFullText += ` Devido à forte presença térmica ou entrópica, a área do feitiço se torna persistentemente instável. Qualquer criatura que inicie seu turno na área ou alvo afetado sofrerá efeitos secundários proporcionais à magia enquanto durar a concentração.`;
+    }
+
+    // Condição imposta pelo elemento/kernel ativo (ver saveAbility/activeDebuffs
+    // acima). Um efeito de cura nunca impõe condição — só o dano/controle.
+    if (activeDebuffs.length > 0 && !isHealing && patterns.pontoLevel > 0) {
+        const debuffList = activeDebuffs.join(', ');
+        if (patterns.pontoLevel === 3 && isDeterministic) {
+            dndFullText += ` O efeito também deixa os atingidos ${debuffList} até o fim do próximo turno, sem chance de resistência.`;
+        } else if (patterns.pontoLevel === 3) {
+            dndFullText += ` Quem falhar nesse teste também fica ${debuffList} até o fim do próximo turno.`;
+        } else {
+            dndFullText += ` Quem for atingido também fica ${debuffList} até o fim do próximo turno.`;
+        }
     }
 
     if (semanticErrors.length > 0) {
@@ -529,6 +552,8 @@ export class MagicCompilerEngine {
       logs: events,
       element,
       needsDC: dc > 10 && !isDeterministic,
+      saveAbility,
+      conditions: activeDebuffs,
       rangeStr,
       level,
       dc,

@@ -16,7 +16,7 @@ const MagicTranslator = ({ graph }: any) => {
         const result = MagicCompilerEngine.execute(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock } = result;
+        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
 
         const techStats = [
@@ -58,7 +58,13 @@ const MagicTranslator = ({ graph }: any) => {
               {needsDC && (
                 <div style={{ background: 'rgba(139,0,0,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(139,0,0,0.3)', boxShadow: '0 0 10px rgba(139,0,0,0.1)' }}>
                   <div style={{ fontSize: '0.8rem', color: '#8b0000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Dificuldade Arcaica</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: '#8b0000' }}>CD {dc}</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: '#8b0000' }}>CD {dc} ({saveAbility})</div>
+                </div>
+              )}
+              {conditions && conditions.length > 0 && (
+                <div style={{ background: 'rgba(114,9,183,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(114,9,183,0.3)' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#7209b7', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Condição Imposta</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{conditions.join(', ')}</div>
                 </div>
               )}
             </div>
