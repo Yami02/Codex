@@ -16,14 +16,19 @@ export enum CoreElement {
   DECOMPOR = 'DECOMPOR' 
 }
 
-export enum AdditiveType { 
-  CONTROLE = 'CONTROLE', 
-  AUMENTO = 'AUMENTO', 
-  REDUCAO = 'REDUCAO', 
-  PONTO = 'PONTO', 
-  MANTER = 'MANTER', 
-  GATILHO = 'GATILHO', 
-  ECO = 'ECO' 
+export enum AdditiveType {
+  CONTROLE = 'CONTROLE',
+  AUMENTO = 'AUMENTO',
+  REDUCAO = 'REDUCAO',
+  PONTO = 'PONTO',
+  MANTER = 'MANTER',
+  GATILHO = 'GATILHO',
+  ECO = 'ECO',
+  FORMA = 'FORMA',
+  MOVER = 'MOVER',
+  PERCEBER = 'PERCEBER',
+  TESTE = 'TESTE',
+  FUSAO = 'FUSAO'
 }
 
 export enum KernelType {
@@ -66,8 +71,13 @@ export const AdditiveRunes: Record<string, string> = {
   [AdditiveType.REDUCAO]: 'ᚦ',
   [AdditiveType.PONTO]: 'ᛈ', 
   [AdditiveType.MANTER]: 'ᛟ', 
-  [AdditiveType.GATILHO]: 'ᛃ', 
+  [AdditiveType.GATILHO]: 'ᛃ',
   [AdditiveType.ECO]: 'ᛋ',
+  [AdditiveType.FORMA]: 'ᛗ',
+  [AdditiveType.MOVER]: 'ᛜ',
+  [AdditiveType.PERCEBER]: 'ᛇ',
+  [AdditiveType.TESTE]: 'ᚹ',
+  [AdditiveType.FUSAO]: 'ᛝ',
   // Kernel Runes
   [KernelType.ENTROPIA]: 'ᚲ', 
   [KernelType.MORFOLOGIA]: '᚛', 
@@ -99,14 +109,33 @@ export const EdgeSymbols: Record<string, string> = {
   [EdgeType.UNIAO]: '--'
 };
 
+// Cada conectivo agora tem uma regra real no compilador (engine/compiler.ts,
+// PatternMatcher.matchAndTransform) — não é mais só uma cor/símbolo na
+// tela. UNIAO e REVERSO existem no enum e no visual (EdgeVisual.tsx) mas
+// não estão no EdgeCycle (não são alcançáveis clicando numa aresta): são
+// símbolos reservados, sem regra própria ainda.
+export const EdgeDescriptions: Record<string, string> = {
+  [EdgeType.AND]: 'Combinação direta (padrão): os dois nós apenas coexistem e somam ao buffer, como sempre. É a aresta criada automaticamente ao conectar dois nós.',
+  [EdgeType.OR]: 'Alternativa: liga duas variantes do mesmo aditivo (ex: dois nós de Forma). O conjurador escolhe uma ao lançar; a ficha usa o pior caso (maior nível) para o nível/CD.',
+  [EdgeType.XOR]: 'Exclusão mútua: como Alternativa, mas as variantes nunca coexistem — a ficha descreve a primeira como padrão, e o conjurador troca pra outra. É também o que transforma Mover+Perceber juntos numa escolha intencional em vez de um erro de design.',
+  [EdgeType.SE_ENTAO]: 'Condicional: só pode sair de um nó de Teste ou Gatilho. O nó de destino passa a ser descrito como "se a condição, então o efeito" em vez de sempre ativo.',
+  [EdgeType.ATRIBUICAO]: 'Canalização: liga um Aumento/Redução a um aditivo de nível (Ponto, Manter, Forma, Mover, Perceber ou Gatilho) — em vez de reforçar o buffer genérico, soma ou subtrai 1 nível direto naquele aditivo.',
+  [EdgeType.CORRENTE]: 'Corrente: uma sequência de nós ligados em cadeia faz o efeito saltar de alvo em alvo — cada salto soma complexidade e aparece no texto final com dano decrescente por salto.',
+};
+
 export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.CONTROLE]: 'impondo domínio através de canais rúnicos',
   [AdditiveType.AUMENTO]: 'exaltando a amplitude da ressonância',
   [AdditiveType.REDUCAO]: 'suprimindo a intensidade do fluxo',
   [AdditiveType.PONTO]: 'ancorando a lógica em uma coordenada fixa',
   [AdditiveType.MANTER]: 'persistindo a estrutura através de loops temporais',
-  [AdditiveType.GATILHO]: 'programando uma response condicional',
+  [AdditiveType.GATILHO]: 'o Capacitor: guarda a magia num glifo em vez de gastá-la agora — dispara depois, por um gatilho, e cargas extras a tornam mais forte',
   [AdditiveType.ECO]: 'replicando a assinatura energética',
+  [AdditiveType.FORMA]: 'moldando a geometria de propagação do efeito (Cone, Linha ou Esfera Remota)',
+  [AdditiveType.MOVER]: 'desloca no espaço, sem dano — você, um alvo ou a área ao redor',
+  [AdditiveType.PERCEBER]: 'não causa dano nem cura: revela uma informação sobre o alvo ou a área',
+  [AdditiveType.TESTE]: 'troca a jogada de ataque por um teste de resistência do alvo, mesmo à distância ou ao toque',
+  [AdditiveType.FUSAO]: 'funde um segundo elemento (ou Compor/Decompor) ao Núcleo, revelando um dos 32 Colégios',
   // Kernels
   [KernelType.ENTROPIA]: 'Buffer de Entropia: Manipula a agitação térmica.',
   [KernelType.MORFOLOGIA]: 'Buffer de Morfologia: Define a forma/formato natural da energia.',
@@ -161,6 +190,104 @@ export const MANTER_LEVELS: Record<number, ManterLevelInfo> = {
 export const MANTER_LEVEL_MIN = 0;
 export const MANTER_LEVEL_MAX = 4;
 
+// FORMA: aditivo geométrico opcional. Não concorre com o alcance de PONTO
+// (que continua decidindo Corpo-a-Corpo/Alcance/Aura) — só refina a
+// *geometria* de duas combinações específicas: uma Aura (PONTO 3) pode virar
+// direcional (Cone/Linha) e um Alcance (PONTO 2) pode virar uma explosão
+// remota (Esfera). Em qualquer outra combinação, FORMA fica sem efeito e o
+// compilador avisa isso como instabilidade — não falha silenciosamente.
+export interface FormaLevelInfo {
+  level: number;
+  name: string;
+  appliesToPontoLevel: number; // Nível de PONTO em que essa forma faz sentido
+  rangeStr: string;
+  dndRange: string;
+}
+
+export const FORMA_LEVELS: Record<number, FormaLevelInfo> = {
+  1: { level: 1, name: 'Cone',          appliesToPontoLevel: 3, rangeStr: 'Cone (4,5m)',           dndRange: 'Cone de 4,5 metros a partir de você' },
+  2: { level: 2, name: 'Linha',         appliesToPontoLevel: 3, rangeStr: 'Linha (18m)',            dndRange: 'Linha de 18 metros a partir de você' },
+  3: { level: 3, name: 'Esfera Remota', appliesToPontoLevel: 2, rangeStr: 'Esfera Remota (36m/6m)', dndRange: '36 metros; explosão em esfera de 6 metros de raio' },
+};
+export const FORMA_LEVEL_MIN = 1;
+export const FORMA_LEVEL_MAX = 3;
+
+// GATILHO: o Capacitor. Em vez de gastar a magia na hora, você a
+// armazena num glifo — pra disparar depois (quando algo específico
+// acontecer) ou pra somar cargas ao longo de vários turnos/conjuradores
+// e produzir um efeito mais forte do que um só turno permitiria. O nível
+// é "quantas cargas" o capacitor precisa (1 turno sozinho até 5 turnos,
+// ou 5 conjuradores diferentes enchendo o mesmo capacitor); cada carga
+// investida soma potência/complexidade ao feitiço final (ver
+// engine/compiler.ts) — por isso um capacitor cheio pode produzir uma
+// magia que nenhum conjurador sozinho, num turno só, conseguiria pagar.
+export interface GatilhoLevelInfo {
+  level: number;
+  name: string;
+  cargas: string; // quantos turnos/conjuradores enchem o capacitor
+  powerBonus: number; // soma direta a potency/complexity no buffer
+}
+
+export const GATILHO_LEVELS: Record<number, GatilhoLevelInfo> = {
+  1: { level: 1, name: 'Carga Rápida', cargas: '1 turno',                       powerBonus: 1 },
+  2: { level: 2, name: 'Carga Pequena', cargas: '2 turnos (ou 2 conjuradores)', powerBonus: 2 },
+  3: { level: 3, name: 'Carga Média',   cargas: '3 turnos (ou 3 conjuradores)', powerBonus: 3 },
+  4: { level: 4, name: 'Carga Grande',  cargas: '4 turnos (ou 4 conjuradores)', powerBonus: 4 },
+  5: { level: 5, name: 'Carga Ritual',  cargas: '5 turnos (ou 5 conjuradores)', powerBonus: 5 },
+};
+export const GATILHO_LEVEL_MIN = 1;
+export const GATILHO_LEVEL_MAX = 5;
+
+// O tipo de gatilho decide O QUE libera o capacitor. Isto ainda é a
+// primeira versão do sistema — o próprio usuário pediu pra revisar depois.
+export interface TriggerTypeInfo {
+  key: string;
+  name: string;
+  description: string; // usado no texto final da magia
+}
+
+export const TRIGGER_TYPES: Record<string, TriggerTypeInfo> = {
+  TEMPO: { key: 'TEMPO', name: 'Tempo', description: 'dispara sozinho após um número de turnos definido ao conjurar' },
+  IMPACTO: { key: 'IMPACTO', name: 'Impacto', description: 'dispara quando o glifo (ou o alvo marcado) sofre um golpe ou é tocado' },
+  COMANDO: { key: 'COMANDO', name: 'Comando', description: 'dispara quando o conjurador pronuncia a palavra de ativação' },
+  PROXIMIDADE: { key: 'PROXIMIDADE', name: 'Proximidade', description: 'dispara quando alguém ou algo entra na área marcada' },
+};
+export const DEFAULT_TRIGGER_TYPE = 'COMANDO';
+
+// MOVER e PERCEBER são aditivos de "modo": quando presentes, substituem o
+// resultado padrão (dano/cura) por deslocamento ou informação. Reaproveitam
+// o nível de PONTO só para decidir QUEM é afetado (você / um alvo à
+// distância / a área ao redor) — o nível deles mesmos decide a intensidade
+// do próprio efeito (distância deslocada / profundidade da informação).
+export interface MoverLevelInfo {
+  level: number;
+  name: string;
+  distance: string;
+  dndDistance: string;
+}
+
+export const MOVER_LEVELS: Record<number, MoverLevelInfo> = {
+  1: { level: 1, name: 'Passo Curto', distance: '3 metros',  dndDistance: '3 metros (10 pés)' },
+  2: { level: 2, name: 'Salto Médio', distance: '9 metros',  dndDistance: '9 metros (30 pés)' },
+  3: { level: 3, name: 'Salto Longo', distance: '18 metros, ignorando obstáculos leves', dndDistance: '18 metros (60 pés), inclusive através de superfícies sólidas de até 1,5m' },
+};
+export const MOVER_LEVEL_MIN = 1;
+export const MOVER_LEVEL_MAX = 3;
+
+export interface PerceberLevelInfo {
+  level: number;
+  name: string;
+  detail: string;
+}
+
+export const PERCEBER_LEVELS: Record<number, PerceberLevelInfo> = {
+  1: { level: 1, name: 'Detectar',   detail: 'sente a presença e a direção geral de algo compatível com a natureza do Núcleo, sem detalhes' },
+  2: { level: 2, name: 'Identificar', detail: 'revela as propriedades específicas de um objeto, efeito mágico ou criatura observada' },
+  3: { level: 3, name: 'Vislumbrar', detail: 'enxerga além do alcance normal dos sentidos — através de obstáculos, a distância, ou impressões superficiais da mente' },
+};
+export const PERCEBER_LEVEL_MIN = 1;
+export const PERCEBER_LEVEL_MAX = 3;
+
 // Cada Kernel escala o feitiço por um de dois eixos: pura amplitude
 // ("Aumento") ou mudança qualitativa da natureza do efeito ("Complexibilidade").
 export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> = {
@@ -175,30 +302,45 @@ export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> =
   [KernelType.CAOS]: 'Complexibilidade',
 };
 
+// Habilidade de resistência que a vítima usa contra a condição do efeito.
+// Segue a convenção do 5e: controle físico -> Força; veneno/atordoamento/
+// paralisia/cegueira -> Constituição; ilusão/trapaça sensorial ->
+// Inteligência; medo/compulsão mental -> Sabedoria.
+export type SaveAbility = 'Força' | 'Destreza' | 'Constituição' | 'Inteligência' | 'Sabedoria' | 'Carisma';
+
 export const NodeAttributesDict: Record<string, any> = {
-  [CoreElement.FOGO]: { thermal: +6, entropy: +3, tags: ['Fogo'] },
-  [CoreElement.AGUA]: { volume: +4, tags: ['Água'] },
-  [CoreElement.TERRA]: { strength: +5, mass: +3, tags: ['Terra'] },
-  [CoreElement.AR]: { wave: +2, sonic: +2, tags: ['Ar'] },
-  [CoreElement.LUZ]: { wave: +5, lumen: +6, tags: ['Luz'] },
-  [CoreElement.SOMBRA]: { morphology: +4, lumen: -4, tags: ['Sombra'] },
-  [CoreElement.COMPOR]: { order: +5, tags: ['Composição'] },
-  [CoreElement.DECOMPOR]: { chaos: +5, tags: ['Decomposição'] },
-  
+  [CoreElement.FOGO]: { thermal: +6, entropy: +3, tags: ['Fogo'], debuffs: ['Queimando'], saveAbility: 'Destreza' as SaveAbility },
+  [CoreElement.AGUA]: { volume: +4, tags: ['Água'], debuffs: ['Lento'], saveAbility: 'Constituição' as SaveAbility },
+  [CoreElement.TERRA]: { strength: +5, mass: +3, tags: ['Terra'], debuffs: ['Retido'], saveAbility: 'Força' as SaveAbility },
+  [CoreElement.AR]: { wave: +2, sonic: +2, tags: ['Ar'], debuffs: ['Empurrado'], saveAbility: 'Força' as SaveAbility },
+  [CoreElement.LUZ]: { wave: +5, lumen: +6, tags: ['Luz'], debuffs: ['Cego'], saveAbility: 'Constituição' as SaveAbility },
+  [CoreElement.SOMBRA]: { morphology: +4, lumen: -4, tags: ['Sombra'], debuffs: ['Amedrontado'], saveAbility: 'Sabedoria' as SaveAbility },
+  [CoreElement.COMPOR]: { order: +5, tags: ['Composição'], debuffs: ['Enfeitiçado'], saveAbility: 'Sabedoria' as SaveAbility },
+  [CoreElement.DECOMPOR]: { chaos: +5, tags: ['Decomposição'], debuffs: ['Exausto'], saveAbility: 'Constituição' as SaveAbility },
+
   [AdditiveType.AUMENTO]: { potency: +3, complexity: +1 },
   [AdditiveType.REDUCAO]: { potency: -2, complexity: +1 },
   [AdditiveType.PONTO]: { precision: +5, tags: ['PONTO'] },
   [AdditiveType.CONTROLE]: { complexity: +2, tags: ['CONTROL'] },
   [AdditiveType.MANTER]: { complexity: +1, tags: ['MANTER'] },
-  
-  // Kernel Defaults (Buffers)
-  [KernelType.ENTROPIA]: { thermal: 0, entropy: 1, entropyBuffer: true, tags: ['KERNEL', 'ENTROPIA'] },
-  [KernelType.MORFOLOGIA]: { morphology: 1, morphologyBuffer: true, tags: ['KERNEL', 'MORFOLOGIA'] },
-  [KernelType.ESTADO]: { phase: 1, stateBuffer: true, tags: ['KERNEL', 'ESTADO'] },
-  [KernelType.LUMINOSIDADE]: { lumen: 1, lumenBuffer: true, tags: ['KERNEL', 'LUMINOSIDADE'] },
-  [KernelType.SOM]: { sonic: 1, waveBuffer: true, tags: ['KERNEL', 'SOM'] },
-  [KernelType.FORCA]: { strength: 1, strengthBuffer: true, tags: ['KERNEL', 'FORCA'] },
-  [KernelType.VOLUME]: { volume: 1, volumeBuffer: true, tags: ['KERNEL', 'VOLUME'] },
-  [KernelType.ORDEM]: { order: 1, orderBuffer: true, tags: ['KERNEL', 'ORDEM'] },
-  [KernelType.CAOS]: { chaos: 1, chaosBuffer: true, tags: ['KERNEL', 'CAOS'] }
+  [AdditiveType.FORMA]: { complexity: +1, tags: ['FORMA'] },
+  [AdditiveType.MOVER]: { velocity: +4, tags: ['MOVER'] },
+  [AdditiveType.PERCEBER]: { complexity: +3, tags: ['PERCEBER'] },
+  [AdditiveType.TESTE]: { complexity: +1, tags: ['TESTE'] },
+  // FUSAO em si não carrega atributos fixos — quem contribui é o elemento
+  // escolhido (fusionElement, somado à parte pelo compilador) e a
+  // assimetria de Criar/Destruir (ver Lei da Simetria em engine/colleges.ts).
+  [AdditiveType.FUSAO]: { tags: ['FUSAO'] },
+
+  // Kernel Defaults (Buffers): mais específicos que o Núcleo, por isso
+  // sobrescrevem a condição/habilidade de resistência dele quando ativos.
+  [KernelType.ENTROPIA]: { thermal: 0, entropy: 1, entropyBuffer: true, tags: ['KERNEL', 'ENTROPIA'], debuffs: ['Envenenado'], saveAbility: 'Constituição' as SaveAbility },
+  [KernelType.MORFOLOGIA]: { morphology: 1, morphologyBuffer: true, tags: ['KERNEL', 'MORFOLOGIA'], debuffs: ['Enfeitiçado'], saveAbility: 'Inteligência' as SaveAbility },
+  [KernelType.ESTADO]: { phase: 1, stateBuffer: true, tags: ['KERNEL', 'ESTADO'], debuffs: ['Paralisado'], saveAbility: 'Constituição' as SaveAbility },
+  [KernelType.LUMINOSIDADE]: { lumen: 1, lumenBuffer: true, tags: ['KERNEL', 'LUMINOSIDADE'], debuffs: ['Cego'], saveAbility: 'Constituição' as SaveAbility },
+  [KernelType.SOM]: { sonic: 1, waveBuffer: true, tags: ['KERNEL', 'SOM'], debuffs: ['Atordoado'], saveAbility: 'Constituição' as SaveAbility },
+  [KernelType.FORCA]: { strength: 1, strengthBuffer: true, tags: ['KERNEL', 'FORCA'], debuffs: ['Retido'], saveAbility: 'Força' as SaveAbility },
+  [KernelType.VOLUME]: { volume: 1, volumeBuffer: true, tags: ['KERNEL', 'VOLUME'], debuffs: ['Empurrado'], saveAbility: 'Força' as SaveAbility },
+  [KernelType.ORDEM]: { order: 1, orderBuffer: true, tags: ['KERNEL', 'ORDEM'], debuffs: ['Enfeitiçado'], saveAbility: 'Sabedoria' as SaveAbility },
+  [KernelType.CAOS]: { chaos: 1, chaosBuffer: true, tags: ['KERNEL', 'CAOS'], debuffs: ['Atordoado'], saveAbility: 'Constituição' as SaveAbility }
 };
