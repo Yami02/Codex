@@ -99,6 +99,10 @@ export interface AdditiveNode extends BaseNode {
   // 8 valores de CoreElement) se combina com o Núcleo principal — ver
   // COLLEGE_TABLE em engine/colleges.ts.
   fusionElement?: string;
+  // Usado só pelo aditivo GATILHO (Capacitor): que condição libera a magia
+  // armazenada — ver TRIGGER_TYPES em engine/constants.ts. O `level` do
+  // próprio nó carrega quantas cargas o capacitor precisa (1-5).
+  triggerType?: string;
 }
 
 export interface SubCircleNode extends BaseNode {

@@ -4,6 +4,7 @@ import MagicCanvas from './MagicCanvas';
 import MagicTranslator from './MagicTranslator';
 import EdgeVisual from './EdgeVisual';
 import MagicDSLTerminal from './MagicDSLTerminal';
+import HelpGuide from './HelpGuide';
 
 
     import {
@@ -14,7 +15,9 @@ import MagicDSLTerminal from './MagicDSLTerminal';
       MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX,
       FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
       MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
-      PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX
+      PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX,
+      GATILHO_LEVELS, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX,
+      TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE
     } from '../magicConstants';
     import { resolveCollege } from '../engine/colleges';
 
@@ -34,6 +37,7 @@ import MagicDSLTerminal from './MagicDSLTerminal';
       [AdditiveType.FORMA]: { min: FORMA_LEVEL_MIN, max: FORMA_LEVEL_MAX, table: FORMA_LEVELS, defaultLevel: FORMA_LEVEL_MIN, axisLabel: 'Formato' },
       [AdditiveType.MOVER]: { min: MOVER_LEVEL_MIN, max: MOVER_LEVEL_MAX, table: MOVER_LEVELS, defaultLevel: MOVER_LEVEL_MIN, axisLabel: 'Distância' },
       [AdditiveType.PERCEBER]: { min: PERCEBER_LEVEL_MIN, max: PERCEBER_LEVEL_MAX, table: PERCEBER_LEVELS, defaultLevel: PERCEBER_LEVEL_MIN, axisLabel: 'Profundidade' },
+      [AdditiveType.GATILHO]: { min: GATILHO_LEVEL_MIN, max: GATILHO_LEVEL_MAX, table: GATILHO_LEVELS, defaultLevel: GATILHO_LEVEL_MIN, axisLabel: 'Carga do Capacitor' },
     };
 
     // Mostra, no tooltip do Núcleo, qual condição ele impõe e com qual
@@ -108,6 +112,7 @@ import { useNavigate } from 'react-router-dom';
       const [spellName, setSpellName] = useState('Feitiço Sem Nome');
       const [spellComments, setSpellComments] = useState('');
       const [isGrimoireOpen, setIsGrimoireOpen] = useState(false);
+      const [isHelpOpen, setIsHelpOpen] = useState(false);
       const [savedSpells, setSavedSpells] = useState([]);
       const fileInputRef = useRef(null);
 
@@ -193,7 +198,10 @@ import { useNavigate } from 'react-router-dom';
             if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: AdditiveType.FUSAO, fusionElement: 'TERRA', layer: 1, angleOffset: 0 });
           } else if (leveled) {
             const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === item.name);
-            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, level: leveled.defaultLevel, layer: 1, angleOffset: 0 });
+            if (!exists) {
+              const extra = item.name === AdditiveType.GATILHO ? { triggerType: DEFAULT_TRIGGER_TYPE } : {};
+              newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, level: leveled.defaultLevel, layer: 1, angleOffset: 0, ...extra });
+            }
           } else {
             newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, layer: 1, angleOffset: 0 });
           }
@@ -225,7 +233,10 @@ import { useNavigate } from 'react-router-dom';
             if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: AdditiveType.FUSAO, fusionElement: 'TERRA', layer: 1, angleOffset: 0 });
           } else if (leveled) {
             const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === name);
-            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, level: leveled.defaultLevel, layer: 1, angleOffset: 0 });
+            if (!exists) {
+              const extra = name === AdditiveType.GATILHO ? { triggerType: DEFAULT_TRIGGER_TYPE } : {};
+              newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, level: leveled.defaultLevel, layer: 1, angleOffset: 0, ...extra });
+            }
           } else {
             newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, layer: 1, angleOffset: 0 });
           }
@@ -388,6 +399,32 @@ import { useNavigate } from 'react-router-dom';
                 );
               })()}
 
+              {selectedNode.type === NodeType.ADDITIVE && selectedNode.additiveType === AdditiveType.GATILHO && (
+                <div className="action-group">
+                  <div style={{ maxWidth: '190px' }}>
+                    <div className="action-label">Gatilho (o que libera)</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', marginTop: '4px' }}>
+                      {Object.values(TRIGGER_TYPES).map((t: any) => (
+                        <div
+                          key={t.key}
+                          className="mini-btn"
+                          onClick={() => updateNodeCustomProperty(selectedNode.id, 'triggerType', t.key)}
+                          title={t.description}
+                          style={{
+                            fontSize: '0.62rem',
+                            padding: '4px 2px',
+                            borderColor: (selectedNode.triggerType || DEFAULT_TRIGGER_TYPE) === t.key ? '#d4af37' : undefined,
+                            color: (selectedNode.triggerType || DEFAULT_TRIGGER_TYPE) === t.key ? '#d4af37' : undefined,
+                          }}
+                        >
+                          {t.name}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {selectedNode.type === NodeType.ADDITIVE && selectedNode.additiveType === AdditiveType.FUSAO && (() => {
                 const coreNode = activeGraph.nodes.find(n => n.type === NodeType.CORE);
                 const college = coreNode ? resolveCollege(coreNode.element, selectedNode.fusionElement) : null;
@@ -507,6 +544,8 @@ import { useNavigate } from 'react-router-dom';
             {isSidebarOpen ? '✕' : '📜'}
           </button>
 
+          {isHelpOpen && <HelpGuide onClose={() => setIsHelpOpen(false)} />}
+
           {isGrimoireOpen && (
             <div className="modal-overlay" onClick={() => setIsGrimoireOpen(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -561,6 +600,7 @@ import { useNavigate } from 'react-router-dom';
             <div className="top-bar">
               <div className="top-actions" style={{ opacity: viewMode ? 0 : 1, transition: 'opacity 0.3s', pointerEvents: viewMode ? 'none' : 'auto' }}>
                 <button className="action-btn" onClick={() => navigate('/')}>🏠 Hub</button>
+                <button className="action-btn" onClick={() => setIsHelpOpen(true)} title="Como usar e como a magia funciona">❓ Ajuda</button>
                 <button className="action-btn" onClick={() => setIsGrimoireOpen(true)}>📖 Grimório</button>
                 <button className="action-btn primary" onClick={saveSpellToGrimoire}>💾 Salvar</button>
                 <button className="action-btn" onClick={exportSpellFile}>↓ Baixar</button>

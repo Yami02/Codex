@@ -6,6 +6,8 @@ import {
   FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
   MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
   PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX,
+  GATILHO_LEVELS, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX,
+  TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE,
   KERNEL_SCALE_AXIS,
 } from './constants';
 import { resolveCollege, polaritySymmetryDelta } from './colleges';
@@ -37,7 +39,8 @@ export class AdditiveASTNode extends ASTNode {
   // `level` carrega a intensidade explícita do aditivo (PONTO 1-3, MANTER 0-4).
   // Um único nó basta: não é mais preciso empilhar cópias para escalar o efeito.
   // `fusionElement` é usado só pelo aditivo FUSAO (ver engine/colleges.ts).
-  constructor(id: string, public additiveType: string, public level?: number, public fusionElement?: string) { super(id); }
+  // `triggerType` é usado só pelo aditivo GATILHO (Capacitor).
+  constructor(id: string, public additiveType: string, public level?: number, public fusionElement?: string, public triggerType?: string) { super(id); }
   accept(visitor: ASTVisitor) { visitor.visitAdditive(this); }
 }
 
@@ -87,7 +90,7 @@ export class GraphToASTBuilder {
       if (n.type === NodeType.CORE) {
         ast.addNode(new CoreASTNode(n.id, n.element || n.name));
       } else if (n.type === NodeType.ADDITIVE) {
-        ast.addNode(new AdditiveASTNode(n.id, n.additiveType || n.name, n.level, n.fusionElement));
+        ast.addNode(new AdditiveASTNode(n.id, n.additiveType || n.name, n.level, n.fusionElement, n.triggerType));
       } else if (n.type === NodeType.KERNEL || n.type === NodeType.SUBCIRCLE) {
         const subAst = n.magicGraph ? this.build(n.magicGraph) : new ASTGraph();
         ast.addNode(new KernelASTNode(n.id, n.additiveType || n.element || n.name || 'SUBCIRCLE', subAst));
@@ -364,6 +367,22 @@ export class PatternMatcher {
           formaLevel = 0;
       }
 
+      // --- GATILHO (Capacitor): guarda a magia num glifo em vez de gastá-la
+      // na hora. O nível é quantas cargas (turnos/conjuradores) o capacitor
+      // precisa; cada carga soma potência/complexidade ao feitiço final —
+      // ver GATILHO_LEVELS em engine/constants.ts.
+      const gatilhoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'GATILHO');
+      let gatilhoLevel = 0;
+      let triggerType = DEFAULT_TRIGGER_TYPE;
+      if (gatilhoNodes.length > 0) {
+          const levels = gatilhoNodes.map(n => clamp(n.level ?? GATILHO_LEVEL_MIN, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX));
+          gatilhoLevel = Math.max(...levels);
+          triggerType = gatilhoNodes[0].triggerType && TRIGGER_TYPES[gatilhoNodes[0].triggerType] ? gatilhoNodes[0].triggerType : DEFAULT_TRIGGER_TYPE;
+          if (gatilhoNodes.length > 1) {
+              instabilities.push(`[REDUNDÂNCIA] ${gatilhoNodes.length} nós de GATILHO detectados; apenas o de maior nível (${gatilhoLevel}) foi considerado. Use um único nó de GATILHO.`);
+          }
+      }
+
       // --- TESTE: aditivo binário (sem nível) que troca a jogada de ataque
       // por um teste de resistência do alvo em PONTO 1 (Toque) ou 2
       // (Alcance) — o alcance da magia não deveria decidir sozinho se ela é
@@ -394,6 +413,8 @@ export class PatternMatcher {
           formaLevel,
           moverLevel,
           perceberLevel,
+          gatilhoLevel,
+          triggerType,
           hasTeste,
           pontosLength: pontoNodes.length,
           totalComponents: allNodes.length,
@@ -532,6 +553,16 @@ export class MagicCompilerEngine {
     if (symmetryDelta) {
         buffer = mergeAttrs(buffer, symmetryDelta);
     }
+
+    // Capacitor (GATILHO): cada carga investida soma potência/complexidade
+    // — é isso que permite que uma magia carregada por vários turnos (ou
+    // por vários conjuradores enchendo o mesmo capacitor) saia mais forte
+    // do que um só conjurador conseguiria pagar num único turno.
+    const gatilhoInfo = patterns.gatilhoLevel > 0 ? GATILHO_LEVELS[patterns.gatilhoLevel] : null;
+    if (gatilhoInfo) {
+        buffer = mergeAttrs(buffer, { potency: gatilhoInfo.powerBonus, complexity: gatilhoInfo.powerBonus });
+    }
+    buffer.capacitor = patterns.gatilhoLevel;
 
     // Resolve qual dos 32 Colégios está ativo (Núcleo principal + fusão).
     // Um Colégio muda o NOME e o vocabulário da magia — é uma identidade
@@ -822,6 +853,13 @@ export class MagicCompilerEngine {
         dndFullText += `\n\n[${college.name.toUpperCase()}]\nEsta magia pertence ao colégio que trata de ${college.vocabulary}.`;
     }
 
+    // Capacitor: a magia não dispara ao ser conjurada — fica armazenada no
+    // glifo até a condição do gatilho se cumprir.
+    const triggerInfo = TRIGGER_TYPES[patterns.triggerType] || TRIGGER_TYPES[DEFAULT_TRIGGER_TYPE];
+    if (gatilhoInfo) {
+        dndFullText += `\n\n[CAPACITOR: ${gatilhoInfo.name.toUpperCase()}]\nEm vez de se manifestar na hora, a magia é armazenada num glifo (${gatilhoInfo.cargas} de carga). O efeito só ${triggerInfo.description} — Gatilho de ${triggerInfo.name}.`;
+    }
+
     if (isDeterministic && !isMode) {
         dndFullText += `\n\n[DETERMINISMO ABSOLUTO]\nA precisão desta malha anula todas as defesas. Nenhum Teste de Resistência (CD) é exigido, e rolagens de ataque são omitidas. O dano associado é uma Constante Ambiental (Automático e Inevitável).`;
     }
@@ -831,7 +869,7 @@ export class MagicCompilerEngine {
     const dndBlock = {
         name: spellName,
         levelSchool: `${level}º nível de ${magicSchool} (${isDeterministic ? 'Física Determinística' : 'Customizada'})`,
-        castingTime: "1 Ação",
+        castingTime: gatilhoInfo ? `1 Ação para carregar (${gatilhoInfo.cargas}) + Gatilho de ${triggerInfo.name}` : "1 Ação",
         range: dndRange,
         components: "V, S",
         duration: dndDuration,
@@ -847,6 +885,8 @@ export class MagicCompilerEngine {
       // Colégio ativo (Núcleo + Fusão), ou null se a magia usa só o
       // Núcleo puro sem fusão — ver engine/colleges.ts.
       college,
+      // Capacitor ativo (GATILHO), ou null se a magia dispara na hora.
+      capacitor: gatilhoInfo ? { ...gatilhoInfo, trigger: triggerInfo } : null,
       needsDC: isSaveBased && dc > 10 && !isDeterministic,
       // 'MOVER' | 'PERCEBER' | null — diz à UI que a magia não tem dano/cura.
       mode: moverInfo ? 'MOVER' : perceberInfo ? 'PERCEBER' : null,

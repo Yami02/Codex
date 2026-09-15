@@ -115,7 +115,7 @@ export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.REDUCAO]: 'suprimindo a intensidade do fluxo',
   [AdditiveType.PONTO]: 'ancorando a lógica em uma coordenada fixa',
   [AdditiveType.MANTER]: 'persistindo a estrutura através de loops temporais',
-  [AdditiveType.GATILHO]: 'programando uma response condicional',
+  [AdditiveType.GATILHO]: 'o Capacitor: guarda a magia num glifo em vez de gastá-la agora — dispara depois, por um gatilho, e cargas extras a tornam mais forte',
   [AdditiveType.ECO]: 'replicando a assinatura energética',
   [AdditiveType.FORMA]: 'moldando a geometria de propagação do efeito (Cone, Linha ou Esfera Remota)',
   [AdditiveType.MOVER]: 'desloca no espaço, sem dano — você, um alvo ou a área ao redor',
@@ -197,6 +197,48 @@ export const FORMA_LEVELS: Record<number, FormaLevelInfo> = {
 };
 export const FORMA_LEVEL_MIN = 1;
 export const FORMA_LEVEL_MAX = 3;
+
+// GATILHO: o Capacitor. Em vez de gastar a magia na hora, você a
+// armazena num glifo — pra disparar depois (quando algo específico
+// acontecer) ou pra somar cargas ao longo de vários turnos/conjuradores
+// e produzir um efeito mais forte do que um só turno permitiria. O nível
+// é "quantas cargas" o capacitor precisa (1 turno sozinho até 5 turnos,
+// ou 5 conjuradores diferentes enchendo o mesmo capacitor); cada carga
+// investida soma potência/complexidade ao feitiço final (ver
+// engine/compiler.ts) — por isso um capacitor cheio pode produzir uma
+// magia que nenhum conjurador sozinho, num turno só, conseguiria pagar.
+export interface GatilhoLevelInfo {
+  level: number;
+  name: string;
+  cargas: string; // quantos turnos/conjuradores enchem o capacitor
+  powerBonus: number; // soma direta a potency/complexity no buffer
+}
+
+export const GATILHO_LEVELS: Record<number, GatilhoLevelInfo> = {
+  1: { level: 1, name: 'Carga Rápida', cargas: '1 turno',                       powerBonus: 1 },
+  2: { level: 2, name: 'Carga Pequena', cargas: '2 turnos (ou 2 conjuradores)', powerBonus: 2 },
+  3: { level: 3, name: 'Carga Média',   cargas: '3 turnos (ou 3 conjuradores)', powerBonus: 3 },
+  4: { level: 4, name: 'Carga Grande',  cargas: '4 turnos (ou 4 conjuradores)', powerBonus: 4 },
+  5: { level: 5, name: 'Carga Ritual',  cargas: '5 turnos (ou 5 conjuradores)', powerBonus: 5 },
+};
+export const GATILHO_LEVEL_MIN = 1;
+export const GATILHO_LEVEL_MAX = 5;
+
+// O tipo de gatilho decide O QUE libera o capacitor. Isto ainda é a
+// primeira versão do sistema — o próprio usuário pediu pra revisar depois.
+export interface TriggerTypeInfo {
+  key: string;
+  name: string;
+  description: string; // usado no texto final da magia
+}
+
+export const TRIGGER_TYPES: Record<string, TriggerTypeInfo> = {
+  TEMPO: { key: 'TEMPO', name: 'Tempo', description: 'dispara sozinho após um número de turnos definido ao conjurar' },
+  IMPACTO: { key: 'IMPACTO', name: 'Impacto', description: 'dispara quando o glifo (ou o alvo marcado) sofre um golpe ou é tocado' },
+  COMANDO: { key: 'COMANDO', name: 'Comando', description: 'dispara quando o conjurador pronuncia a palavra de ativação' },
+  PROXIMIDADE: { key: 'PROXIMIDADE', name: 'Proximidade', description: 'dispara quando alguém ou algo entra na área marcada' },
+};
+export const DEFAULT_TRIGGER_TYPE = 'COMANDO';
 
 // MOVER e PERCEBER são aditivos de "modo": quando presentes, substituem o
 // resultado padrão (dano/cura) por deslocamento ou informação. Reaproveitam

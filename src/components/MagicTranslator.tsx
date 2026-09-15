@@ -17,7 +17,7 @@ const MagicTranslator = ({ graph }: any) => {
         const result = MagicCompilerEngine.execute(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode, college } = result;
+        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode, college, capacitor } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
 
         // Selo Arcano: assinatura geométrica única desta magia compilada,
@@ -80,7 +80,7 @@ const MagicTranslator = ({ graph }: any) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', marginBottom: '25px', fontFamily: 'Cinzel, serif' }}>
               <div style={{ background: 'rgba(92,58,33,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(92,58,33,0.2)' }}>
                 <div style={{ fontSize: '0.8rem', color: '#5c3a21', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Tempo de Conjuração</div>
-                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{attrs.mass > 10 ? '1 Minuto' : '1 Ação'}</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{dndBlock.castingTime}</div>
               </div>
               <div style={{ background: 'rgba(92,58,33,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(92,58,33,0.2)' }}>
                 <div style={{ fontSize: '0.8rem', color: '#5c3a21', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Alcance</div>
@@ -100,6 +100,12 @@ const MagicTranslator = ({ graph }: any) => {
                 <div style={{ background: 'rgba(114,9,183,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(114,9,183,0.3)' }}>
                   <div style={{ fontSize: '0.8rem', color: '#7209b7', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Condição Imposta</div>
                   <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{conditions.join(', ')}</div>
+                </div>
+              )}
+              {capacitor && (
+                <div style={{ background: 'rgba(0,168,255,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(0,168,255,0.3)' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#0097e6', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Capacitor</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{capacitor.name} ({capacitor.cargas}) — Gatilho: {capacitor.trigger.name}</div>
                 </div>
               )}
             </div>
