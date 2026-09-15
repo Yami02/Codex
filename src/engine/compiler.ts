@@ -30,7 +30,7 @@ export class CoreASTNode extends ASTNode {
 }
 
 export class AdditiveASTNode extends ASTNode {
-  // `level` carrega a intensidade explícita do aditivo (PONTO 1-5, MANTER 0-4).
+  // `level` carrega a intensidade explícita do aditivo (PONTO 1-3, MANTER 0-4).
   // Um único nó basta: não é mais preciso empilhar cópias para escalar o efeito.
   constructor(id: string, public additiveType: string, public level?: number) { super(id); }
   accept(visitor: ASTVisitor) { visitor.visitAdditive(this); }
@@ -259,7 +259,7 @@ export class PatternMatcher {
       }
 
       // --- PONTO (alcance/topologia): nível explícito no próprio nó ---
-      // Cada nó de PONTO carrega seu `level` (1-5). Não é mais a contagem de
+      // Cada nó de PONTO carrega seu `level` (1-3). Não é mais a contagem de
       // nós empilhados que define o alcance — isso elimina o número mágico
       // escondido e o estado "2 pontos = instável" que não tinha explicação
       // visível para quem estava montando o feitiço.
@@ -429,23 +429,11 @@ export class MagicCompilerEngine {
     let dndFullText = "";
     if (patterns.pontoLevel === 0) {
         dndFullText = `A magia não possui geometria de ancoragem ou expansão válida, manifestando-se estaticamente sem alcance. Nenhum alvo pode ser definido logicamente.`;
-    } else if (patterns.pontoLevel >= 5) {
-        if (isHealing) {
-             dndFullText = `Você traça uma mandala de poder regenerativo, purificando a área num volume expansivo. Cada criatura englobada recupera ${healDamage} pontos de vida incontestavelmente.`;
-        } else {
-             dndFullText = `Você converte a área num espaço de contenção geométrica absoluta (pentágono/mandala) aprisionando grande força primordial. A realidade local sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A topologia selada anula qualquer evasão, suprimindo o teste de resistência (dano automático).' : ` Alvos tentam resistência de Destreza (CD ${dc}) para reduzir à metade.`}`;
-        }
-    } else if (patterns.pontoLevel === 4) {
-        if (isHealing) {
-             dndFullText = `Você abre uma zona de ressonância curativa ao redor de um ponto. Cada criatura na área é envolvida por um pulso que restaura ${healDamage} pontos de vida.`;
-        } else {
-             dndFullText = `Você detona um foco de energia primordial numa área localizada. Cada criatura na zona de explosão sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A cinemática é inevitável (auto-hit).' : ` Alvos tentam resistência de Destreza (CD ${dc}) para reduzir à metade.`}`;
-        }
     } else if (patterns.pontoLevel === 3) {
         if (isHealing) {
-             dndFullText = `Você fixa sua magia em um objeto, solo ou pessoa. Uma aura curativa emana do ponto, restaurando ${healDamage} pontos de vida.`;
+             dndFullText = `Uma aura de vitalidade emana de você (ou de um ponto ancorado), envolvendo tudo ao redor. Cada criatura dentro do alcance da aura recupera ${healDamage} pontos de vida enquanto permanecer na área.`;
         } else {
-             dndFullText = `Você ancora o núcleo mágico em uma superfície ou alvo inflexível. Um ciclo destrutivo reverbera na âncora, causando ${spellDamage} de dano de ${damageBase.toLowerCase()} àqueles que ousarem tocá-la ou entrarem no espaço da geometria.${isDeterministic ? ' A destruição é certeira, sem evasão.' : ` Resistência de Destreza (CD ${dc}) aplica-se.`}`;
+             dndFullText = `Uma aura de energia primordial emana de você, consumindo o espaço ao redor. Cada criatura na área sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de Destreza (CD ${dc}) para reduzir à metade.`}`;
         }
     } else if (patterns.pontoLevel === 2) {
         if (isHealing) {

@@ -13,7 +13,7 @@ export interface WizardAnswers {
 const EXPANSAO_TO_PONTO_LEVEL: Record<WizardAnswers['expansao'], number> = {
   TOQUE: 1,
   PROJETIL: 2,
-  AREA: 4,
+  AREA: 3, // Nível 3 de PONTO = Aura
 };
 
 const DURACAO_TO_MANTER_LEVEL: Record<WizardAnswers['duracao'], number> = {

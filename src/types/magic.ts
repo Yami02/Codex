@@ -91,7 +91,7 @@ export interface AdditiveNode extends BaseNode {
   family: AdditiveFamily;
   additiveType: AdditiveType;
   multiplier?: number; // Ex: 3x Amplificadores (para uso no cálculo de simetria)
-  // Intensidade explícita do aditivo (usada por PONTO 1-5 e MANTER 0-4).
+  // Intensidade explícita do aditivo (usada por PONTO 1-3 e MANTER 0-4).
   // Substitui a antiga convenção de "empilhar N cópias do mesmo nó" —
   // ver PONTO_LEVELS/MANTER_LEVELS em engine/constants.ts.
   level?: number;

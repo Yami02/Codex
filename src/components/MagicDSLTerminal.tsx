@@ -87,9 +87,9 @@ export const MagicDSLTerminal = ({ graph, onChange }: MagicDSLTerminalProps) => 
                       <h4 style={{ color: '#d4af37', fontFamily: 'Cinzel', fontSize: '1.2rem' }}>Passo 2: Morfologia Espacial</h4>
                       <p style={{ color: '#8a7d9b', fontSize: '0.9rem' }}>Como sua magia se manifesta no espaço físico?</p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
-                          <button onClick={() => updateAnswer('expansao', 'TOQUE')} style={btnStyle(answers.expansao === 'TOQUE')}>Toque / Canalização Direta (Ponto Nível 1)</button>
-                          <button onClick={() => updateAnswer('expansao', 'PROJETIL')} style={btnStyle(answers.expansao === 'PROJETIL')}>Lançar um Projétil (Ponto Nível 2)</button>
-                          <button onClick={() => updateAnswer('expansao', 'AREA')} style={btnStyle(answers.expansao === 'AREA')}>Explosão em Área (Ponto Nível 4)</button>
+                          <button onClick={() => updateAnswer('expansao', 'TOQUE')} style={btnStyle(answers.expansao === 'TOQUE')}>Corpo-a-Corpo / Toque (Ponto Nível 1)</button>
+                          <button onClick={() => updateAnswer('expansao', 'PROJETIL')} style={btnStyle(answers.expansao === 'PROJETIL')}>Alcance / Projétil (Ponto Nível 2)</button>
+                          <button onClick={() => updateAnswer('expansao', 'AREA')} style={btnStyle(answers.expansao === 'AREA')}>Aura ao seu Redor (Ponto Nível 3)</button>
                       </div>
                   </div>
               );
@@ -205,7 +205,7 @@ ADD AUMENTO a
 LINK f AND p
 LINK p ATRIBUICAO a
 
-(o número após PONTO/MANTER é o nível: 1-5 e 0-4)`}
+(o número após PONTO/MANTER é o nível: 1-3 e 0-4)`}
                 className="spell-input ink-drying"
                 style={{
                 flex: 1,

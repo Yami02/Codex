@@ -15,7 +15,7 @@ import MagicDSLTerminal from './MagicDSLTerminal';
     } from '../magicConstants';
 
     // PONTO e MANTER são aditivos "de nível": um único nó no círculo carrega
-    // um número (alcance 1-5 / duração 0-4) em vez de o jogador precisar
+    // um número (alcance 1-3 / duração 0-4) em vez de o jogador precisar
     // arrastar várias cópias idênticas para escalar o efeito.
     const LEVELED_ADDITIVES = {
       [AdditiveType.PONTO]: { min: PONTO_LEVEL_MIN, max: PONTO_LEVEL_MAX, table: PONTO_LEVELS, defaultLevel: PONTO_LEVEL_MIN, axisLabel: 'Alcance' },

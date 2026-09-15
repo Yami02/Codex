@@ -75,7 +75,7 @@ export class FormulaTranslator {
       } else if (cmd === 'ADD' && parts.length >= 2) {
         const rawType = parts[1];
         const alias = parts[2] || rawType;
-        // Quarto token opcional: nível explícito (PONTO 1-5, MANTER 0-4).
+        // Quarto token opcional: nível explícito (PONTO 1-3, MANTER 0-4).
         const levelToken = parts[3];
         const level = levelToken !== undefined && !isNaN(Number(levelToken)) ? Number(levelToken) : undefined;
         const id = `node_${Date.now()}_${Math.random()}`;

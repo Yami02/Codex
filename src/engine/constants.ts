@@ -136,14 +136,12 @@ export interface PontoLevelInfo {
 }
 
 export const PONTO_LEVELS: Record<number, PontoLevelInfo> = {
-  1: { level: 1, name: 'Toque / Centro',        rangeStr: 'Toque / Corpo-a-Corpo',        dndRange: 'Toque',                          vetor: 'Toque / Centro' },
-  2: { level: 2, name: 'Projétil',              rangeStr: 'Projétil Arcano (18m)',        dndRange: '18 metros (60 pés)',             vetor: 'Projétil' },
-  3: { level: 3, name: 'Ancorado (Fixo)',       rangeStr: 'Ponto Fixo (Ancoragem)',       dndRange: 'Ancorado a um ponto/objeto',     vetor: 'Ancorado' },
-  4: { level: 4, name: 'Área Focal',            rangeStr: 'Efeito em Área (9m)',          dndRange: '9 metros de raio',               vetor: 'Área Focal' },
-  5: { level: 5, name: 'Área Ampla (Determinística)', rangeStr: 'Efeito em Área Ampla (18m)', dndRange: '18 metros de raio',         vetor: 'Área Ampla' },
+  1: { level: 1, name: 'Corpo-a-Corpo (Toque)', rangeStr: 'Toque / Corpo-a-Corpo',  dndRange: 'Toque',                                vetor: 'Toque / Corpo-a-Corpo' },
+  2: { level: 2, name: 'Alcance (Projétil)',    rangeStr: 'Projétil Arcano (18m)',  dndRange: '18 metros (60 pés)',                   vetor: 'Projétil' },
+  3: { level: 3, name: 'Aura',                  rangeStr: 'Aura ao seu redor (9m)', dndRange: 'Emanação de 9 metros a partir de você', vetor: 'Aura' },
 };
 export const PONTO_LEVEL_MIN = 1;
-export const PONTO_LEVEL_MAX = 5;
+export const PONTO_LEVEL_MAX = 3;
 
 export interface ManterLevelInfo {
   level: number;
