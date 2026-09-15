@@ -21,7 +21,8 @@ export class FormulaTranslator {
       } else if (node.type === NodeType.ADDITIVE) {
         const alias = getAlias((node as any).additiveType);
         idMap.set(node.id, alias);
-        lines.push(`ADD ${(node as any).additiveType} ${alias}`);
+        const level = (node as any).level;
+        lines.push(level !== undefined ? `ADD ${(node as any).additiveType} ${alias} ${level}` : `ADD ${(node as any).additiveType} ${alias}`);
       } else if (node.type === NodeType.SUBCIRCLE) {
         const alias = getAlias('SUBCIRCLE');
         idMap.set(node.id, alias);
@@ -74,6 +75,9 @@ export class FormulaTranslator {
       } else if (cmd === 'ADD' && parts.length >= 2) {
         const rawType = parts[1];
         const alias = parts[2] || rawType;
+        // Quarto token opcional: nível explícito (PONTO 1-5, MANTER 0-4).
+        const levelToken = parts[3];
+        const level = levelToken !== undefined && !isNaN(Number(levelToken)) ? Number(levelToken) : undefined;
         const id = `node_${Date.now()}_${Math.random()}`;
         idMap.set(alias, id);
         nodes.push({
@@ -82,6 +86,7 @@ export class FormulaTranslator {
           additiveType: rawType as AdditiveType,
           family: AdditiveFamily.VETORIAL,
           layer: 1,
+          ...(level !== undefined ? { level } : {}),
           position: { x: xOffset, y: yOffset }
         } as any);
         xOffset += 150;

@@ -129,6 +129,12 @@ const MagicCanvas = ({ graph, viewMode, onNodeClick, onNodeDelete, onLayerChange
                       {AdditiveRunes[node.additiveType]}
                     </text>
                   </g>
+                  {typeof node.level === 'number' && (
+                    <g transform="translate(24, -24)" style={{ pointerEvents: 'none' }}>
+                      <circle r={11} fill="#1a120b" stroke="#d4af37" strokeWidth="1.5" />
+                      <text textAnchor="middle" dy="0.35em" fill="#d4af37" fontSize="11" fontWeight="bold" style={{ fontFamily: 'Cinzel, serif' }}>{node.level}</text>
+                    </g>
+                  )}
                   {!viewMode && (
                     <text textAnchor="middle" dy="2.5em" fill="#7f8fa6" fontSize="6" fontWeight="bold" style={{ pointerEvents: 'none' }}>
                       {node.type === NodeType.KERNEL ? "KERNEL" : node.additiveType.replace('_', ' ')}

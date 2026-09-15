@@ -119,6 +119,64 @@ export const AdditiveDescriptions: Record<string, string> = {
   [KernelType.CAOS]: 'Buffer de Caos: Promove a dissipação e quebra de padrões.'
 };
 
+// ==========================================
+// NÍVEIS DE ADITIVOS (PONTO / MANTER)
+// ==========================================
+// Em vez de inferir o alcance/duração contando quantos nós idênticos
+// foram empilhados no círculo, cada nó de PONTO/MANTER carrega seu
+// próprio `level`, ajustado diretamente por um controle na UI.
+// Isso torna a criação de magias auditável: 1 nó, 1 número, 1 efeito.
+
+export interface PontoLevelInfo {
+  level: number;
+  name: string;         // Nome mostrado no seletor e no bloco de magia
+  rangeStr: string;      // Resumo curto (ficha)
+  dndRange: string;      // Alcance formal (bloco D&D 5e)
+  vetor: string;          // Rótulo usado no log de compilação (fase "Projeção")
+}
+
+export const PONTO_LEVELS: Record<number, PontoLevelInfo> = {
+  1: { level: 1, name: 'Toque / Centro',        rangeStr: 'Toque / Corpo-a-Corpo',        dndRange: 'Toque',                          vetor: 'Toque / Centro' },
+  2: { level: 2, name: 'Projétil',              rangeStr: 'Projétil Arcano (18m)',        dndRange: '18 metros (60 pés)',             vetor: 'Projétil' },
+  3: { level: 3, name: 'Ancorado (Fixo)',       rangeStr: 'Ponto Fixo (Ancoragem)',       dndRange: 'Ancorado a um ponto/objeto',     vetor: 'Ancorado' },
+  4: { level: 4, name: 'Área Focal',            rangeStr: 'Efeito em Área (9m)',          dndRange: '9 metros de raio',               vetor: 'Área Focal' },
+  5: { level: 5, name: 'Área Ampla (Determinística)', rangeStr: 'Efeito em Área Ampla (18m)', dndRange: '18 metros de raio',         vetor: 'Área Ampla' },
+};
+export const PONTO_LEVEL_MIN = 1;
+export const PONTO_LEVEL_MAX = 5;
+
+export interface ManterLevelInfo {
+  level: number;
+  name: string;
+  duration: string;       // Rótulo curto (ficha)
+  dndDuration: string;    // Duração formal (bloco D&D 5e)
+  requiresConcentration: boolean;
+}
+
+export const MANTER_LEVELS: Record<number, ManterLevelInfo> = {
+  0: { level: 0, name: 'Instantânea',            duration: 'Colisão Instantânea',              dndDuration: 'Instantânea',                        requiresConcentration: false },
+  1: { level: 1, name: 'Eco Breve',              duration: '1 rodada',                          dndDuration: '1 rodada',                           requiresConcentration: false },
+  2: { level: 2, name: 'Concentração Curta',     duration: 'Concentração, até 1 minuto',        dndDuration: 'Concentração, até 1 minuto',         requiresConcentration: true },
+  3: { level: 3, name: 'Concentração Longa',     duration: 'Concentração, até 10 minutos',      dndDuration: 'Concentração, até 10 minutos',       requiresConcentration: true },
+  4: { level: 4, name: 'Aura Estável (Capacitor)', duration: 'Até ser dissipada',                dndDuration: 'Até ser dissipada (sem concentração)', requiresConcentration: false },
+};
+export const MANTER_LEVEL_MIN = 0;
+export const MANTER_LEVEL_MAX = 4;
+
+// Cada Kernel escala o feitiço por um de dois eixos: pura amplitude
+// ("Aumento") ou mudança qualitativa da natureza do efeito ("Complexibilidade").
+export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> = {
+  [KernelType.ENTROPIA]: 'Aumento',
+  [KernelType.FORCA]: 'Aumento',
+  [KernelType.VOLUME]: 'Aumento',
+  [KernelType.SOM]: 'Aumento',
+  [KernelType.LUMINOSIDADE]: 'Aumento',
+  [KernelType.ORDEM]: 'Aumento',
+  [KernelType.MORFOLOGIA]: 'Complexibilidade',
+  [KernelType.ESTADO]: 'Complexibilidade',
+  [KernelType.CAOS]: 'Complexibilidade',
+};
+
 export const NodeAttributesDict: Record<string, any> = {
   [CoreElement.FOGO]: { thermal: +6, entropy: +3, tags: ['Fogo'] },
   [CoreElement.AGUA]: { volume: +4, tags: ['Água'] },

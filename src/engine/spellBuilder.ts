@@ -7,6 +7,21 @@ export interface WizardAnswers {
   filtro: 'TODOS' | 'INIMIGOS' | 'ALIADOS';
 }
 
+// Nível de PONTO/MANTER que cada resposta guiada do assistente produz.
+// Ver PONTO_LEVELS / MANTER_LEVELS em engine/constants.ts para o que cada
+// número significa (alcance e duração, respectivamente).
+const EXPANSAO_TO_PONTO_LEVEL: Record<WizardAnswers['expansao'], number> = {
+  TOQUE: 1,
+  PROJETIL: 2,
+  AREA: 4,
+};
+
+const DURACAO_TO_MANTER_LEVEL: Record<WizardAnswers['duracao'], number> = {
+  INSTANTANEA: 0,
+  CONCENTRACAO: 2,
+  CAPACITOR: 4,
+};
+
 export class SpellGraphBuilder {
   public static buildFromWizard(answers: WizardAnswers): MagicGraph {
     const nodes: MagicNode[] = [];
@@ -33,77 +48,41 @@ export class SpellGraphBuilder {
       layer: 0
     } as any);
 
-    // List of layer 1 nodes to calculate angle offsets
+    // Nós de camada 1: um único PONTO (nível = alcance) e, se houver
+    // duração, um único MANTER (nível = duração). Nada de empilhar cópias.
     const layer1Nodes: MagicNode[] = [];
 
-    // 2. Expansão (PONTO)
-    const pontos: MagicNode[] = [];
-    const numPontos = answers.expansao === 'TOQUE' ? 1 : (answers.expansao === 'PROJETIL' ? 2 : 3);
-    
-    for (let i = 0; i < numPontos; i++) {
-        const pNode = {
-            id: getId('ponto'),
-            type: NodeType.ADDITIVE,
-            family: AdditiveFamily.VETORIAL,
-            additiveType: AdditiveType.PONTO,
-            layer: 1
-        } as any;
-        pontos.push(pNode);
-        layer1Nodes.push(pNode);
-    }
+    const pontoLevel = EXPANSAO_TO_PONTO_LEVEL[answers.expansao];
+    const pontoNode = {
+        id: getId('ponto'),
+        type: NodeType.ADDITIVE,
+        family: AdditiveFamily.VETORIAL,
+        additiveType: AdditiveType.PONTO,
+        level: pontoLevel,
+        layer: 1
+    } as any;
+    layer1Nodes.push(pontoNode);
+    addEdge(coreId, pontoNode.id);
 
-    if (numPontos === 1) {
-        addEdge(coreId, pontos[0].id);
-    } else if (numPontos === 2) {
-        addEdge(coreId, pontos[0].id);
-        addEdge(pontos[0].id, pontos[1].id);
-    } else if (numPontos === 3) {
-        addEdge(coreId, pontos[0].id);
-        addEdge(coreId, pontos[1].id);
-        addEdge(coreId, pontos[2].id);
-        addEdge(pontos[0].id, pontos[1].id);
-        addEdge(pontos[1].id, pontos[2].id);
-        addEdge(pontos[2].id, pontos[0].id);
-    }
-
-    // 3. Duração (MANTER)
-    const manters: MagicNode[] = [];
-    const numManters = answers.duracao === 'INSTANTANEA' ? 0 : (answers.duracao === 'CONCENTRACAO' ? 3 : 4);
-    
-    for (let i = 0; i < numManters; i++) {
-        const mNode = {
+    const manterLevel = DURACAO_TO_MANTER_LEVEL[answers.duracao];
+    let manterNode: MagicNode | null = null;
+    if (manterLevel > 0) {
+        manterNode = {
             id: getId('manter'),
             type: NodeType.ADDITIVE,
             family: AdditiveFamily.CONTROLE_TEMPO,
             additiveType: AdditiveType.MANTER,
+            level: manterLevel,
             layer: 1
         } as any;
-        manters.push(mNode);
-        layer1Nodes.push(mNode);
-    }
-
-    if (numManters === 3) {
-        addEdge(coreId, manters[0].id);
-        addEdge(coreId, manters[1].id);
-        addEdge(coreId, manters[2].id);
-        addEdge(manters[0].id, manters[1].id);
-        addEdge(manters[1].id, manters[2].id);
-        addEdge(manters[2].id, manters[0].id);
-    } else if (numManters === 4) {
-        addEdge(coreId, manters[0].id);
-        addEdge(coreId, manters[1].id);
-        addEdge(coreId, manters[2].id);
-        addEdge(coreId, manters[3].id);
-        addEdge(manters[0].id, manters[1].id);
-        addEdge(manters[1].id, manters[2].id);
-        addEdge(manters[2].id, manters[3].id);
-        addEdge(manters[3].id, manters[0].id);
+        layer1Nodes.push(manterNode);
+        addEdge(coreId, manterNode!.id);
     }
 
     // 4. Filtro (Kernel)
     let kernelNode: MagicNode | null = null;
     let aumentos: MagicNode[] = [];
-    
+
     if (answers.filtro !== 'TODOS') {
         kernelNode = {
             id: getId('filtro'),
@@ -114,7 +93,7 @@ export class SpellGraphBuilder {
         } as any;
         layer1Nodes.push(kernelNode);
         addEdge(coreId, kernelNode!.id, EdgeType.AND, EdgeCategory.LOGICO);
-        
+
         // Layer 2 modifiers (Aumento de precisão)
         for (let i = 0; i < 2; i++) {
             const aNode = {
@@ -123,7 +102,7 @@ export class SpellGraphBuilder {
                 family: AdditiveFamily.MODULACAO,
                 additiveType: 'AUMENTO',
                 layer: 2,
-                angleOffset: i === 0 ? 0 : 180 
+                angleOffset: i === 0 ? 0 : 180
             } as any;
             aumentos.push(aNode);
             addEdge(kernelNode!.id, aNode.id, EdgeType.AND, EdgeCategory.ESTRUTURAL);
@@ -137,11 +116,10 @@ export class SpellGraphBuilder {
         (node as any).angleOffset = offset;
         nodes.push(node);
     });
-    
+
     // Add Layer 2 nodes
     aumentos.forEach(node => nodes.push(node));
 
     return { nodes, edges };
   }
 }
-

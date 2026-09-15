@@ -6,11 +6,21 @@ import EdgeVisual from './EdgeVisual';
 import MagicDSLTerminal from './MagicDSLTerminal';
 
 
-    import { 
+    import {
       NodeType, CoreElement, AdditiveType, KernelType, EdgeType,
       CoreRunes, AdditiveRunes, EdgeCycle, EdgeSymbols,
-      AdditiveDescriptions, NodeAttributesDict
+      AdditiveDescriptions, NodeAttributesDict,
+      PONTO_LEVELS, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX,
+      MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX
     } from '../magicConstants';
+
+    // PONTO e MANTER são aditivos "de nível": um único nó no círculo carrega
+    // um número (alcance 1-5 / duração 0-4) em vez de o jogador precisar
+    // arrastar várias cópias idênticas para escalar o efeito.
+    const LEVELED_ADDITIVES = {
+      [AdditiveType.PONTO]: { min: PONTO_LEVEL_MIN, max: PONTO_LEVEL_MAX, table: PONTO_LEVELS, defaultLevel: PONTO_LEVEL_MIN, axisLabel: 'Alcance' },
+      [AdditiveType.MANTER]: { min: MANTER_LEVEL_MIN, max: MANTER_LEVEL_MAX, table: MANTER_LEVELS, defaultLevel: 1, axisLabel: 'Duração' },
+    };
 
     import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -153,11 +163,19 @@ import { useNavigate } from 'react-router-dom';
           const existingCoreIndex = newGraph.nodes.findIndex(n => n.type === NodeType.CORE);
           if (existingCoreIndex !== -1) newGraph.nodes[existingCoreIndex] = { ...newGraph.nodes[existingCoreIndex], element: item.name };
           else newGraph.nodes.push({ id: newId, type: NodeType.CORE, element: item.name, layer: 0 });
-        } 
-        else if (item.type === NodeType.ADDITIVE) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, layer: 1, angleOffset: 0 });
+        }
+        else if (item.type === NodeType.ADDITIVE) {
+          const leveled = LEVELED_ADDITIVES[item.name];
+          if (leveled) {
+            const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === item.name);
+            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, level: leveled.defaultLevel, layer: 1, angleOffset: 0 });
+          } else {
+            newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, layer: 1, angleOffset: 0 });
+          }
+        }
         else if (item.type === NodeType.SUBCIRCLE) newGraph.nodes.push({ id: newId, type: NodeType.SUBCIRCLE, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
         else if (item.type === NodeType.KERNEL) newGraph.nodes.push({ id: newId, type: NodeType.KERNEL, additiveType: item.name, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
-        
+
         setMainGraph(updateNestedGraph(mainGraph, path, newGraph));
       };
 
@@ -174,8 +192,16 @@ import { useNavigate } from 'react-router-dom';
           const existingCoreIndex = newGraph.nodes.findIndex(n => n.type === NodeType.CORE);
           if (existingCoreIndex !== -1) newGraph.nodes[existingCoreIndex] = { ...newGraph.nodes[existingCoreIndex], element: name };
           else newGraph.nodes.push({ id: newId, type: NodeType.CORE, element: name, layer: 0 });
-        } 
-        else if (type === NodeType.ADDITIVE) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, layer: 1, angleOffset: 0 });
+        }
+        else if (type === NodeType.ADDITIVE) {
+          const leveled = LEVELED_ADDITIVES[name];
+          if (leveled) {
+            const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === name);
+            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, level: leveled.defaultLevel, layer: 1, angleOffset: 0 });
+          } else {
+            newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, layer: 1, angleOffset: 0 });
+          }
+        }
         else if (type === NodeType.SUBCIRCLE) newGraph.nodes.push({ id: newId, type: NodeType.SUBCIRCLE, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
         else if (type === NodeType.KERNEL) newGraph.nodes.push({ id: newId, type: NodeType.KERNEL, additiveType: name, magicGraph: { nodes: [], edges: [] }, layer: 1, angleOffset: 0 });
 
@@ -220,6 +246,14 @@ import { useNavigate } from 'react-router-dom';
       const updateNodeCustomProperty = (nodeId, prop, value) => {
         const newGraph = { ...activeGraph, nodes: activeGraph.nodes.map(n => n.id === nodeId ? { ...n, [prop]: value } : n) };
         setMainGraph(updateNestedGraph(mainGraph, path, newGraph));
+      };
+
+      const handleLevelChange = (node, delta) => {
+        const leveled = LEVELED_ADDITIVES[node.additiveType];
+        if (!leveled) return;
+        const current = node.level ?? leveled.defaultLevel;
+        const newLevel = Math.max(leveled.min, Math.min(leveled.max, current + delta));
+        updateNodeCustomProperty(node.id, 'level', newLevel);
       };
 
       const handleKernelToggle = (node, mode, kernelType) => {
@@ -302,6 +336,29 @@ import { useNavigate } from 'react-router-dom';
                   </div>
                 </div>
               </div>
+
+              {selectedNode.type === NodeType.ADDITIVE && LEVELED_ADDITIVES[selectedNode.additiveType] && (() => {
+                const leveled = LEVELED_ADDITIVES[selectedNode.additiveType];
+                const currentLevel = selectedNode.level ?? leveled.defaultLevel;
+                const info = leveled.table[currentLevel];
+                return (
+                  <div className="action-group">
+                    <div>
+                      <div className="action-label">Nível ({leveled.axisLabel})</div>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <div className="mini-btn" onClick={() => handleLevelChange(selectedNode, -1)} title="Diminuir Nível">−</div>
+                        <div style={{ minWidth: '22px', textAlign: 'center', color: '#d4af37', fontWeight: 'bold', fontSize: '1rem' }}>{currentLevel}</div>
+                        <div className="mini-btn" onClick={() => handleLevelChange(selectedNode, 1)} title="Aumentar Nível">+</div>
+                      </div>
+                      {info && (
+                        <div style={{ fontSize: '0.7rem', color: '#8a7d9b', marginTop: '4px', maxWidth: '150px', lineHeight: 1.3 }}>
+                          {info.name}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="action-group">
                 <div>
@@ -427,8 +484,11 @@ import { useNavigate } from 'react-router-dom';
               </div>
               
               <h3 style={{ fontSize: '1.1rem', color: '#3498db', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #3498db', paddingLeft: '8px' }}>Aditivos</h3>
+              <p style={{ fontSize: '0.7rem', color: '#8a7d9b', margin: '4px 0 10px', fontStyle: 'italic' }}>
+                Passe o mouse sobre um aditivo para ver o que ele faz. Ponto e Manter têm nível ajustável: adicione um só e use +/− ao selecioná-lo.
+              </p>
               <div className="sidebar-grid">
-                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} onAdd={handleDirectAdd} />)}
+                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#fd79a8', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #fd79a8', paddingLeft: '8px' }}>Subcírculos</h3>
