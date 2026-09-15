@@ -6,6 +6,7 @@ import {
 } from '../magicConstants';
 
 import { MagicCompilerEngine } from '../engine/compiler';
+import { computeSpellSigil, SIGIL_LEGEND } from '../engine/sigil';
 
 const MagicTranslator = ({ graph }: any) => {
     const [isAdvancedMode, setIsAdvancedMode] = useState(false);
@@ -18,6 +19,19 @@ const MagicTranslator = ({ graph }: any) => {
         
         const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
+
+        // Selo Arcano: assinatura geométrica única desta magia compilada,
+        // gerada a partir dos atributos já resolvidos pelo motor (nível,
+        // elemento, alcance, forma/modo, duração) — ver engine/sigil.ts.
+        const sigil = computeSpellSigil({
+          element,
+          level,
+          alcance: attrs.alcance || 0,
+          forma: attrs.forma || 0,
+          mover: attrs.mover || 0,
+          perceber: attrs.perceber || 0,
+          duracao: attrs.duracao || 0,
+        }, 90, { x: 100, y: 100 });
 
         const techStats = [
           { label: 'Potência', value: attrs.potency || 0, icon: '⚡' },
@@ -40,6 +54,27 @@ const MagicTranslator = ({ graph }: any) => {
                 <div style={{ fontSize: '1.1rem', color: '#8b0000', marginTop: '6px', fontWeight: 'bold' }}>{level}º Círculo | Transmutação Arcanística</div>
               </div>
               <div className="runic-text" style={{ fontSize: '3rem', color: '#8b0000', opacity: 0.8, marginLeft: '20px' }}>{CoreRunes[element]}</div>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px', marginBottom: '25px', padding: '15px', background: 'rgba(92,58,33,0.04)', border: '1px dashed rgba(92,58,33,0.25)', borderRadius: '8px' }}>
+              <svg width="180" height="180" viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
+                {sigil.vertices.map((v, i) => (
+                  <circle key={i} cx={v.x} cy={v.y} r={2.5} fill="#5c3a21" opacity={0.6} />
+                ))}
+                {sigil.segments.map((s, i) => (
+                  <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.color} strokeWidth={1.6} opacity={0.85} />
+                ))}
+              </svg>
+              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.85rem', color: '#5c3a21', maxWidth: '260px' }}>
+                <div style={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Selo Arcano</div>
+                <div style={{ opacity: 0.8, marginBottom: '8px', fontSize: '0.78rem' }}>Assinatura geométrica única desta magia — nível, elemento, alcance, forma e duração codificados no mesmo polígono.</div>
+                {SIGIL_LEGEND.map(l => (
+                  <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', marginBottom: '2px', textTransform: 'capitalize' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: l.color, display: 'inline-block' }} />
+                    {l.key}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', marginBottom: '25px', fontFamily: 'Cinzel, serif' }}>
