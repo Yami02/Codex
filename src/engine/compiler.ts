@@ -4,6 +4,8 @@ import {
   PONTO_LEVELS, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX,
   MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX,
   FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
+  MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
+  PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX,
   KERNEL_SCALE_AXIS,
 } from './constants';
 
@@ -303,6 +305,38 @@ export class PatternMatcher {
           }
       }
 
+      // --- MOVER / PERCEBER (modo): aditivos que substituem dano/cura por
+      // deslocamento ou informação. São mutuamente exclusivos — uma magia
+      // não pode "só mover" e "só perceber" ao mesmo tempo neste modelo.
+      const moverNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'MOVER');
+      let moverLevel = 0;
+      if (moverNodes.length > 0) {
+          const levels = moverNodes.map(n => clamp(n.level ?? MOVER_LEVEL_MIN, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX));
+          moverLevel = Math.max(...levels);
+          if (moverNodes.length > 1) {
+              instabilities.push(`[REDUNDÂNCIA] ${moverNodes.length} nós de MOVER detectados; apenas o de maior nível (${moverLevel}) foi considerado. Use um único nó de MOVER.`);
+          }
+      }
+
+      const perceberNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'PERCEBER');
+      let perceberLevel = 0;
+      if (perceberNodes.length > 0) {
+          const levels = perceberNodes.map(n => clamp(n.level ?? PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX));
+          perceberLevel = Math.max(...levels);
+          if (perceberNodes.length > 1) {
+              instabilities.push(`[REDUNDÂNCIA] ${perceberNodes.length} nós de PERCEBER detectados; apenas o de maior nível (${perceberLevel}) foi considerado. Use um único nó de PERCEBER.`);
+          }
+      }
+
+      if (moverLevel > 0 && perceberLevel > 0) {
+          instabilities.push(`[MODOS CONFLITANTES] Mover e Perceber não podem atuar juntos na mesma magia; apenas Mover foi aplicado.`);
+          perceberLevel = 0;
+      }
+      if ((moverLevel > 0 || perceberLevel > 0) && formaLevel > 0) {
+          instabilities.push(`[FORMA SEM EFEITO] Forma não se aplica a magias de Mover ou Perceber.`);
+          formaLevel = 0;
+      }
+
       let otherComponents = allNodes.length - allNodes.filter(n => n instanceof CoreASTNode).length;
       if (allNodes.length >= 2 && otherComponents < 2) {
           instabilities.push("Alerta de Instabilidade! A geometria atual carece do 'Triângulo Base'. Risco alto de colapso arcanamente imprevisível no conjurador.");
@@ -317,6 +351,8 @@ export class PatternMatcher {
           pontoLevel,
           manterLevel,
           formaLevel,
+          moverLevel,
+          perceberLevel,
           pontosLength: pontoNodes.length,
           kernelsAtivos,
           mainKernel,
@@ -386,6 +422,11 @@ export class MagicCompilerEngine {
     // uma variante direcional (Cone/Linha) ou remota (Esfera) — ver
     // FORMA_LEVELS em engine/constants.ts para as regras de aplicabilidade.
     const formaInfo = patterns.formaLevel > 0 ? FORMA_LEVELS[patterns.formaLevel] : null;
+    // MOVER/PERCEBER são aditivos de "modo": quando ativos, o resultado da
+    // magia deixa de ser dano/cura e passa a ser deslocamento ou informação
+    // (ver FORMA_LEVELS/MOVER_LEVELS/PERCEBER_LEVELS em engine/constants.ts).
+    const moverInfo = patterns.moverLevel > 0 ? MOVER_LEVELS[patterns.moverLevel] : null;
+    const perceberInfo = patterns.perceberLevel > 0 ? PERCEBER_LEVELS[patterns.perceberLevel] : null;
 
     // Cada Kernel escala o feitiço por "Aumento" (amplitude) ou
     // "Complexibilidade" (natureza do efeito) — ver KERNEL_SCALE_AXIS.
@@ -396,8 +437,9 @@ export class MagicCompilerEngine {
     const isDeterministic = patterns.pontoLevel === PONTO_LEVEL_MAX && semanticErrors.length === 0;
     // Save (teste de resistência) vs. ataque: Aura é sempre teste; Alcance
     // normalmente é ataque à distância, exceto quando FORMA=Esfera Remota
-    // o transforma numa explosão em área (também teste).
-    const isSaveBased = patterns.pontoLevel === 3 || (patterns.pontoLevel === 2 && formaInfo?.level === 3);
+    // o transforma numa explosão em área (também teste). Mover/Perceber não
+    // causam dano, então nunca pedem teste de resistência.
+    const isSaveBased = !moverInfo && !perceberInfo && (patterns.pontoLevel === 3 || (patterns.pontoLevel === 2 && formaInfo?.level === 3));
 
     let damageBase = currentAttrs.damageType || (element !== 'Desconhecido' ? element : 'Energia Pura');
     const mainDamageAttr = (currentAttrs.entropy || 0) + (currentAttrs.strength || 0) + (currentAttrs.volume || 0) + (currentAttrs.order || 0);
@@ -418,10 +460,11 @@ export class MagicCompilerEngine {
     });
 
     const fase2Name = patterns.pontoLevel === 0 ? 'Nenhum / Instável' : (formaInfo ? formaInfo.name : pontoInfo.vetor);
+    const fase2ModoSufixo = moverInfo ? ` — Modo Mover: ${moverInfo.name}` : perceberInfo ? ` — Modo Perceber: ${perceberInfo.name}` : '';
     events.push({
         step: stepCount++,
         title: `Projeção (Vetor)`,
-        description: `Topologia configurada para o template: ${fase2Name}.`,
+        description: `Topologia configurada para o template: ${fase2Name}${fase2ModoSufixo}.`,
         type: 'TRAVEL'
     });
 
@@ -438,7 +481,7 @@ export class MagicCompilerEngine {
         title: `Status Final`,
         description: isDeterministic ? `Malha 100% conectada (--). Sucesso Determinístico aplicado. CD descartada e Evasão suprimida. Dano Constante Ambiental.` : (semanticErrors.length > 0 && patterns.pontoLevel === 0 ? `Malha corrompida. Protocolo de falha acionado.` : `Malha operando sob incerteza parcial. Resolvendo impactos e testes (CD).`),
         type: 'IMPACT',
-        dice: (element === 'VIDA/CURA' || currentAttrs.healing) ? healDamage : spellDamage,
+        dice: (moverInfo || perceberInfo) ? undefined : ((element === 'VIDA/CURA' || currentAttrs.healing) ? healDamage : spellDamage),
         element
     });
 
@@ -467,6 +510,26 @@ export class MagicCompilerEngine {
     let dndFullText = "";
     if (patterns.pontoLevel === 0) {
         dndFullText = `A magia não possui geometria de ancoragem ou expansão válida, manifestando-se estaticamente sem alcance. Nenhum alvo pode ser definido logicamente.`;
+    } else if (moverInfo) {
+        // MOVER: PONTO decide quem é afetado (você / um alvo / a área),
+        // MOVER decide a distância — não há dano, cura nem teste envolvido.
+        if (patterns.pontoLevel === 1) {
+             dndFullText = `Você desaparece num piscar e reaparece ${moverInfo.distance} adiante, atravessando o espaço instantaneamente — ou agarra uma criatura ao alcance e a desloca pela mesma distância.`;
+        } else if (patterns.pontoLevel === 2) {
+             dndFullText = `Uma força invisível dispara em direção a um alvo à distância, empurrando-o ou puxando-o ${moverInfo.distance} na direção que você desejar.`;
+        } else {
+             dndFullText = `Uma onda de força emana de você, deslocando cada criatura na área ${moverInfo.distance} para longe ou para perto, à sua escolha.`;
+        }
+    } else if (perceberInfo) {
+        // PERCEBER: mesma lógica — PONTO decide o alcance da percepção,
+        // PERCEBER decide a profundidade da informação revelada.
+        if (patterns.pontoLevel === 1) {
+             dndFullText = `Ao tocar o alvo ou a superfície, você absorve uma impressão sensorial imediata: ${perceberInfo.detail}.`;
+        } else if (patterns.pontoLevel === 2) {
+             dndFullText = `Você projeta sua percepção em direção a um ponto distante e capta uma impressão clara: ${perceberInfo.detail}.`;
+        } else {
+             dndFullText = `Uma onda de sensibilidade arcana se espalha ao seu redor: dentro da área, você ${perceberInfo.detail}.`;
+        }
     } else if (patterns.pontoLevel === 3 && formaInfo?.level === 1) {
         // Cone: mesma Aura, mas direcionada à sua frente em vez de 360°.
         if (isHealing) {
@@ -511,13 +574,14 @@ export class MagicCompilerEngine {
 
     if (patterns.manterLevel >= 4) {
         dndFullText += ` A energia se estabiliza num capacitor autossustentável, persistindo indefinidamente sem exigir concentração contínua do conjurador — até que seja dissipada por vontade própria ou por magia antagônica.`;
-    } else if (patterns.manterLevel === 2 || patterns.manterLevel === 3) {
+    } else if ((patterns.manterLevel === 2 || patterns.manterLevel === 3) && !moverInfo && !perceberInfo) {
         dndFullText += ` Devido à forte presença térmica ou entrópica, a área do feitiço se torna persistentemente instável. Qualquer criatura que inicie seu turno na área ou alvo afetado sofrerá efeitos secundários proporcionais à magia enquanto durar a concentração.`;
     }
 
     // Condição imposta pelo elemento/kernel ativo (ver saveAbility/activeDebuffs
     // acima). Um efeito de cura nunca impõe condição — só o dano/controle.
-    if (activeDebuffs.length > 0 && !isHealing && patterns.pontoLevel > 0) {
+    // Mover/Perceber também nunca impõem condição: não são efeitos hostis.
+    if (activeDebuffs.length > 0 && !isHealing && !moverInfo && !perceberInfo && patterns.pontoLevel > 0) {
         const debuffList = activeDebuffs.join(', ');
         if (isSaveBased && isDeterministic) {
             dndFullText += ` O efeito também deixa os atingidos ${debuffList} até o fim do próximo turno, sem chance de resistência.`;
@@ -578,16 +642,21 @@ export class MagicCompilerEngine {
             default: spellName = `Sintonia de ${patterns.mainKernel} (${element})`; break;
         }
     }
+    // Mover/Perceber mudam a própria natureza do feitiço, então o nome e a
+    // escola de magia priorizam isso sobre o Kernel escalar.
+    let magicSchool = 'Evocação';
+    if (moverInfo) { spellName = `Deslocamento de ${element}`; magicSchool = 'Conjuração'; }
+    else if (perceberInfo) { spellName = `Percepção de ${element}`; magicSchool = 'Adivinhação'; }
 
-    if (isDeterministic) {
+    if (isDeterministic && !moverInfo && !perceberInfo) {
         dndFullText += `\n\n[DETERMINISMO ABSOLUTO]\nA precisão desta malha anula todas as defesas. Nenhum Teste de Resistência (CD) é exigido, e rolagens de ataque são omitidas. O dano associado é uma Constante Ambiental (Automático e Inevitável).`;
     }
 
-    const debugPathBlock = `[DEBUG_PATH]: { PontoNivel: ${patterns.pontoLevel}, ManterNivel: ${patterns.manterLevel}, FormaNivel: ${patterns.formaLevel}, Fase2_Vetor: [${fase2Name}], Escala: [${descEscala}], SaveBased: [${isSaveBased}], Status: [${semanticErrors.length === 0 ? 'Sucesso' : 'Instável'}] }`;
+    const debugPathBlock = `[DEBUG_PATH]: { PontoNivel: ${patterns.pontoLevel}, ManterNivel: ${patterns.manterLevel}, FormaNivel: ${patterns.formaLevel}, MoverNivel: ${patterns.moverLevel}, PerceberNivel: ${patterns.perceberLevel}, Fase2_Vetor: [${fase2Name}], Escala: [${descEscala}], SaveBased: [${isSaveBased}], Status: [${semanticErrors.length === 0 ? 'Sucesso' : 'Instável'}] }`;
 
     const dndBlock = {
         name: spellName,
-        levelSchool: `${level}º nível de Evocação (${isDeterministic ? 'Física Determinística' : 'Customizada'})`,
+        levelSchool: `${level}º nível de ${magicSchool} (${isDeterministic ? 'Física Determinística' : 'Customizada'})`,
         castingTime: "1 Ação",
         range: dndRange,
         components: "V, S",
@@ -602,8 +671,12 @@ export class MagicCompilerEngine {
       logs: events,
       element,
       needsDC: isSaveBased && dc > 10 && !isDeterministic,
+      // 'MOVER' | 'PERCEBER' | null — diz à UI que a magia não tem dano/cura.
+      mode: moverInfo ? 'MOVER' : perceberInfo ? 'PERCEBER' : null,
       saveAbility,
-      conditions: activeDebuffs,
+      // Mover/Perceber não são efeitos hostis: não impõem a condição do
+      // elemento, mesmo que o Núcleo ativo normalmente imponha uma.
+      conditions: (moverInfo || perceberInfo) ? [] : activeDebuffs,
       rangeStr,
       level,
       dc,

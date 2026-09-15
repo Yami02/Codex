@@ -16,7 +16,7 @@ const MagicTranslator = ({ graph }: any) => {
         const result = MagicCompilerEngine.execute(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions } = result;
+        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
 
         const techStats = [
@@ -127,9 +127,11 @@ const MagicTranslator = ({ graph }: any) => {
                   </div>
                   <div style={{ fontSize: '1.5rem', color: '#1a120b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(92,58,33,0.05)', padding: '18px', border: '1px solid rgba(92,58,33,0.2)', borderLeft: '4px solid #8b0000' }}>
                     <div>
-                      <div style={{ fontSize: '1rem', color: '#5c3a21', marginBottom: '2px', fontFamily: 'Cinzel, serif' }}>{attrs.healing ? 'Harmonização Vital' : 'Vibração Destrutiva'}</div>
+                      <div style={{ fontSize: '1rem', color: '#5c3a21', marginBottom: '2px', fontFamily: 'Cinzel, serif' }}>
+                        {mode === 'MOVER' ? 'Deslocamento' : mode === 'PERCEBER' ? 'Percepção' : (attrs.healing ? 'Harmonização Vital' : 'Vibração Destrutiva')}
+                      </div>
                       <div style={{ transform: 'rotate(-1deg)' }}>
-                        {attrs.healing ? `Restaura ${attrs.healing} pontos de essência arcana.` : `Canalização ofensiva de ${attrs.damageType || 'Energia Pura'}.`}
+                        {mode === 'MOVER' ? 'Reposiciona alvos no espaço, sem dano.' : mode === 'PERCEBER' ? 'Revela informação, sem dano.' : (attrs.healing ? `Restaura ${attrs.healing} pontos de essência arcana.` : `Canalização ofensiva de ${attrs.damageType || 'Energia Pura'}.`)}
                       </div>
                     </div>
                   </div>

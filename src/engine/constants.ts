@@ -24,7 +24,9 @@ export enum AdditiveType {
   MANTER = 'MANTER',
   GATILHO = 'GATILHO',
   ECO = 'ECO',
-  FORMA = 'FORMA'
+  FORMA = 'FORMA',
+  MOVER = 'MOVER',
+  PERCEBER = 'PERCEBER'
 }
 
 export enum KernelType {
@@ -70,6 +72,8 @@ export const AdditiveRunes: Record<string, string> = {
   [AdditiveType.GATILHO]: 'ᛃ',
   [AdditiveType.ECO]: 'ᛋ',
   [AdditiveType.FORMA]: 'ᛗ',
+  [AdditiveType.MOVER]: 'ᛜ',
+  [AdditiveType.PERCEBER]: 'ᛇ',
   // Kernel Runes
   [KernelType.ENTROPIA]: 'ᚲ', 
   [KernelType.MORFOLOGIA]: '᚛', 
@@ -110,6 +114,8 @@ export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.GATILHO]: 'programando uma response condicional',
   [AdditiveType.ECO]: 'replicando a assinatura energética',
   [AdditiveType.FORMA]: 'moldando a geometria de propagação do efeito (Cone, Linha ou Esfera Remota)',
+  [AdditiveType.MOVER]: 'desloca no espaço, sem dano — você, um alvo ou a área ao redor',
+  [AdditiveType.PERCEBER]: 'não causa dano nem cura: revela uma informação sobre o alvo ou a área',
   // Kernels
   [KernelType.ENTROPIA]: 'Buffer de Entropia: Manipula a agitação térmica.',
   [KernelType.MORFOLOGIA]: 'Buffer de Morfologia: Define a forma/formato natural da energia.',
@@ -186,6 +192,40 @@ export const FORMA_LEVELS: Record<number, FormaLevelInfo> = {
 export const FORMA_LEVEL_MIN = 1;
 export const FORMA_LEVEL_MAX = 3;
 
+// MOVER e PERCEBER são aditivos de "modo": quando presentes, substituem o
+// resultado padrão (dano/cura) por deslocamento ou informação. Reaproveitam
+// o nível de PONTO só para decidir QUEM é afetado (você / um alvo à
+// distância / a área ao redor) — o nível deles mesmos decide a intensidade
+// do próprio efeito (distância deslocada / profundidade da informação).
+export interface MoverLevelInfo {
+  level: number;
+  name: string;
+  distance: string;
+  dndDistance: string;
+}
+
+export const MOVER_LEVELS: Record<number, MoverLevelInfo> = {
+  1: { level: 1, name: 'Passo Curto', distance: '3 metros',  dndDistance: '3 metros (10 pés)' },
+  2: { level: 2, name: 'Salto Médio', distance: '9 metros',  dndDistance: '9 metros (30 pés)' },
+  3: { level: 3, name: 'Salto Longo', distance: '18 metros, ignorando obstáculos leves', dndDistance: '18 metros (60 pés), inclusive através de superfícies sólidas de até 1,5m' },
+};
+export const MOVER_LEVEL_MIN = 1;
+export const MOVER_LEVEL_MAX = 3;
+
+export interface PerceberLevelInfo {
+  level: number;
+  name: string;
+  detail: string;
+}
+
+export const PERCEBER_LEVELS: Record<number, PerceberLevelInfo> = {
+  1: { level: 1, name: 'Detectar',   detail: 'sente a presença e a direção geral de algo compatível com a natureza do Núcleo, sem detalhes' },
+  2: { level: 2, name: 'Identificar', detail: 'revela as propriedades específicas de um objeto, efeito mágico ou criatura observada' },
+  3: { level: 3, name: 'Vislumbrar', detail: 'enxerga além do alcance normal dos sentidos — através de obstáculos, a distância, ou impressões superficiais da mente' },
+};
+export const PERCEBER_LEVEL_MIN = 1;
+export const PERCEBER_LEVEL_MAX = 3;
+
 // Cada Kernel escala o feitiço por um de dois eixos: pura amplitude
 // ("Aumento") ou mudança qualitativa da natureza do efeito ("Complexibilidade").
 export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> = {
@@ -222,6 +262,8 @@ export const NodeAttributesDict: Record<string, any> = {
   [AdditiveType.CONTROLE]: { complexity: +2, tags: ['CONTROL'] },
   [AdditiveType.MANTER]: { complexity: +1, tags: ['MANTER'] },
   [AdditiveType.FORMA]: { complexity: +1, tags: ['FORMA'] },
+  [AdditiveType.MOVER]: { velocity: +4, tags: ['MOVER'] },
+  [AdditiveType.PERCEBER]: { complexity: +3, tags: ['PERCEBER'] },
 
   // Kernel Defaults (Buffers): mais específicos que o Núcleo, por isso
   // sobrescrevem a condição/habilidade de resistência dele quando ativos.
