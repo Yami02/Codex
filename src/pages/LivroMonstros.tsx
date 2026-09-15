@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Shield } from "lucide-react";
+import { Search, Shield, ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
 
 const MOCK_MONSTERS = [
   {
@@ -188,16 +188,15 @@ export const LivroMonstros = () => {
 
   const monster = MOCK_MONSTERS[selectedIndex];
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.deltaY < 0) {
-      setLevel(l => Math.min(l + 1, 30));
-    } else {
-      setLevel(l => Math.max(l - 1, 1));
-    }
-    
+  const adjustLevel = (delta: number) => {
+    setLevel(l => Math.max(1, Math.min(l + delta, 30)));
     setIsSpinning(true);
     if (spinTimeout) clearTimeout(spinTimeout);
     setSpinTimeout(setTimeout(() => setIsSpinning(false), 500));
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    adjustLevel(e.deltaY < 0 ? 1 : -1);
   };
 
   const nextMonster = () => {
@@ -235,11 +234,13 @@ export const LivroMonstros = () => {
   );
 
   return (
-    <div className="w-screen h-[100dvh] overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] bg-[#181412] flex items-center justify-center relative">
+    <div className="relative w-full min-h-screen bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] bg-[#181412]">
        {/* Runic inscription overlay on table */}
        <div className="absolute inset-0 opacity-[0.03] mix-blend-color-dodge bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] pointer-events-none"></div>
 
-       <div 
+       {/* DESKTOP LAYOUT: two-page book spread */}
+       <div className="hidden md:flex w-screen h-[100dvh] overflow-hidden items-center justify-center relative">
+       <div
          className="flex shrink-0 text-[#1f1610] selection:bg-[#8b0000]/30 selection:text-[#e6d8c3] z-10"
          style={{
             width: '133.33vw',
@@ -584,5 +585,171 @@ export const LivroMonstros = () => {
         <div className="w-[3vw] h-full book-spine-right shrink-0 z-20"></div>
 
       </div>
+
+      {/* MOBILE LAYOUT */}
+      <div className="md:hidden relative w-full min-h-screen flex flex-col text-[#e6d8c3] z-10">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#3a2818]/60 bg-[#0d0a08]/80 sticky top-0 z-30 backdrop-blur-sm">
+          <Link to="/" className="text-[#d4af37]"><ArrowLeft className="w-5 h-5" /></Link>
+          <h1 className="font-blackletter text-xl text-[#d4af37] tracking-wide">Bestiário Arcano</h1>
+          <button onClick={() => setIsSearching(true)} className="text-[#d4af37]" aria-label="Buscar"><Search className="w-5 h-5" /></button>
+        </div>
+
+        {isSearching ? (
+          <div className="flex-1 flex flex-col p-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar aberração..."
+              className="w-full bg-transparent border-b border-dashed border-[#5c3a21] outline-none font-apple text-xl pb-2 mb-4 placeholder:text-[#8e6c46]"
+              autoFocus
+            />
+            <div className="flex-1 flex flex-col gap-2 overflow-y-auto custom-scrollbar">
+              {filteredSearch.map((m) => (
+                <div
+                  key={m.id}
+                  onClick={() => { setSelectedIndex(MOCK_MONSTERS.findIndex(om => om.id === m.id)); setLevel(1); setIsSearching(false); setIsCombatPage(false); }}
+                  className="font-apple text-xl text-[#e6d8c3] cursor-pointer hover:text-[#d4af37] transition-colors flex items-center justify-between border-b border-white/10 py-2"
+                >
+                  <span>{m.name}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setIsSearching(false)} className="mt-4 py-3 border border-[#8b0000] text-[#8b0000] font-cinzel uppercase tracking-widest text-sm rounded">
+              Fechar Índice
+            </button>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto px-4 pb-10">
+            {/* Prev / Name / Next */}
+            <div className="flex items-center justify-between mt-4 mb-2 gap-2">
+              <button onClick={prevMonster} className="w-9 h-9 flex items-center justify-center rounded-full border border-[#8e6c46]/50 text-[#d4af37] shrink-0" aria-label="Anterior"><ChevronLeft className="w-5 h-5" /></button>
+              <h2 className="font-blackletter text-3xl text-center capitalize text-[#e6d8c3] leading-tight">{monster.name}</h2>
+              <button onClick={nextMonster} className="w-9 h-9 flex items-center justify-center rounded-full border border-[#8e6c46]/50 text-[#d4af37] shrink-0" aria-label="Próximo"><ChevronRight className="w-5 h-5" /></button>
+            </div>
+
+            {/* Image + Level dial */}
+            <div className="relative w-full max-w-[280px] aspect-square mx-auto my-4">
+              <img
+                src={monster.imageUrl}
+                alt={monster.name}
+                className="w-full h-full object-cover rounded-full imagem-monstro-papiro opacity-80"
+                style={{
+                  maskImage: "radial-gradient(circle at center, black 55%, transparent 75%)",
+                  WebkitMaskImage: "radial-gradient(circle at center, black 55%, transparent 75%)"
+                }}
+              />
+              <div className={`absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-full transition-transform duration-300 ${isSpinning ? 'scale-105' : ''}`}>
+                <span className="text-xs uppercase tracking-widest text-[#d4af37]">Nível</span>
+                <span className="text-5xl font-bold text-[#e6d8c3]">{level}</span>
+              </div>
+            </div>
+
+            {/* Level controls (touch-friendly, replaces desktop scroll-wheel) */}
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <button onClick={() => adjustLevel(-1)} disabled={level <= 1} className="w-11 h-11 rounded-full border-2 border-[#8b0000] flex items-center justify-center text-[#8b0000] disabled:opacity-30" aria-label="Diminuir nível">
+                <Minus className="w-5 h-5" />
+              </button>
+              <span className="text-xs opacity-70 w-20 text-center">Nível {level} / 30</span>
+              <button onClick={() => adjustLevel(1)} disabled={level >= 30} className="w-11 h-11 rounded-full border-2 border-[#d4af37] flex items-center justify-center text-[#d4af37] disabled:opacity-30" aria-label="Aumentar nível">
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Vital stats */}
+            <div className="grid grid-cols-3 gap-3 mb-6 text-center">
+              <div className="bg-white/5 rounded p-2">
+                <div className="text-[10px] uppercase tracking-widest opacity-60">Vida</div>
+                <div className="text-lg font-bold text-[#8b0000]">{calculatedHp}</div>
+              </div>
+              <div className="bg-white/5 rounded p-2">
+                <div className="text-[10px] uppercase tracking-widest opacity-60">Casca</div>
+                <div className="text-lg font-bold">{calculatedAc}</div>
+              </div>
+              <div className="bg-white/5 rounded p-2">
+                <div className="text-[10px] uppercase tracking-widest opacity-60">Movimento</div>
+                <div className="text-lg font-bold">{monster.speed || 30}ft</div>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-5">
+              <button
+                onClick={() => setIsCombatPage(false)}
+                className={`flex-1 py-2 rounded font-cinzel text-xs uppercase tracking-widest transition-colors ${!isCombatPage ? 'bg-[#d4af37] text-[#1a120b]' : 'bg-white/5 text-[#d4af37] border border-[#d4af37]/30'}`}
+              >
+                Estudo
+              </button>
+              <button
+                onClick={() => setIsCombatPage(true)}
+                className={`flex-1 py-2 rounded font-cinzel text-xs uppercase tracking-widest transition-colors ${isCombatPage ? 'bg-[#8b0000] text-[#e6d8c3]' : 'bg-white/5 text-[#8b0000] border border-[#8b0000]/30'}`}
+              >
+                Táticas e Arsenal
+              </button>
+            </div>
+
+            {!isCombatPage ? (
+              <div className="space-y-5">
+                <section>
+                  <h3 className="font-blackletter text-2xl mb-1 text-[#d4af37]">Estudo Naturalista</h3>
+                  <p className="font-serif text-base leading-relaxed opacity-90">{monster.description}</p>
+                </section>
+                <section>
+                  <h3 className="font-blackletter text-xl mb-1 text-[#d4af37]">Comportamento de Caça</h3>
+                  <p className="font-serif text-sm leading-relaxed opacity-80">
+                    Registros indicam que esta anomalia rastreia padrões térmicos e pânico. Sobreviventes frequentemente relatam uma paralisia irracional instantes antes do abate.
+                  </p>
+                </section>
+                <section className="bg-[#8b0000]/10 p-4 rounded border border-[#8b0000]/20">
+                  <h3 className="font-apple text-lg text-[#8b0000] mb-1">Relato de Sobrevivência</h3>
+                  <p className="font-apple italic opacity-90">{monster.report}</p>
+                </section>
+                <section>
+                  <h3 className="font-blackletter text-xl mb-2 text-[#d4af37]">Essência Corporal</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(rawAtts).map(([k, v]) => (
+                      <div key={k} className="bg-white/5 p-2 rounded text-center">
+                        <div className="text-[9px] uppercase tracking-widest opacity-60">{k}</div>
+                        <div className="text-lg font-bold">{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <section className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#8b0000]/10 p-3 rounded border border-[#8b0000]/20">
+                    <h4 className="text-[10px] uppercase text-[#8b0000] font-bold mb-1">Imunidades</h4>
+                    <p className="text-xs opacity-90">Condições mentais, Veneno.</p>
+                  </div>
+                  <div className="bg-[#5c3a21]/10 p-3 rounded border border-[#5c3a21]/20">
+                    <h4 className="text-[10px] uppercase text-[#5c3a21] font-bold mb-1">Vulnerabilidades</h4>
+                    <p className="text-xs opacity-90">Fogo sagrado, Lata e Prata.</p>
+                  </div>
+                </section>
+                <section className="bg-[#8b0000]/5 p-4 rounded border border-[#8b0000]/20">
+                  <h4 className="text-xs uppercase text-[#8b0000] font-bold mb-2">Ataque Base (Nv {level})</h4>
+                  <p className="text-sm opacity-90">
+                    {monster.damageBaseStr} <br />
+                    {level}d{monster.damageDiceSides} + {monster.damageBonus * level} dano [{monster.damageType}]
+                  </p>
+                </section>
+                <section className="space-y-3">
+                  <h4 className="font-apple text-lg text-[#8b0000]">Habilidades e Táticas</h4>
+                  {monster.abilities.map((ab, idx) => (
+                    <div key={idx} className="bg-white/5 p-3 rounded border border-white/10">
+                      <div className="font-apple text-base text-[#e6d8c3] font-bold mb-1">{ab.name}</div>
+                      <div className="text-sm opacity-80">{ab.desc}</div>
+                    </div>
+                  ))}
+                </section>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };

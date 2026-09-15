@@ -36,21 +36,24 @@ export const LivroMagias = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#1a120b] overflow-hidden flex font-serif selection:bg-[#5c3a21] selection:text-[#f4ebd8]">
+    <div className="relative min-h-screen w-full bg-[#1a120b] overflow-x-hidden md:overflow-hidden font-serif selection:bg-[#5c3a21] selection:text-[#f4ebd8]">
       {/* Global lighting effect - torch animation */}
       <div className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-30 animate-pulse-slow z-50">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_rgba(0,0,0,0.8)_80%)]" />
         <div className="absolute inset-0 bg-[#ff9900] mix-blend-color-burn opacity-10" />
       </div>
-      
+
       {/* Table texture */}
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-wood.png')] opacity-[0.85] pointer-events-none" />
 
       {/* Return Button */}
-      <Link to="/" className="absolute top-6 left-6 z-50 text-[#d4af37] flex items-center gap-2 hover:text-[#ffea00] transition-colors duration-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+      <Link to="/" className="absolute top-4 left-4 md:top-6 md:left-6 z-50 text-[#d4af37] flex items-center gap-2 hover:text-[#ffea00] transition-colors duration-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
         <ArrowLeft className="w-5 h-5" />
-        <span className="font-cinzel text-lg tracking-wider font-bold">Retornar ao Hub</span>
+        <span className="font-cinzel text-sm md:text-lg tracking-wider font-bold">Retornar ao Hub</span>
       </Link>
+
+      {/* DESKTOP LAYOUT: Alchemy Shelf + Great Parchment (side by side) */}
+      <div className="hidden md:flex w-full min-h-screen">
 
       {/* LEFT PANEL: Alchemy Shelf */}
       <div className="relative w-96 h-full border-r-[12px] border-[#2a1a10] border-double bg-[#1a120b]/90 shadow-[15px_0_40px_rgba(0,0,0,0.9)] z-20 flex flex-col items-center py-24 px-8 backdrop-blur-sm">
@@ -335,6 +338,105 @@ export const LivroMagias = () => {
                  </div>
              </div>
           </motion.div>
+      </div>
+
+      </div>
+
+      {/* MOBILE LAYOUT: stacked picker + circle + notes */}
+      <div className="md:hidden w-full min-h-screen flex flex-col items-center px-4 pt-20 pb-12 relative z-10">
+        <h1 className="font-blackletter text-3xl text-[#d4af37] text-center mb-1 tracking-widest drop-shadow-md">
+          A Mesa do Conjurador
+        </h1>
+        <p className="text-[#c8b99e]/70 text-xs italic text-center mb-6">Toque em uma essência para conjurar</p>
+
+        {/* Element Picker Row */}
+        <div className="w-full flex justify-center gap-4 mb-8">
+          {elements.map((el) => (
+            <button
+              key={el.id}
+              onClick={() => handleElementSelect(el.id)}
+              className={`flex flex-col items-center gap-2 transition-transform duration-300 ${activeElement === el.id ? 'scale-110' : ''}`}
+            >
+              <div
+                className="w-14 h-14 rounded-full border-2 flex items-center justify-center text-2xl font-bold transition-all duration-300"
+                style={{
+                  backgroundColor: activeElement === el.id ? el.color : 'rgba(255,255,255,0.05)',
+                  borderColor: el.color,
+                  boxShadow: activeElement === el.id ? `0 0 20px ${el.glowColor}` : 'none',
+                  color: activeElement === el.id ? '#1a120b' : el.color,
+                }}
+              >
+                {el.symbol}
+              </div>
+              <span className="font-cinzel text-[10px] uppercase tracking-widest text-[#d4af37]/80">{el.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Magic Circle (simplified, fluid-sized) */}
+        <div className="relative w-full max-w-[320px] aspect-square flex items-center justify-center mb-8">
+          <svg className="absolute w-full h-full pointer-events-none opacity-40" viewBox="0 0 500 500">
+            <circle cx="250" cy="250" r="248" stroke="#4a3728" strokeWidth="1.5" fill="none" strokeDasharray="6,6" />
+            <circle cx="250" cy="250" r="190" stroke="#4a3728" strokeWidth="2" fill="none" />
+            <line x1="2" y1="250" x2="498" y2="250" stroke="#4a3728" strokeWidth="0.5" />
+            <line x1="250" y1="2" x2="250" y2="498" stroke="#4a3728" strokeWidth="0.5" />
+          </svg>
+
+          <AnimatePresence mode="wait">
+            {activeElement && (
+              <motion.div
+                key={activeElement}
+                className="absolute inset-0 flex items-center justify-center"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.6 }}
+              >
+                <div className="absolute inset-0 rounded-full blur-[30px] opacity-30" style={{ backgroundColor: activeElementData?.color }} />
+                <svg className="absolute w-full h-full" viewBox="0 0 500 500">
+                  <motion.circle
+                    cx="250" cy="250" r="220"
+                    stroke={activeElementData?.color}
+                    strokeWidth="6"
+                    fill="none"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 1.2, ease: "easeInOut" }}
+                  />
+                  <circle cx="250" cy="250" r="170" stroke={activeElementData?.color} strokeWidth="3" fill="none" strokeDasharray="15, 20" opacity="0.6" />
+                </svg>
+                <span className="relative text-[90px] font-blackletter drop-shadow-xl" style={{ color: activeElementData?.color }}>
+                  {activeElementData?.symbol}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {!activeElement && (
+            <span className="text-[#5c3a21] text-sm italic text-center px-8">O círculo aguarda uma essência...</span>
+          )}
+        </div>
+
+        {/* Notes / Translation */}
+        <div className="w-full max-w-md bg-[#e6d8c3] rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.6)] p-5 relative">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] mix-blend-multiply opacity-80 rounded-lg pointer-events-none" />
+          <h3 className="font-cinzel text-sm font-bold text-[#5c3a21] mb-2 uppercase tracking-[0.2em] text-center opacity-80 relative">
+            — Anotações Departamentais —
+          </h3>
+          <div className="font-caveat text-xl leading-relaxed text-[#1a120b] text-center relative">
+            {activeElement ? (
+              <>
+                A trama de <span className="font-bold underline decoration-wavy decoration-2 underline-offset-4" style={{ textDecorationColor: activeElementData?.color }}>{activeElementData?.name}</span> foi selada na matriz.
+                {activeElement === 'fogo' && " As flutuações térmicas estão excedendo o parâmetro. Reforçar a linha oeste do hexagrama com cinzas vulcânicas."}
+                {activeElement === 'agua' && " As correntes abissais estão drenando a umidade do papel. Usar um selante antes do próximo rito."}
+                {activeElement === 'luz' && " A luminescência estabilizou, embora o olho direito ainda doa. Usar óculos de quartzo escuro na próxima vez."}
+                {activeElement === 'sombra' && " A gravidade no centro do pergaminho aumentou. O frasco caiu e não quebrou... flutuou."}
+              </>
+            ) : (
+              <span className="opacity-60 italic">"Molhe a pena em uma das essências acima para canalizar a Gênese."</span>
+            )}
+          </div>
+        </div>
       </div>
 
     </div>

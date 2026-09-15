@@ -74,7 +74,7 @@ export const MagicDSLTerminal = ({ graph, onChange }: MagicDSLTerminalProps) => 
                   <div>
                       <h4 style={{ color: '#d4af37', fontFamily: 'Cinzel', fontSize: '1.2rem' }}>Passo 1: Essência da Magia</h4>
                       <p style={{ color: '#8a7d9b', fontSize: '0.9rem' }}>Qual elemento mágico formará o núcleo do seu feitiço?</p>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '15px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '10px', marginTop: '15px' }}>
                           {['FOGO', 'AGUA', 'AR', 'TERRA', 'LUZ', 'SOMBRA'].map(el => (
                               <button key={el} onClick={() => updateAnswer('element', el)} style={btnStyle(answers.element === el)}>{el}</button>
                           ))}

@@ -299,7 +299,7 @@ import { useNavigate } from 'react-router-dom';
         <div className={`app-container codex-wood-desk atm-${atmosphere}`}>
           
           {/* Atmosphere Selector */}
-          <div style={{ position: 'fixed', top: '15px', right: '15px', zIndex: 100, display: 'flex', gap: '8px' }}>
+          <div style={{ position: 'fixed', top: '15px', right: '15px', zIndex: 100, display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 'calc(100vw - 30px)' }}>
             {['CLASSIC', 'OBSERVATORY', 'FORGE', 'LIBRARY', 'ALTAR', 'SILVER'].map(atm => (
               <button 
                 key={atm}
