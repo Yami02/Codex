@@ -302,6 +302,30 @@ export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> =
   [KernelType.CAOS]: 'Complexibilidade',
 };
 
+// MANIFESTAÇÃO: a mesma combinação exata de alcance/forma/teste sempre
+// produz a mesma palavra — nunca duas magias com a mesma geometria saem
+// com nomes de manifestação diferentes por acaso. Isso é o que torna o
+// texto final "compilado" de verdade: dado X, a resposta é sempre aquilo,
+// como uma tabela de despacho em vez de prosa remontada à mão a cada vez.
+// Mover/Perceber já tinham isso via MOVER_LEVELS/PERCEBER_LEVELS (Passo
+// Curto, Detectar...) — esta tabela cobre o resto (ataque/teste/aura).
+export interface ManifestacaoInfo {
+  id: string;
+  name: string;
+}
+
+export const MANIFESTACAO_TABLE: Record<string, ManifestacaoInfo> = {
+  TOQUE_ATAQUE: { id: 'TOQUE_ATAQUE', name: 'Impacto Direto' },
+  TOQUE_TESTE: { id: 'TOQUE_TESTE', name: 'Descarga de Contato' },
+  ALCANCE_ATAQUE: { id: 'ALCANCE_ATAQUE', name: 'Projétil Dirigido' },
+  ALCANCE_TESTE: { id: 'ALCANCE_TESTE', name: 'Feixe Guiado' },
+  ALCANCE_ESFERA: { id: 'ALCANCE_ESFERA', name: 'Detonação Remota' },
+  AURA: { id: 'AURA', name: 'Emanação Radial' },
+  AURA_CONE: { id: 'AURA_CONE', name: 'Rajada Cônica' },
+  AURA_LINHA: { id: 'AURA_LINHA', name: 'Lança Retilínea' },
+  PESSOAL: { id: 'PESSOAL', name: 'Infusão Interna' },
+};
+
 // Habilidade de resistência que a vítima usa contra a condição do efeito.
 // Segue a convenção do 5e: controle físico -> Força; veneno/atordoamento/
 // paralisia/cegueira -> Constituição; ilusão/trapaça sensorial ->

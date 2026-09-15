@@ -10,6 +10,7 @@ import {
   TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE,
   KERNEL_SCALE_AXIS,
   AdditiveDescriptions,
+  MANIFESTACAO_TABLE,
 } from './constants';
 import { resolveCollege, polaritySymmetryDelta } from './colleges';
 
@@ -833,6 +834,11 @@ export class MagicCompilerEngine {
 
     let isHealing = element === 'VIDA/CURA' || buffer.healing;
 
+    // manifestKey identifica, de forma determinística, QUAL combinação
+    // mecânica exata está ativa (alcance × forma × teste × modo). A mesma
+    // chave sempre resolve pra mesma palavra em MANIFESTACAO_TABLE — dado
+    // X, a resposta é sempre aquilo, nunca uma prosa remontada por acaso.
+    let manifestKey: string | null = null;
     let dndFullText = "";
     if (isTrulyEmpty) {
         dndFullText = `A magia não possui geometria de ancoragem ou expansão válida, manifestando-se estaticamente sem alcance. Nenhum alvo pode ser definido logicamente.`;
@@ -840,6 +846,7 @@ export class MagicCompilerEngine {
         // Sem PONTO, mas com outros componentes: efeito Pessoal legítimo
         // (ex: Escudo) — a energia nunca sai de você, então não há alvo,
         // ataque, teste ou dano a um terceiro.
+        manifestKey = 'PESSOAL';
         if (isHealing) {
              dndFullText = `Você direciona a energia inteiramente para dentro de si mesmo, sem afetar nada externo. Uma onda de ${damageBase.toLowerCase()} reforça sua própria vitalidade.`;
         } else {
@@ -848,6 +855,8 @@ export class MagicCompilerEngine {
     } else if (moverInfo) {
         // MOVER: PONTO decide quem é afetado (você / um alvo / a área),
         // MOVER decide a distância — não há dano, cura nem teste envolvido.
+        // O nome da manifestação já vem pronto de MOVER_LEVELS (Passo
+        // Curto/Salto Médio/Salto Longo) — não precisa de uma 2ª tabela.
         if (buffer.alcance === 1) {
              dndFullText = `Você desaparece num piscar e reaparece ${moverInfo.distance} adiante, atravessando o espaço instantaneamente — ou agarra uma criatura ao alcance e a desloca pela mesma distância.`;
         } else if (buffer.alcance === 2) {
@@ -856,8 +865,8 @@ export class MagicCompilerEngine {
              dndFullText = `Uma onda de força emana de você, deslocando cada criatura na área ${moverInfo.distance} para longe ou para perto, à sua escolha.`;
         }
     } else if (perceberInfo) {
-        // PERCEBER: mesma lógica — PONTO decide o alcance da percepção,
-        // PERCEBER decide a profundidade da informação revelada.
+        // PERCEBER: mesma lógica — nome já vem de PERCEBER_LEVELS
+        // (Detectar/Identificar/Vislumbrar).
         if (buffer.alcance === 1) {
              dndFullText = `Ao tocar o alvo ou a superfície, você absorve uma impressão sensorial imediata: ${perceberInfo.detail}.`;
         } else if (buffer.alcance === 2) {
@@ -867,6 +876,7 @@ export class MagicCompilerEngine {
         }
     } else if (buffer.alcance === 3 && formaInfo?.level === 1) {
         // Cone: mesma Aura, mas direcionada à sua frente em vez de 360°.
+        manifestKey = 'AURA_CONE';
         if (isHealing) {
              dndFullText = `Você emite um cone de energia regenerativa à sua frente. Cada aliado na área recupera ${healDamage} pontos de vida.`;
         } else {
@@ -874,12 +884,14 @@ export class MagicCompilerEngine {
         }
     } else if (buffer.alcance === 3 && formaInfo?.level === 2) {
         // Linha: mesma Aura, mas um feixe reto em vez de um raio ao redor.
+        manifestKey = 'AURA_LINHA';
         if (isHealing) {
              dndFullText = `Um feixe curativo contínuo se propaga a partir de você em linha reta. Cada aliado atingido recupera ${healDamage} pontos de vida.`;
         } else {
              dndFullText = `Um feixe reto e contínuo de energia dispara a partir de você, perfurando tudo em linha. Cada criatura atingida sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`}`;
         }
     } else if (buffer.alcance === 3) {
+        manifestKey = 'AURA';
         if (isHealing) {
              dndFullText = `Uma aura de vitalidade emana de você (ou de um ponto ancorado), envolvendo tudo ao redor. Cada criatura dentro do alcance da aura recupera ${healDamage} pontos de vida enquanto permanecer na área.`;
         } else {
@@ -888,6 +900,7 @@ export class MagicCompilerEngine {
     } else if (buffer.alcance === 2 && formaInfo?.level === 3) {
         // Esfera Remota: o projétil detona num ponto à distância — vira
         // teste de resistência em área, não mais ataque à distância.
+        manifestKey = 'ALCANCE_ESFERA';
         if (isHealing) {
              dndFullText = `Você projeta um pulso de vida que floresce num ponto à distância. Cada aliado dentro da esfera recupera ${healDamage} pontos de vida.`;
         } else {
@@ -896,12 +909,14 @@ export class MagicCompilerEngine {
     } else if (buffer.alcance === 2 && buffer.teste > 0) {
         // Alcance + TESTE: à distância, mas resolvido por teste de
         // resistência do alvo em vez de jogada de ataque (ex: Chama Sagrada).
+        manifestKey = 'ALCANCE_TESTE';
         if (isHealing) {
              dndFullText = `Você dispara um vetor cinético curativo através do espaço, atingindo com precisão um alvo. O feixe estabiliza feridas restaurando ${healDamage} pontos de vida.`;
         } else {
              dndFullText = `Você concentra ${damageBase.toLowerCase()} num feixe preciso direcionado a um alvo à distância. Ele tenta resistência de ${saveAbility} (CD ${dc}) ou sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.`;
         }
     } else if (buffer.alcance === 2) {
+        manifestKey = 'ALCANCE_ATAQUE';
         if (isHealing) {
              dndFullText = `Você dispara um vetor cinético curativo através do espaço, atingindo com precisão um alvo. O feixe estabiliza feridas restaurando ${healDamage} pontos de vida.`;
         } else {
@@ -909,17 +924,29 @@ export class MagicCompilerEngine {
         }
     } else if (buffer.teste > 0) {
         // Toque + TESTE: mesma ideia, mas ao toque em vez de à distância.
+        manifestKey = 'TOQUE_TESTE';
         if (isHealing) {
              dndFullText = `Ao tocar uma criatura, sua energia divina infunde vitalidade nela, curando-a em ${healDamage} pontos de vida através de feixes de ${damageBase.toLowerCase()}.`;
         } else {
              dndFullText = `Ao encostar no alvo, você libera ${damageBase.toLowerCase()} diretamente em seu corpo. Ele tenta resistência de ${saveAbility} (CD ${dc}) ou sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.`;
         }
     } else {
+        manifestKey = 'TOQUE_ATAQUE';
         if (isHealing) {
              dndFullText = `Ao tocar uma criatura, sua energia divina infunde vitalidade nela, curando-a em ${healDamage} pontos de vida através de feixes de ${damageBase.toLowerCase()}.`;
         } else {
              dndFullText = `A energia letal e bruta de ${damageBase.toLowerCase()} flui através de suas mãos. Faça um ataque corpo-a-corpo com magia contra uma criatura. Num acerto, ela sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.`;
         }
+    }
+
+    // O nome da manifestação abre o texto final sempre que resolvido —
+    // pra mesma combinação mecânica, sempre a mesma palavra em primeiro
+    // lugar. Mover/Perceber usam o nome que já vem de suas próprias
+    // tabelas de nível; Pessoal e os 8 casos de ataque/teste/aura usam
+    // MANIFESTACAO_TABLE.
+    const manifestName = moverInfo?.name || perceberInfo?.name || (manifestKey ? MANIFESTACAO_TABLE[manifestKey]?.name : null) || null;
+    if (manifestName && !isTrulyEmpty) {
+        dndFullText = `[MANIFESTAÇÃO: ${manifestName.toUpperCase()}]\n${dndFullText}`;
     }
 
     if (buffer.duracao >= 4) {
@@ -1066,6 +1093,10 @@ export class MagicCompilerEngine {
       college,
       // Capacitor ativo (GATILHO), ou null se a magia dispara na hora.
       capacitor: gatilhoInfo ? { ...gatilhoInfo, trigger: triggerInfo } : null,
+      // Palavra fixa que identifica a geometria de entrega da magia (ver
+      // MANIFESTACAO_TABLE) — a mesma combinação de alcance/forma/teste/modo
+      // sempre resolve pro mesmo nome, nunca varia por acaso.
+      manifestation: manifestName ? { name: manifestName } : null,
       needsDC: isSaveBased && dc > 10 && !isDeterministic,
       // 'MOVER' | 'PERCEBER' | null — diz à UI que a magia não tem dano/cura.
       mode: moverInfo ? 'MOVER' : perceberInfo ? 'PERCEBER' : null,

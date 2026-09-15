@@ -44,6 +44,35 @@ vive dentro do próprio app: botão **❓ Ajuda** no Codex (`src/components/Help
    frases com base nos valores já resolvidos do buffer — a álgebra decide
    "quanto", o texto só veste "como soa".
 
+### 1.1 Manifestação: a palavra fixa por combinação
+
+Pra que o texto final se comporte de verdade como algo *compilado* — "se
+tiver X, a resposta é sempre aquilo" — cada combinação mecânica exata de
+alcance/forma/teste/modo resolve pra uma palavra fixa e determinística
+(`MANIFESTACAO_TABLE`, `engine/constants.ts`), nunca uma prosa remontada
+por acaso. A mesma geometria sempre abre o texto com o mesmo nome:
+
+| Combinação | Palavra |
+|---|---|
+| Toque, ataque | Impacto Direto |
+| Toque, Teste | Descarga de Contato |
+| Alcance, ataque | Projétil Dirigido |
+| Alcance, Teste | Feixe Guiado |
+| Alcance + Esfera Remota | Detonação Remota |
+| Aura | Emanação Radial |
+| Aura + Cone | Rajada Cônica |
+| Aura + Linha | Lança Retilínea |
+| Pessoal (sem Ponto) | Infusão Interna |
+| Mover | usa o nome já pronto de `MOVER_LEVELS` (Passo Curto/Salto Médio/Salto Longo) |
+| Perceber | usa o nome já pronto de `PERCEBER_LEVELS` (Detectar/Identificar/Vislumbrar) |
+
+`MagicCompilerEngine.execute` resolve a chave (`manifestKey`) no mesmo
+if/else que já monta `dndFullText` (cada ramo só ganhou uma linha
+atribuindo sua chave — a prosa em si não mudou), prefixa o texto final com
+`[MANIFESTAÇÃO: NOME]`, e devolve `manifestation: { name }` no resultado.
+`MagicTranslator.tsx` mostra isso como mais uma caixa de estatística, ao
+lado de Alcance/Duração/Tempo de Conjuração.
+
 ## 2. O Buffer (vetor único)
 
 Tipo `SpellBuffer` (`engine/compiler.ts`) — um `Record<string, any>` que é a
@@ -238,7 +267,7 @@ dicionário do livro original.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`). |
+| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `MANIFESTACAO_TABLE` — ver §1.1). |
 | `types/magic.ts` | Interfaces de nó/aresta/grafo; reexporta os enums de `constants.ts`. |
 | `engine/compiler.ts` | O motor: AST, validador, pattern matcher (inclui as regras dos conectivos de aresta — §6), álgebra do buffer, geração de texto. |
 | `engine/colleges.ts` | Tabela dos 32 Colégios, a Lei da Simetria, e `listColleges()` (lista os 32 com a chave de formação, pro Grande Tomo exibir sem duplicar a tabela). |
