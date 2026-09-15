@@ -3,6 +3,7 @@ import {
   NodeAttributesDict,
   PONTO_LEVELS, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX,
   MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX,
+  FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
   KERNEL_SCALE_AXIS,
 } from './constants';
 
@@ -284,6 +285,24 @@ export class PatternMatcher {
           }
       }
 
+      // --- FORMA (geometria): aditivo opcional que só refina uma Aura
+      // (PONTO 3 -> Cone/Linha) ou um Alcance (PONTO 2 -> Esfera Remota).
+      // Não é mais um "nível de força" — é uma escolha entre 3 variantes.
+      const formaNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'FORMA');
+      let formaLevel = 0;
+      if (formaNodes.length > 0) {
+          const levels = formaNodes.map(n => clamp(n.level ?? FORMA_LEVEL_MIN, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX));
+          formaLevel = Math.max(...levels);
+          if (formaNodes.length > 1) {
+              instabilities.push(`[REDUNDÂNCIA] ${formaNodes.length} nós de FORMA detectados; apenas "${FORMA_LEVELS[formaLevel].name}" foi considerado. Use um único nó de FORMA.`);
+          }
+          const formaInfo = FORMA_LEVELS[formaLevel];
+          if (formaInfo.appliesToPontoLevel !== pontoLevel) {
+              instabilities.push(`[FORMA SEM EFEITO] "${formaInfo.name}" só se aplica com PONTO nível ${formaInfo.appliesToPontoLevel}; no nível atual (${pontoLevel}) ela é ignorada.`);
+              formaLevel = 0;
+          }
+      }
+
       let otherComponents = allNodes.length - allNodes.filter(n => n instanceof CoreASTNode).length;
       if (allNodes.length >= 2 && otherComponents < 2) {
           instabilities.push("Alerta de Instabilidade! A geometria atual carece do 'Triângulo Base'. Risco alto de colapso arcanamente imprevisível no conjurador.");
@@ -297,6 +316,7 @@ export class PatternMatcher {
           finalElement,
           pontoLevel,
           manterLevel,
+          formaLevel,
           pontosLength: pontoNodes.length,
           kernelsAtivos,
           mainKernel,
@@ -362,6 +382,10 @@ export class MagicCompilerEngine {
     // então os dois nunca mais divergem entre si.
     const pontoInfo = PONTO_LEVELS[patterns.pontoLevel];
     const manterInfo = MANTER_LEVELS[patterns.manterLevel];
+    // FORMA (quando aplicável) substitui a geometria padrão de PONTO por
+    // uma variante direcional (Cone/Linha) ou remota (Esfera) — ver
+    // FORMA_LEVELS em engine/constants.ts para as regras de aplicabilidade.
+    const formaInfo = patterns.formaLevel > 0 ? FORMA_LEVELS[patterns.formaLevel] : null;
 
     // Cada Kernel escala o feitiço por "Aumento" (amplitude) ou
     // "Complexibilidade" (natureza do efeito) — ver KERNEL_SCALE_AXIS.
@@ -370,6 +394,10 @@ export class MagicCompilerEngine {
 
     // Determina isDeterministic
     const isDeterministic = patterns.pontoLevel === PONTO_LEVEL_MAX && semanticErrors.length === 0;
+    // Save (teste de resistência) vs. ataque: Aura é sempre teste; Alcance
+    // normalmente é ataque à distância, exceto quando FORMA=Esfera Remota
+    // o transforma numa explosão em área (também teste).
+    const isSaveBased = patterns.pontoLevel === 3 || (patterns.pontoLevel === 2 && formaInfo?.level === 3);
 
     let damageBase = currentAttrs.damageType || (element !== 'Desconhecido' ? element : 'Energia Pura');
     const mainDamageAttr = (currentAttrs.entropy || 0) + (currentAttrs.strength || 0) + (currentAttrs.volume || 0) + (currentAttrs.order || 0);
@@ -389,7 +417,7 @@ export class MagicCompilerEngine {
         type: 'CAST'
     });
 
-    const fase2Name = patterns.pontoLevel === 0 ? 'Nenhum / Instável' : pontoInfo.vetor;
+    const fase2Name = patterns.pontoLevel === 0 ? 'Nenhum / Instável' : (formaInfo ? formaInfo.name : pontoInfo.vetor);
     events.push({
         step: stepCount++,
         title: `Projeção (Vetor)`,
@@ -425,13 +453,13 @@ export class MagicCompilerEngine {
         description += `\n`;
     }
 
-    const rangeStr = patterns.pontoLevel === 0 ? 'Nenhum / Instável' : pontoInfo.rangeStr;
+    const rangeStr = patterns.pontoLevel === 0 ? 'Nenhum / Instável' : (formaInfo ? formaInfo.rangeStr : pontoInfo.rangeStr);
     const level = 1 + Math.floor((currentAttrs.complexity || 0) / 3) + Math.floor(events.length / 4);
     const dc = 10 + Math.floor(level / 2) + Math.floor((currentAttrs.potency || 0) / 2);
     const durationStr = manterInfo.duration;
 
     // D&D 5e Block Processing
-    const dndRange = patterns.pontoLevel === 0 ? 'Nulo / Instável' : pontoInfo.dndRange;
+    const dndRange = patterns.pontoLevel === 0 ? 'Nulo / Instável' : (formaInfo ? formaInfo.dndRange : pontoInfo.dndRange);
     const dndDuration = manterInfo.dndDuration;
 
     let isHealing = element === 'VIDA/CURA' || currentAttrs.healing;
@@ -439,11 +467,33 @@ export class MagicCompilerEngine {
     let dndFullText = "";
     if (patterns.pontoLevel === 0) {
         dndFullText = `A magia não possui geometria de ancoragem ou expansão válida, manifestando-se estaticamente sem alcance. Nenhum alvo pode ser definido logicamente.`;
+    } else if (patterns.pontoLevel === 3 && formaInfo?.level === 1) {
+        // Cone: mesma Aura, mas direcionada à sua frente em vez de 360°.
+        if (isHealing) {
+             dndFullText = `Você emite um cone de energia regenerativa à sua frente. Cada aliado na área recupera ${healDamage} pontos de vida.`;
+        } else {
+             dndFullText = `Você projeta um cone de energia primordial à sua frente, atingindo tudo em seu caminho. Cada criatura na área sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`}`;
+        }
+    } else if (patterns.pontoLevel === 3 && formaInfo?.level === 2) {
+        // Linha: mesma Aura, mas um feixe reto em vez de um raio ao redor.
+        if (isHealing) {
+             dndFullText = `Um feixe curativo contínuo se propaga a partir de você em linha reta. Cada aliado atingido recupera ${healDamage} pontos de vida.`;
+        } else {
+             dndFullText = `Um feixe reto e contínuo de energia dispara a partir de você, perfurando tudo em linha. Cada criatura atingida sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`}`;
+        }
     } else if (patterns.pontoLevel === 3) {
         if (isHealing) {
              dndFullText = `Uma aura de vitalidade emana de você (ou de um ponto ancorado), envolvendo tudo ao redor. Cada criatura dentro do alcance da aura recupera ${healDamage} pontos de vida enquanto permanecer na área.`;
         } else {
              dndFullText = `Uma aura de energia primordial emana de você, consumindo o espaço ao redor. Cada criatura na área sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`}`;
+        }
+    } else if (patterns.pontoLevel === 2 && formaInfo?.level === 3) {
+        // Esfera Remota: o projétil detona num ponto à distância — vira
+        // teste de resistência em área, não mais ataque à distância.
+        if (isHealing) {
+             dndFullText = `Você projeta um pulso de vida que floresce num ponto à distância. Cada aliado dentro da esfera recupera ${healDamage} pontos de vida.`;
+        } else {
+             dndFullText = `Você arremessa um foco de energia primordial que detona ao atingir um ponto à distância, envolvendo a área numa esfera devastadora. Cada criatura na esfera sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}. Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`;
         }
     } else if (patterns.pontoLevel === 2) {
         if (isHealing) {
@@ -469,9 +519,9 @@ export class MagicCompilerEngine {
     // acima). Um efeito de cura nunca impõe condição — só o dano/controle.
     if (activeDebuffs.length > 0 && !isHealing && patterns.pontoLevel > 0) {
         const debuffList = activeDebuffs.join(', ');
-        if (patterns.pontoLevel === 3 && isDeterministic) {
+        if (isSaveBased && isDeterministic) {
             dndFullText += ` O efeito também deixa os atingidos ${debuffList} até o fim do próximo turno, sem chance de resistência.`;
-        } else if (patterns.pontoLevel === 3) {
+        } else if (isSaveBased) {
             dndFullText += ` Quem falhar nesse teste também fica ${debuffList} até o fim do próximo turno.`;
         } else {
             dndFullText += ` Quem for atingido também fica ${debuffList} até o fim do próximo turno.`;
@@ -533,7 +583,7 @@ export class MagicCompilerEngine {
         dndFullText += `\n\n[DETERMINISMO ABSOLUTO]\nA precisão desta malha anula todas as defesas. Nenhum Teste de Resistência (CD) é exigido, e rolagens de ataque são omitidas. O dano associado é uma Constante Ambiental (Automático e Inevitável).`;
     }
 
-    const debugPathBlock = `[DEBUG_PATH]: { PontoNivel: ${patterns.pontoLevel}, ManterNivel: ${patterns.manterLevel}, Fase2_Vetor: [${fase2Name}], Escala: [${descEscala}], Status: [${semanticErrors.length === 0 ? 'Sucesso' : 'Instável'}] }`;
+    const debugPathBlock = `[DEBUG_PATH]: { PontoNivel: ${patterns.pontoLevel}, ManterNivel: ${patterns.manterLevel}, FormaNivel: ${patterns.formaLevel}, Fase2_Vetor: [${fase2Name}], Escala: [${descEscala}], SaveBased: [${isSaveBased}], Status: [${semanticErrors.length === 0 ? 'Sucesso' : 'Instável'}] }`;
 
     const dndBlock = {
         name: spellName,
@@ -551,7 +601,7 @@ export class MagicCompilerEngine {
       instabilities: semanticErrors,
       logs: events,
       element,
-      needsDC: dc > 10 && !isDeterministic,
+      needsDC: isSaveBased && dc > 10 && !isDeterministic,
       saveAbility,
       conditions: activeDebuffs,
       rangeStr,

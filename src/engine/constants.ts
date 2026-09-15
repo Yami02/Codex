@@ -16,14 +16,15 @@ export enum CoreElement {
   DECOMPOR = 'DECOMPOR' 
 }
 
-export enum AdditiveType { 
-  CONTROLE = 'CONTROLE', 
-  AUMENTO = 'AUMENTO', 
-  REDUCAO = 'REDUCAO', 
-  PONTO = 'PONTO', 
-  MANTER = 'MANTER', 
-  GATILHO = 'GATILHO', 
-  ECO = 'ECO' 
+export enum AdditiveType {
+  CONTROLE = 'CONTROLE',
+  AUMENTO = 'AUMENTO',
+  REDUCAO = 'REDUCAO',
+  PONTO = 'PONTO',
+  MANTER = 'MANTER',
+  GATILHO = 'GATILHO',
+  ECO = 'ECO',
+  FORMA = 'FORMA'
 }
 
 export enum KernelType {
@@ -66,8 +67,9 @@ export const AdditiveRunes: Record<string, string> = {
   [AdditiveType.REDUCAO]: 'ᚦ',
   [AdditiveType.PONTO]: 'ᛈ', 
   [AdditiveType.MANTER]: 'ᛟ', 
-  [AdditiveType.GATILHO]: 'ᛃ', 
+  [AdditiveType.GATILHO]: 'ᛃ',
   [AdditiveType.ECO]: 'ᛋ',
+  [AdditiveType.FORMA]: 'ᛗ',
   // Kernel Runes
   [KernelType.ENTROPIA]: 'ᚲ', 
   [KernelType.MORFOLOGIA]: '᚛', 
@@ -107,6 +109,7 @@ export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.MANTER]: 'persistindo a estrutura através de loops temporais',
   [AdditiveType.GATILHO]: 'programando uma response condicional',
   [AdditiveType.ECO]: 'replicando a assinatura energética',
+  [AdditiveType.FORMA]: 'moldando a geometria de propagação do efeito (Cone, Linha ou Esfera Remota)',
   // Kernels
   [KernelType.ENTROPIA]: 'Buffer de Entropia: Manipula a agitação térmica.',
   [KernelType.MORFOLOGIA]: 'Buffer de Morfologia: Define a forma/formato natural da energia.',
@@ -161,6 +164,28 @@ export const MANTER_LEVELS: Record<number, ManterLevelInfo> = {
 export const MANTER_LEVEL_MIN = 0;
 export const MANTER_LEVEL_MAX = 4;
 
+// FORMA: aditivo geométrico opcional. Não concorre com o alcance de PONTO
+// (que continua decidindo Corpo-a-Corpo/Alcance/Aura) — só refina a
+// *geometria* de duas combinações específicas: uma Aura (PONTO 3) pode virar
+// direcional (Cone/Linha) e um Alcance (PONTO 2) pode virar uma explosão
+// remota (Esfera). Em qualquer outra combinação, FORMA fica sem efeito e o
+// compilador avisa isso como instabilidade — não falha silenciosamente.
+export interface FormaLevelInfo {
+  level: number;
+  name: string;
+  appliesToPontoLevel: number; // Nível de PONTO em que essa forma faz sentido
+  rangeStr: string;
+  dndRange: string;
+}
+
+export const FORMA_LEVELS: Record<number, FormaLevelInfo> = {
+  1: { level: 1, name: 'Cone',          appliesToPontoLevel: 3, rangeStr: 'Cone (4,5m)',           dndRange: 'Cone de 4,5 metros a partir de você' },
+  2: { level: 2, name: 'Linha',         appliesToPontoLevel: 3, rangeStr: 'Linha (18m)',            dndRange: 'Linha de 18 metros a partir de você' },
+  3: { level: 3, name: 'Esfera Remota', appliesToPontoLevel: 2, rangeStr: 'Esfera Remota (36m/6m)', dndRange: '36 metros; explosão em esfera de 6 metros de raio' },
+};
+export const FORMA_LEVEL_MIN = 1;
+export const FORMA_LEVEL_MAX = 3;
+
 // Cada Kernel escala o feitiço por um de dois eixos: pura amplitude
 // ("Aumento") ou mudança qualitativa da natureza do efeito ("Complexibilidade").
 export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> = {
@@ -196,6 +221,7 @@ export const NodeAttributesDict: Record<string, any> = {
   [AdditiveType.PONTO]: { precision: +5, tags: ['PONTO'] },
   [AdditiveType.CONTROLE]: { complexity: +2, tags: ['CONTROL'] },
   [AdditiveType.MANTER]: { complexity: +1, tags: ['MANTER'] },
+  [AdditiveType.FORMA]: { complexity: +1, tags: ['FORMA'] },
 
   // Kernel Defaults (Buffers): mais específicos que o Núcleo, por isso
   // sobrescrevem a condição/habilidade de resistência dele quando ativos.

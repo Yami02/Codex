@@ -11,15 +11,18 @@ import MagicDSLTerminal from './MagicDSLTerminal';
       CoreRunes, AdditiveRunes, EdgeCycle, EdgeSymbols,
       AdditiveDescriptions, NodeAttributesDict,
       PONTO_LEVELS, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX,
-      MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX
+      MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX,
+      FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX
     } from '../magicConstants';
 
-    // PONTO e MANTER são aditivos "de nível": um único nó no círculo carrega
-    // um número (alcance 1-3 / duração 0-4) em vez de o jogador precisar
-    // arrastar várias cópias idênticas para escalar o efeito.
+    // PONTO, MANTER e FORMA são aditivos "de nível": um único nó no círculo
+    // carrega um número (alcance 1-3 / duração 0-4 / geometria 1-3) em vez
+    // de o jogador precisar arrastar várias cópias idênticas para escalar
+    // o efeito ou escolher a variante.
     const LEVELED_ADDITIVES = {
       [AdditiveType.PONTO]: { min: PONTO_LEVEL_MIN, max: PONTO_LEVEL_MAX, table: PONTO_LEVELS, defaultLevel: PONTO_LEVEL_MIN, axisLabel: 'Alcance' },
       [AdditiveType.MANTER]: { min: MANTER_LEVEL_MIN, max: MANTER_LEVEL_MAX, table: MANTER_LEVELS, defaultLevel: 1, axisLabel: 'Duração' },
+      [AdditiveType.FORMA]: { min: FORMA_LEVEL_MIN, max: FORMA_LEVEL_MAX, table: FORMA_LEVELS, defaultLevel: FORMA_LEVEL_MIN, axisLabel: 'Formato' },
     };
 
     // Mostra, no tooltip do Núcleo, qual condição ele impõe e com qual
@@ -493,10 +496,10 @@ import { useNavigate } from 'react-router-dom';
               
               <h3 style={{ fontSize: '1.1rem', color: '#3498db', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #3498db', paddingLeft: '8px' }}>Aditivos</h3>
               <p style={{ fontSize: '0.7rem', color: '#8a7d9b', margin: '4px 0 10px', fontStyle: 'italic' }}>
-                Passe o mouse sobre um aditivo para ver o que ele faz. Ponto e Manter têm nível ajustável: adicione um só e use +/− ao selecioná-lo.
+                Passe o mouse sobre um aditivo para ver o que ele faz. Ponto, Manter e Forma têm nível ajustável: adicione um só e use +/− ao selecioná-lo. Forma só faz efeito com Ponto em Aura (Cone/Linha) ou Alcance (Esfera Remota).
               </p>
               <div className="sidebar-grid">
-                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
+                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#fd79a8', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #fd79a8', paddingLeft: '8px' }}>Subcírculos</h3>
