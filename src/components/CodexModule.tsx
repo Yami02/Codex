@@ -297,7 +297,25 @@ import { useNavigate } from 'react-router-dom';
 
       return (
         <div className={`app-container codex-wood-desk atm-${atmosphere}`}>
-          
+
+          {/* Close Link (matches Estudos Naturalistas) */}
+          <div style={{ position: 'fixed', top: '15px', left: '15px', zIndex: 110 }}>
+            <button
+              onClick={() => navigate('/')}
+              className="font-cinzel"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 14px', borderRadius: '8px',
+                color: '#d4af37', background: 'rgba(10,8,6,0.5)',
+                border: '1px solid rgba(139,90,43,0.4)',
+                backdropFilter: 'blur(4px)', cursor: 'pointer',
+                fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px'
+              }}
+            >
+              ← Fechar Grimório
+            </button>
+          </div>
+
           {/* Atmosphere Selector */}
           <div style={{ position: 'fixed', top: '15px', right: '15px', zIndex: 100, display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 'calc(100vw - 30px)' }}>
             {['CLASSIC', 'OBSERVATORY', 'FORGE', 'LIBRARY', 'ALTAR', 'SILVER'].map(atm => (
@@ -351,7 +369,7 @@ import { useNavigate } from 'react-router-dom';
                         <div className="mini-btn" onClick={() => handleLevelChange(selectedNode, 1)} title="Aumentar Nível">+</div>
                       </div>
                       {info && (
-                        <div style={{ fontSize: '0.7rem', color: '#8a7d9b', marginTop: '4px', maxWidth: '150px', lineHeight: 1.3 }}>
+                        <div style={{ fontSize: '0.7rem', color: '#c8b99e', marginTop: '4px', maxWidth: '150px', lineHeight: 1.3 }}>
                           {info.name}
                         </div>
                       )}
@@ -449,13 +467,13 @@ import { useNavigate } from 'react-router-dom';
           {isGrimoireOpen && (
             <div className="modal-overlay" onClick={() => setIsGrimoireOpen(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h2 style={{color: '#e1b12c', marginTop: 0}}>📖 O Grimório</h2>
-                <p style={{color: '#7f8fa6'}}>Arquivos arcanos salvos neste dispositivo.</p>
+                <h2 style={{color: '#6d1313', marginTop: 0, fontFamily: 'Cinzel, serif'}}>📖 O Grimório</h2>
+                <p style={{color: '#5c3a21'}}>Arquivos arcanos salvos neste dispositivo.</p>
                 <button className="action-btn primary" style={{marginBottom: '1rem', width: '100%', justifyContent: 'center'}} onClick={startNewSpell}>
                   + Criar Novo Feitiço
                 </button>
                 {savedSpells.length === 0 ? (
-                  <p style={{textAlign: 'center', color: '#555'}}>Nenhum feitiço registrado.</p>
+                  <p style={{textAlign: 'center', color: '#8e6c46'}}>Nenhum feitiço registrado.</p>
                 ) : (
                   savedSpells.map(spell => (
                     <div key={spell.id} className="grimoire-item" onClick={() => loadSpellFromGrimoire(spell)} style={{cursor: 'pointer'}}>
@@ -469,29 +487,29 @@ import { useNavigate } from 'react-router-dom';
           )}
 
           {!viewMode && (
-            <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-              <h2 style={{ color: '#d4af37', fontSize: '1.4rem', marginTop: 0, fontFamily: 'Cinzel, serif', textAlign: 'center', borderBottom: '1px solid #3a2f4c', paddingBottom: '10px' }}>CodexARCH v2</h2>
-              <p style={{ fontSize: '0.85rem', color: '#8a7d9b', marginBottom: '2rem', textAlign: 'center', fontStyle: 'italic' }}>Toque para adicionar ou pressione e arraste.</p>
-              
-              <h3 style={{ fontSize: '1.1rem', color: '#ff793f', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #ff793f', paddingLeft: '8px' }}>Núcleo (Elemental)</h3>
+            <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`} style={{ paddingTop: '4rem' }}>
+              <h2 style={{ color: '#6d1313', fontSize: '1.4rem', marginTop: 0, fontFamily: 'Cinzel, serif', textAlign: 'center', borderBottom: '1px solid rgba(74,55,40,0.25)', paddingBottom: '10px' }}>Grimório Lógico</h2>
+              <p style={{ fontSize: '0.85rem', color: '#5c3a21', marginBottom: '2rem', textAlign: 'center', fontStyle: 'italic' }}>Toque para adicionar ou pressione e arraste.</p>
+
+              <h3 style={{ fontSize: '1.1rem', color: '#b91c1c', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #b91c1c', paddingLeft: '8px' }}>Núcleo (Elemental)</h3>
               <div className="sidebar-grid">
                 {['FOGO', 'AGUA', 'TERRA', 'AR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" onAdd={handleDirectAdd} />)}
               </div>
 
-              <h3 style={{ fontSize: '1.1rem', color: '#f1c40f', marginTop: '1.5rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #f1c40f', paddingLeft: '8px' }}>Núcleo (Dualidade)</h3>
+              <h3 style={{ fontSize: '1.1rem', color: '#047857', marginTop: '1.5rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #047857', paddingLeft: '8px' }}>Núcleo (Dualidade)</h3>
               <div className="sidebar-grid">
                 {['LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" onAdd={handleDirectAdd} />)}
               </div>
-              
-              <h3 style={{ fontSize: '1.1rem', color: '#3498db', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #3498db', paddingLeft: '8px' }}>Aditivos</h3>
-              <p style={{ fontSize: '0.7rem', color: '#8a7d9b', margin: '4px 0 10px', fontStyle: 'italic' }}>
+
+              <h3 style={{ fontSize: '1.1rem', color: '#1d4ed8', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #1d4ed8', paddingLeft: '8px' }}>Aditivos</h3>
+              <p style={{ fontSize: '0.7rem', color: '#5c3a21', margin: '4px 0 10px', fontStyle: 'italic' }}>
                 Passe o mouse sobre um aditivo para ver o que ele faz. Ponto e Manter têm nível ajustável: adicione um só e use +/− ao selecioná-lo.
               </p>
               <div className="sidebar-grid">
                 {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
               </div>
 
-              <h3 style={{ fontSize: '1.1rem', color: '#fd79a8', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #fd79a8', paddingLeft: '8px' }}>Subcírculos</h3>
+              <h3 style={{ fontSize: '1.1rem', color: '#6d28d9', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #6d28d9', paddingLeft: '8px' }}>Subcírculos</h3>
               <DraggableItem type={NodeType.SUBCIRCLE} name="SUBCIRCLE" label="( ) Gerar Subciclo" className="subcircle-item" onAdd={handleDirectAdd} />
             </div>
           )}
@@ -499,7 +517,6 @@ import { useNavigate } from 'react-router-dom';
           <div className="main-content">
             <div className="top-bar">
               <div className="top-actions" style={{ opacity: viewMode ? 0 : 1, transition: 'opacity 0.3s', pointerEvents: viewMode ? 'none' : 'auto' }}>
-                <button className="action-btn" onClick={() => navigate('/')}>🏠 Hub</button>
                 <button className="action-btn" onClick={() => setIsGrimoireOpen(true)}>📖 Grimório</button>
                 <button className="action-btn primary" onClick={saveSpellToGrimoire}>💾 Salvar</button>
                 <button className="action-btn" onClick={exportSpellFile}>↓ Baixar</button>
@@ -519,35 +536,35 @@ import { useNavigate } from 'react-router-dom';
                 <div className="config-toggles">
                   <div className="config-item">
                     <div className="config-label">Cor da Aura</div>
-                    <input type="color" value={globalAuraColor} onChange={e => setMainGraph({...mainGraph, auraColor: e.target.value})} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', cursor: 'pointer', height: '40px', width: '100%', padding: '2px' }} />
+                    <input type="color" value={globalAuraColor} onChange={e => setMainGraph({...mainGraph, auraColor: e.target.value})} style={{ background: 'none', border: '1px solid rgba(74,55,40,0.3)', borderRadius: '6px', cursor: 'pointer', height: '40px', width: '100%', padding: '2px' }} />
                   </div>
-                  
+
                   <div className="config-item">
                     <div className="config-label">Estilo da Órbita</div>
-                    <select value={rawOrbitStyle} onChange={e => setMainGraph({...mainGraph, orbitStyle: e.target.value})} style={{ background: 'rgba(26, 21, 37, 0.8)', color: '#d4af37', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '6px', padding: '10px', outline: 'none', fontFamily: 'Cinzel, serif', fontSize: '0.85rem' }}>
+                    <select value={rawOrbitStyle} onChange={e => setMainGraph({...mainGraph, orbitStyle: e.target.value})} style={{ background: 'rgba(255, 255, 255, 0.4)', color: '#4a3728', border: '1px solid rgba(74,55,40,0.25)', borderRadius: '6px', padding: '10px', outline: 'none', fontFamily: 'Cinzel, serif', fontSize: '0.85rem' }}>
                       <option value="solid">Contínua (Sólida)</option>
                       <option value="dashed">Tracejada (Rúnica)</option>
                       <option value="dotted">Pontilhada (Etérea)</option>
                     </select>
                   </div>
-                  
+
                   <div className="config-item">
                     <div className="config-label">Cálculo de Conexão</div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <select value={edgeColorMode} onChange={e => setMainGraph({...mainGraph, edgeColorMode: e.target.value})} style={{ flex: 1, background: 'rgba(26, 21, 37, 0.8)', color: '#d4af37', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '6px', padding: '10px', outline: 'none', fontFamily: 'Cinzel, serif', fontSize: '0.85rem' }}>
+                      <select value={edgeColorMode} onChange={e => setMainGraph({...mainGraph, edgeColorMode: e.target.value})} style={{ flex: 1, background: 'rgba(255, 255, 255, 0.4)', color: '#4a3728', border: '1px solid rgba(74,55,40,0.25)', borderRadius: '6px', padding: '10px', outline: 'none', fontFamily: 'Cinzel, serif', fontSize: '0.85rem' }}>
                         <option value="auto">Cores por Tipo</option>
                         <option value="custom">Matiz Personalizada</option>
                       </select>
                       {edgeColorMode === 'custom' && (
-                        <input type="color" value={customEdgeColor} onChange={e => setMainGraph({...mainGraph, customEdgeColor: e.target.value})} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', cursor: 'pointer', height: '40px', width: '60px', padding: '2px' }} />
+                        <input type="color" value={customEdgeColor} onChange={e => setMainGraph({...mainGraph, customEdgeColor: e.target.value})} style={{ background: 'none', border: '1px solid rgba(74,55,40,0.3)', borderRadius: '6px', cursor: 'pointer', height: '40px', width: '60px', padding: '2px' }} />
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="config-item" style={{ justifyContent: 'center' }}>
                     <div className="config-label">Mecânica Rúnica</div>
-                    <label style={{ display: 'flex', gap: '12px', alignItems: 'center', color: '#c8b99e', fontSize: '0.85rem', fontFamily: 'Cinzel, serif', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', padding: '10px 15px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.1)', transition: 'all 0.2s' }} className="hover-highlight">
-                      <input type="checkbox" checked={isGlobalRotating} onChange={e => setMainGraph({...mainGraph, isGlobalRotating: e.target.checked})} style={{ width: '20px', height: '20px', accentColor: '#d4af37' }} />
+                    <label style={{ display: 'flex', gap: '12px', alignItems: 'center', color: '#4a3728', fontSize: '0.85rem', fontFamily: 'Cinzel, serif', cursor: 'pointer', background: 'rgba(255,255,255,0.3)', padding: '10px 15px', borderRadius: '8px', border: '1px solid rgba(74,55,40,0.15)', transition: 'all 0.2s' }} className="hover-highlight">
+                      <input type="checkbox" checked={isGlobalRotating} onChange={e => setMainGraph({...mainGraph, isGlobalRotating: e.target.checked})} style={{ width: '20px', height: '20px', accentColor: '#6d1313' }} />
                       Cinética (Ativar Rotação)
                     </label>
                   </div>
