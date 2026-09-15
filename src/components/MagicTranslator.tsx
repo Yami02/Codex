@@ -6,6 +6,7 @@ import {
 } from '../magicConstants';
 
 import { MagicCompilerEngine } from '../engine/compiler';
+import { computeSpellSigil, SIGIL_LEGEND } from '../engine/sigil';
 
 const MagicTranslator = ({ graph }: any) => {
     const [isAdvancedMode, setIsAdvancedMode] = useState(false);
@@ -16,8 +17,21 @@ const MagicTranslator = ({ graph }: any) => {
         const result = MagicCompilerEngine.execute(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock } = result;
+        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode, college, capacitor } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
+
+        // Selo Arcano: assinatura geométrica única desta magia compilada,
+        // gerada a partir dos atributos já resolvidos pelo motor (nível,
+        // elemento, alcance, forma/modo, duração) — ver engine/sigil.ts.
+        const sigil = computeSpellSigil({
+          element,
+          level,
+          alcance: attrs.alcance || 0,
+          forma: attrs.forma || 0,
+          mover: attrs.mover || 0,
+          perceber: attrs.perceber || 0,
+          duracao: attrs.duracao || 0,
+        }, 90, { x: 100, y: 100 });
 
         const techStats = [
           { label: 'Potência', value: attrs.potency || 0, icon: '⚡' },
@@ -36,16 +50,37 @@ const MagicTranslator = ({ graph }: any) => {
           <div className="spell-description ink-drying" style={{ fontFamily: 'Caveat, cursive', fontSize: '1.4rem', mixBlendMode: 'multiply' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '2px dashed rgba(139,90,43,0.3)', paddingBottom: '15px' }}>
               <div style={{ flex: 1 }}>
-                <h2 style={{ margin: 0, fontFamily: 'Cinzel, serif', color: '#5c3a21', fontSize: '1.8rem', letterSpacing: '2px', fontWeight: 'bold' }}>Manifestação de {element}</h2>
-                <div style={{ fontSize: '1.1rem', color: '#8b0000', marginTop: '6px', fontWeight: 'bold' }}>{level}º Círculo | Transmutação Arcanística</div>
+                <h2 style={{ margin: 0, fontFamily: 'Cinzel, serif', color: '#5c3a21', fontSize: '1.8rem', letterSpacing: '2px', fontWeight: 'bold' }}>{college ? college.name : `Manifestação de ${element}`}</h2>
+                <div style={{ fontSize: '1.1rem', color: '#8b0000', marginTop: '6px', fontWeight: 'bold' }}>{level}º Círculo | {college ? college.vocabulary : 'Transmutação Arcanística'}</div>
               </div>
               <div className="runic-text" style={{ fontSize: '3rem', color: '#8b0000', opacity: 0.8, marginLeft: '20px' }}>{CoreRunes[element]}</div>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px', marginBottom: '25px', padding: '15px', background: 'rgba(92,58,33,0.04)', border: '1px dashed rgba(92,58,33,0.25)', borderRadius: '8px' }}>
+              <svg width="180" height="180" viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
+                {sigil.vertices.map((v, i) => (
+                  <circle key={i} cx={v.x} cy={v.y} r={2.5} fill="#5c3a21" opacity={0.6} />
+                ))}
+                {sigil.segments.map((s, i) => (
+                  <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.color} strokeWidth={1.6} opacity={0.85} />
+                ))}
+              </svg>
+              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.85rem', color: '#5c3a21', maxWidth: '260px' }}>
+                <div style={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Selo Arcano</div>
+                <div style={{ opacity: 0.8, marginBottom: '8px', fontSize: '0.78rem' }}>Assinatura geométrica única desta magia — nível, elemento, alcance, forma e duração codificados no mesmo polígono.</div>
+                {SIGIL_LEGEND.map(l => (
+                  <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', marginBottom: '2px', textTransform: 'capitalize' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: l.color, display: 'inline-block' }} />
+                    {l.key}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', marginBottom: '25px', fontFamily: 'Cinzel, serif' }}>
               <div style={{ background: 'rgba(92,58,33,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(92,58,33,0.2)' }}>
                 <div style={{ fontSize: '0.8rem', color: '#5c3a21', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Tempo de Conjuração</div>
-                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{attrs.mass > 10 ? '1 Minuto' : '1 Ação'}</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{dndBlock.castingTime}</div>
               </div>
               <div style={{ background: 'rgba(92,58,33,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(92,58,33,0.2)' }}>
                 <div style={{ fontSize: '0.8rem', color: '#5c3a21', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Alcance</div>
@@ -58,7 +93,19 @@ const MagicTranslator = ({ graph }: any) => {
               {needsDC && (
                 <div style={{ background: 'rgba(139,0,0,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(139,0,0,0.3)', boxShadow: '0 0 10px rgba(139,0,0,0.1)' }}>
                   <div style={{ fontSize: '0.8rem', color: '#8b0000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Dificuldade Arcaica</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: '#8b0000' }}>CD {dc}</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: '#8b0000' }}>CD {dc} ({saveAbility})</div>
+                </div>
+              )}
+              {conditions && conditions.length > 0 && (
+                <div style={{ background: 'rgba(114,9,183,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(114,9,183,0.3)' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#7209b7', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Condição Imposta</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{conditions.join(', ')}</div>
+                </div>
+              )}
+              {capacitor && (
+                <div style={{ background: 'rgba(0,168,255,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(0,168,255,0.3)' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#0097e6', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Capacitor</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{capacitor.name} ({capacitor.cargas}) — Gatilho: {capacitor.trigger.name}</div>
                 </div>
               )}
             </div>
@@ -121,9 +168,11 @@ const MagicTranslator = ({ graph }: any) => {
                   </div>
                   <div style={{ fontSize: '1.5rem', color: '#1a120b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(92,58,33,0.05)', padding: '18px', border: '1px solid rgba(92,58,33,0.2)', borderLeft: '4px solid #8b0000' }}>
                     <div>
-                      <div style={{ fontSize: '1rem', color: '#5c3a21', marginBottom: '2px', fontFamily: 'Cinzel, serif' }}>{attrs.healing ? 'Harmonização Vital' : 'Vibração Destrutiva'}</div>
+                      <div style={{ fontSize: '1rem', color: '#5c3a21', marginBottom: '2px', fontFamily: 'Cinzel, serif' }}>
+                        {mode === 'MOVER' ? 'Deslocamento' : mode === 'PERCEBER' ? 'Percepção' : (attrs.healing ? 'Harmonização Vital' : 'Vibração Destrutiva')}
+                      </div>
                       <div style={{ transform: 'rotate(-1deg)' }}>
-                        {attrs.healing ? `Restaura ${attrs.healing} pontos de essência arcana.` : `Canalização ofensiva de ${attrs.damageType || 'Energia Pura'}.`}
+                        {mode === 'MOVER' ? 'Reposiciona alvos no espaço, sem dano.' : mode === 'PERCEBER' ? 'Revela informação, sem dano.' : (attrs.healing ? `Restaura ${attrs.healing} pontos de essência arcana.` : `Canalização ofensiva de ${attrs.damageType || 'Energia Pura'}.`)}
                       </div>
                     </div>
                   </div>

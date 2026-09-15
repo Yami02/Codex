@@ -4,6 +4,7 @@ import MagicCanvas from './MagicCanvas';
 import MagicTranslator from './MagicTranslator';
 import EdgeVisual from './EdgeVisual';
 import MagicDSLTerminal from './MagicDSLTerminal';
+import HelpGuide from './HelpGuide';
 
 
     import {
@@ -11,15 +12,40 @@ import MagicDSLTerminal from './MagicDSLTerminal';
       CoreRunes, AdditiveRunes, EdgeCycle, EdgeSymbols,
       AdditiveDescriptions, NodeAttributesDict,
       PONTO_LEVELS, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX,
-      MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX
+      MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX,
+      FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
+      MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
+      PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX,
+      GATILHO_LEVELS, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX,
+      TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE
     } from '../magicConstants';
+    import { resolveCollege } from '../engine/colleges';
 
-    // PONTO e MANTER são aditivos "de nível": um único nó no círculo carrega
-    // um número (alcance 1-3 / duração 0-4) em vez de o jogador precisar
-    // arrastar várias cópias idênticas para escalar o efeito.
+    // Valores possíveis pra FUSAO: os mesmos 8 do Núcleo — combinar dois
+    // elementos (ou um elemento + Compor/Decompor como polaridade) revela
+    // um dos 32 Colégios (ver engine/colleges.ts), sem precisar de um
+    // segundo nó de Núcleo.
+    const FUSAO_ELEMENT_OPTIONS = ['FOGO', 'AGUA', 'TERRA', 'AR', 'LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'];
+
+    // PONTO, MANTER, FORMA, MOVER e PERCEBER são aditivos "de nível": um
+    // único nó no círculo carrega um número (alcance 1-3 / duração 0-4 /
+    // geometria 1-3 / distância 1-3 / profundidade 1-3) em vez de o jogador
+    // precisar arrastar várias cópias idênticas para escalar o efeito.
     const LEVELED_ADDITIVES = {
       [AdditiveType.PONTO]: { min: PONTO_LEVEL_MIN, max: PONTO_LEVEL_MAX, table: PONTO_LEVELS, defaultLevel: PONTO_LEVEL_MIN, axisLabel: 'Alcance' },
       [AdditiveType.MANTER]: { min: MANTER_LEVEL_MIN, max: MANTER_LEVEL_MAX, table: MANTER_LEVELS, defaultLevel: 1, axisLabel: 'Duração' },
+      [AdditiveType.FORMA]: { min: FORMA_LEVEL_MIN, max: FORMA_LEVEL_MAX, table: FORMA_LEVELS, defaultLevel: FORMA_LEVEL_MIN, axisLabel: 'Formato' },
+      [AdditiveType.MOVER]: { min: MOVER_LEVEL_MIN, max: MOVER_LEVEL_MAX, table: MOVER_LEVELS, defaultLevel: MOVER_LEVEL_MIN, axisLabel: 'Distância' },
+      [AdditiveType.PERCEBER]: { min: PERCEBER_LEVEL_MIN, max: PERCEBER_LEVEL_MAX, table: PERCEBER_LEVELS, defaultLevel: PERCEBER_LEVEL_MIN, axisLabel: 'Profundidade' },
+      [AdditiveType.GATILHO]: { min: GATILHO_LEVEL_MIN, max: GATILHO_LEVEL_MAX, table: GATILHO_LEVELS, defaultLevel: GATILHO_LEVEL_MIN, axisLabel: 'Carga do Capacitor' },
+    };
+
+    // Mostra, no tooltip do Núcleo, qual condição ele impõe e com qual
+    // atributo o alvo resiste — mesma tabela que o compilador usa.
+    const coreConditionTooltip = (elementName) => {
+      const attrs = NodeAttributesDict[elementName];
+      if (!attrs || !attrs.debuffs || !attrs.debuffs.length) return elementName;
+      return `${elementName} — impõe ${attrs.debuffs.join(', ')} (resistência de ${attrs.saveAbility})`;
     };
 
     import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -86,6 +112,7 @@ import { useNavigate } from 'react-router-dom';
       const [spellName, setSpellName] = useState('Feitiço Sem Nome');
       const [spellComments, setSpellComments] = useState('');
       const [isGrimoireOpen, setIsGrimoireOpen] = useState(false);
+      const [isHelpOpen, setIsHelpOpen] = useState(false);
       const [savedSpells, setSavedSpells] = useState([]);
       const fileInputRef = useRef(null);
 
@@ -166,9 +193,15 @@ import { useNavigate } from 'react-router-dom';
         }
         else if (item.type === NodeType.ADDITIVE) {
           const leveled = LEVELED_ADDITIVES[item.name];
-          if (leveled) {
+          if (item.name === AdditiveType.FUSAO) {
+            const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === AdditiveType.FUSAO);
+            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: AdditiveType.FUSAO, fusionElement: 'TERRA', layer: 1, angleOffset: 0 });
+          } else if (leveled) {
             const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === item.name);
-            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, level: leveled.defaultLevel, layer: 1, angleOffset: 0 });
+            if (!exists) {
+              const extra = item.name === AdditiveType.GATILHO ? { triggerType: DEFAULT_TRIGGER_TYPE } : {};
+              newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, level: leveled.defaultLevel, layer: 1, angleOffset: 0, ...extra });
+            }
           } else {
             newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, layer: 1, angleOffset: 0 });
           }
@@ -195,9 +228,15 @@ import { useNavigate } from 'react-router-dom';
         }
         else if (type === NodeType.ADDITIVE) {
           const leveled = LEVELED_ADDITIVES[name];
-          if (leveled) {
+          if (name === AdditiveType.FUSAO) {
+            const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === AdditiveType.FUSAO);
+            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: AdditiveType.FUSAO, fusionElement: 'TERRA', layer: 1, angleOffset: 0 });
+          } else if (leveled) {
             const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === name);
-            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, level: leveled.defaultLevel, layer: 1, angleOffset: 0 });
+            if (!exists) {
+              const extra = name === AdditiveType.GATILHO ? { triggerType: DEFAULT_TRIGGER_TYPE } : {};
+              newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, level: leveled.defaultLevel, layer: 1, angleOffset: 0, ...extra });
+            }
           } else {
             newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, layer: 1, angleOffset: 0 });
           }
@@ -378,6 +417,65 @@ import { useNavigate } from 'react-router-dom';
                 );
               })()}
 
+              {selectedNode.type === NodeType.ADDITIVE && selectedNode.additiveType === AdditiveType.GATILHO && (
+                <div className="action-group">
+                  <div style={{ maxWidth: '190px' }}>
+                    <div className="action-label">Gatilho (o que libera)</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', marginTop: '4px' }}>
+                      {Object.values(TRIGGER_TYPES).map((t: any) => (
+                        <div
+                          key={t.key}
+                          className="mini-btn"
+                          onClick={() => updateNodeCustomProperty(selectedNode.id, 'triggerType', t.key)}
+                          title={t.description}
+                          style={{
+                            fontSize: '0.62rem',
+                            padding: '4px 2px',
+                            borderColor: (selectedNode.triggerType || DEFAULT_TRIGGER_TYPE) === t.key ? '#d4af37' : undefined,
+                            color: (selectedNode.triggerType || DEFAULT_TRIGGER_TYPE) === t.key ? '#d4af37' : undefined,
+                          }}
+                        >
+                          {t.name}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === NodeType.ADDITIVE && selectedNode.additiveType === AdditiveType.FUSAO && (() => {
+                const coreNode = activeGraph.nodes.find(n => n.type === NodeType.CORE);
+                const college = coreNode ? resolveCollege(coreNode.element, selectedNode.fusionElement) : null;
+                return (
+                  <div className="action-group">
+                    <div style={{ maxWidth: '200px' }}>
+                      <div className="action-label">Fusão (2º Elemento/Polaridade)</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginTop: '4px' }}>
+                        {FUSAO_ELEMENT_OPTIONS.map(el => (
+                          <div
+                            key={el}
+                            className="mini-btn"
+                            onClick={() => updateNodeCustomProperty(selectedNode.id, 'fusionElement', el)}
+                            title={el}
+                            style={{
+                              fontSize: '0.6rem',
+                              padding: '4px 2px',
+                              borderColor: selectedNode.fusionElement === el ? '#d4af37' : undefined,
+                              color: selectedNode.fusionElement === el ? '#d4af37' : undefined,
+                            }}
+                          >
+                            {el.slice(0, 4)}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: college ? '#d4af37' : '#8a7d9b', marginTop: '6px', lineHeight: 1.3 }}>
+                        {college ? college.name : 'Adicione um Núcleo para revelar o Colégio.'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="action-group">
                 <div>
                   <div className="action-label">Acões</div>
@@ -464,6 +562,8 @@ import { useNavigate } from 'react-router-dom';
             {isSidebarOpen ? '✕' : '📜'}
           </button>
 
+          {isHelpOpen && <HelpGuide onClose={() => setIsHelpOpen(false)} />}
+
           {isGrimoireOpen && (
             <div className="modal-overlay" onClick={() => setIsGrimoireOpen(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -493,20 +593,20 @@ import { useNavigate } from 'react-router-dom';
 
               <h3 style={{ fontSize: '1.1rem', color: '#b91c1c', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #b91c1c', paddingLeft: '8px' }}>Núcleo (Elemental)</h3>
               <div className="sidebar-grid">
-                {['FOGO', 'AGUA', 'TERRA', 'AR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" onAdd={handleDirectAdd} />)}
+                {['FOGO', 'AGUA', 'TERRA', 'AR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" description={coreConditionTooltip(c)} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#047857', marginTop: '1.5rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #047857', paddingLeft: '8px' }}>Núcleo (Dualidade)</h3>
               <div className="sidebar-grid">
-                {['LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" onAdd={handleDirectAdd} />)}
+                {['LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'].map(c => <DraggableItem key={c} type={NodeType.CORE} name={c} className="core-item" description={coreConditionTooltip(c)} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#1d4ed8', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #1d4ed8', paddingLeft: '8px' }}>Aditivos</h3>
               <p style={{ fontSize: '0.7rem', color: '#5c3a21', margin: '4px 0 10px', fontStyle: 'italic' }}>
-                Passe o mouse sobre um aditivo para ver o que ele faz. Ponto e Manter têm nível ajustável: adicione um só e use +/− ao selecioná-lo.
+                Passe o mouse sobre um aditivo para ver o que ele faz. Ponto, Manter, Forma, Mover e Perceber têm nível ajustável: adicione um só e use +/− ao selecioná-lo. Forma só faz efeito com Ponto em Aura ou Alcance. Mover e Perceber substituem dano/cura pelo próprio efeito (deslocamento/informação) e não podem atuar juntos.
               </p>
               <div className="sidebar-grid">
-                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
+                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'TESTE', 'FUSAO', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#6d28d9', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #6d28d9', paddingLeft: '8px' }}>Subcírculos</h3>
@@ -517,6 +617,7 @@ import { useNavigate } from 'react-router-dom';
           <div className="main-content">
             <div className="top-bar">
               <div className="top-actions" style={{ opacity: viewMode ? 0 : 1, transition: 'opacity 0.3s', pointerEvents: viewMode ? 'none' : 'auto' }}>
+                <button className="action-btn" onClick={() => setIsHelpOpen(true)} title="Como usar e como a magia funciona">❓ Ajuda</button>
                 <button className="action-btn" onClick={() => setIsGrimoireOpen(true)}>📖 Grimório</button>
                 <button className="action-btn primary" onClick={saveSpellToGrimoire}>💾 Salvar</button>
                 <button className="action-btn" onClick={exportSpellFile}>↓ Baixar</button>
