@@ -5,7 +5,7 @@ import {
   AdditiveDescriptions, NodeAttributesDict
 } from '../magicConstants';
 
-interface DraggableItemProps { type: any; name: any; label?: any; className?: any; onAdd?: any; }
+interface DraggableItemProps { type: any; name: any; label?: any; className?: any; onAdd?: any; description?: string; }
 
 const elementColors: Record<string, { color: string, glow: string }> = {
   'FOGO': { color: '#e63946', glow: 'rgba(230, 57, 70, 0.8)' },
@@ -18,7 +18,7 @@ const elementColors: Record<string, { color: string, glow: string }> = {
   'DECOMPOR': { color: '#d90429', glow: 'rgba(217, 4, 41, 0.8)' },
 };
 
-const DraggableItem = ({ type, name, label, className, onAdd }: DraggableItemProps) => {
+const DraggableItem = ({ type, name, label, className, onAdd, description }: DraggableItemProps) => {
   const handleDragStart = (e: any) => { e.dataTransfer.setData('application/json', JSON.stringify({ type, name })); };
   const rune = type === NodeType.CORE || type === NodeType.KERNEL ? CoreRunes[name] : (type === NodeType.ADDITIVE) ? AdditiveRunes[name] : null;
   
@@ -69,7 +69,7 @@ const DraggableItem = ({ type, name, label, className, onAdd }: DraggableItemPro
               onDragStart={handleDragStart}
               onClick={(e) => { e.preventDefault(); onAdd && onAdd(type, name); }}
               className="obsidian-pot"
-              title={name}
+              title={description || name}
            >
                <div className="obsidian-liquid-container">
                   <span className="obsidian-rune">{rune}</span>

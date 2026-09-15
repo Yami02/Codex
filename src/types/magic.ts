@@ -1,39 +1,27 @@
 // ==========================================
 // 1. ENUMS E CLASSIFICAÇÕES
 // ==========================================
+// Fonte única da verdade: os enums estruturais (NodeType, CoreElement,
+// AdditiveType, KernelType, EdgeType) vivem em engine/constants.ts, junto
+// das runas, descrições e atributos que os acompanham. Este arquivo só
+// re-exporta e acrescenta os tipos "de forma" (interfaces de nó/aresta/grafo)
+// que faltavam ali, para nunca haver duas listas de elementos/aditivos
+// divergentes na mesma base de código.
+export {
+  NodeType,
+  CoreElement,
+  AdditiveType,
+  KernelType,
+  EdgeType,
+} from '../engine/constants';
+import { NodeType, CoreElement, AdditiveType, EdgeType } from '../engine/constants';
 
-export enum NodeType {
-  CORE = 'CORE',
-  ADDITIVE = 'ADDITIVE',
-  SUBCIRCLE = 'SUBCIRCLE',
-  KERNEL = 'KERNEL'
-}
-
-export enum CoreElement {
-  FOGO = 'FOGO',
-  AGUA = 'AGUA',
-  AR = 'AR',
-  TERRA = 'TERRA',
-  LUZ = 'LUZ',
-  SOMBRA = 'SOMBRA',
-  COMPOR = 'COMPOR',
-  DECOMPOR = 'DECOMPOR',
-  // Combinations
-  METAL = 'METAL',
-  LAVA = 'LAVA',
-  COMBUSTAO = 'COMBUSTAO',
-  ELETRICIDADE = 'ELETRICIDADE',
-  MADEIRA = 'MADEIRA',
-  LODO = 'LODO',
-  NUVEM = 'NUVEM',
-  VIDA = 'VIDA',
-  CURA = 'CURA',
-  ILUSAO = 'ILUSAO',
-  CONTRAMAGICA = 'CONTRAMAGICA',
-  MORTE = 'MORTE',
-  DRENAR = 'DRENAR',
-  MALDICAO = 'MALDICAO'
-}
+// Elementos "combinados" resolvidos pelo compilador (ex: FOGO+TERRA+COMPOR
+// = METAL) não são um Núcleo que o jogador escolhe — são o resultado da
+// leitura semântica do círculo, por isso ficam como string livre em vez de
+// um enum: o PatternMatcher em engine/compiler.ts é a fonte da verdade
+// sobre quais combinações existem.
+export type ResolvedElement = CoreElement | string;
 
 export enum AdditiveFamily {
   VETORIAL = 'VETORIAL',
@@ -43,47 +31,9 @@ export enum AdditiveFamily {
   COMPORTAMENTAL = 'COMPORTAMENTAL',
 }
 
-export enum AdditiveType {
-  // Kernel del Kernel
-  ENTROPIA = 'ENTROPIA',
-  MORFOLOGIA = 'MORFOLOGIA',
-  ESTADO = 'ESTADO',
-  ONDA = 'ONDA',
-  FORCA = 'FORCA',
-  VOLUME = 'VOLUME',
-  // Aditivos
-  CONTROLE = 'CONTROLE',
-  AUMENTO = 'AUMENTO',
-  REDUCAO = 'REDUCAO',
-  PONTO = 'PONTO',
-  MANTER = 'MANTER',
-  GATILHO = 'GATILHO',
-  ECO = 'ECO',
-  // Legacy/Outros
-  VETOR_LINEAR = 'VETOR_LINEAR',
-  RADIACAO = 'RADIACAO',
-  ANCORAGEM = 'ANCORAGEM',
-  PLANO_SOLIDO = 'PLANO_SOLIDO',
-  ESFERA_CUPULA = 'ESFERA_CUPULA',
-}
-
 export enum EdgeCategory {
   ESTRUTURAL = 'ESTRUTURAL',
   LOGICO = 'LOGICO',
-}
-
-export enum EdgeType {
-  UNIAO = 'UNIAO',           // --
-  ATRIBUICAO = 'ATRIBUICAO', // ==c (Contains)
-  SEQUENCIA = 'SEQUENCIA',   // -->
-  FEEDBACK = 'FEEDBACK',     // <-->
-  AND = 'AND',               // --
-  OR = 'OR',                 // <==>
-  XOR = 'XOR',               // <-->
-  SUB_STREAM = 'SUB_STREAM', // ==
-  CORRENTE = 'CORRENTE',     // == (demo addition)
-  SE_ENTAO = 'SE_ENTAO',    // --> (demo alias/addition)
-  REVERSO = 'REVERSO',
 }
 
 // ==========================================
@@ -141,6 +91,10 @@ export interface AdditiveNode extends BaseNode {
   family: AdditiveFamily;
   additiveType: AdditiveType;
   multiplier?: number; // Ex: 3x Amplificadores (para uso no cálculo de simetria)
+  // Intensidade explícita do aditivo (usada por PONTO 1-3 e MANTER 0-4).
+  // Substitui a antiga convenção de "empilhar N cópias do mesmo nó" —
+  // ver PONTO_LEVELS/MANTER_LEVELS em engine/constants.ts.
+  level?: number;
 }
 
 export interface SubCircleNode extends BaseNode {

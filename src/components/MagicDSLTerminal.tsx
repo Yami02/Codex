@@ -87,9 +87,9 @@ export const MagicDSLTerminal = ({ graph, onChange }: MagicDSLTerminalProps) => 
                       <h4 style={{ color: '#d4af37', fontFamily: 'Cinzel', fontSize: '1.2rem' }}>Passo 2: Morfologia Espacial</h4>
                       <p style={{ color: '#8a7d9b', fontSize: '0.9rem' }}>Como sua magia se manifesta no espaço físico?</p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
-                          <button onClick={() => updateAnswer('expansao', 'TOQUE')} style={btnStyle(answers.expansao === 'TOQUE')}>Toque / Canalização Direta (1 Ponto)</button>
-                          <button onClick={() => updateAnswer('expansao', 'PROJETIL')} style={btnStyle(answers.expansao === 'PROJETIL')}>Lançar um Projétil (Linha / 2 Pontos)</button>
-                          <button onClick={() => updateAnswer('expansao', 'AREA')} style={btnStyle(answers.expansao === 'AREA')}>Explosão em Área (Triângulo / 3 Pontos)</button>
+                          <button onClick={() => updateAnswer('expansao', 'TOQUE')} style={btnStyle(answers.expansao === 'TOQUE')}>Corpo-a-Corpo / Toque (Ponto Nível 1)</button>
+                          <button onClick={() => updateAnswer('expansao', 'PROJETIL')} style={btnStyle(answers.expansao === 'PROJETIL')}>Alcance / Projétil (Ponto Nível 2)</button>
+                          <button onClick={() => updateAnswer('expansao', 'AREA')} style={btnStyle(answers.expansao === 'AREA')}>Aura ao seu Redor (Ponto Nível 3)</button>
                       </div>
                   </div>
               );
@@ -100,8 +100,8 @@ export const MagicDSLTerminal = ({ graph, onChange }: MagicDSLTerminalProps) => 
                       <p style={{ color: '#8a7d9b', fontSize: '0.9rem' }}>Por quanto tempo a força arcana irá operar na realidade?</p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
                           <button onClick={() => updateAnswer('duracao', 'INSTANTANEA')} style={btnStyle(answers.duracao === 'INSTANTANEA')}>Impacto Instantâneo (Nenhum 'Manter')</button>
-                          <button onClick={() => updateAnswer('duracao', 'CONCENTRACAO')} style={btnStyle(answers.duracao === 'CONCENTRACAO')}>Requer Concentração (Triângulo de 'Manter')</button>
-                          <button onClick={() => updateAnswer('duracao', 'CAPACITOR')} style={btnStyle(answers.duracao === 'CAPACITOR')}>Aura Perpétua (Capacitor / Quadrado)</button>
+                          <button onClick={() => updateAnswer('duracao', 'CONCENTRACAO')} style={btnStyle(answers.duracao === 'CONCENTRACAO')}>Requer Concentração (Manter Nível 2)</button>
+                          <button onClick={() => updateAnswer('duracao', 'CAPACITOR')} style={btnStyle(answers.duracao === 'CAPACITOR')}>Aura Perpétua (Manter Nível 4 / Capacitor)</button>
                       </div>
                   </div>
               );
@@ -200,10 +200,12 @@ export const MagicDSLTerminal = ({ graph, onChange }: MagicDSLTerminalProps) => 
                 placeholder={`Exemplo de Código Rúnico:
 
 CORE FOGO f
-ADD PONTO p
+ADD PONTO p 3
 ADD AUMENTO a
 LINK f AND p
-LINK p ATRIBUICAO a`}
+LINK p ATRIBUICAO a
+
+(o número após PONTO/MANTER é o nível: 1-3 e 0-4)`}
                 className="spell-input ink-drying"
                 style={{
                 flex: 1,
