@@ -241,11 +241,23 @@ dicionário do livro original.
 | `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`). |
 | `types/magic.ts` | Interfaces de nó/aresta/grafo; reexporta os enums de `constants.ts`. |
 | `engine/compiler.ts` | O motor: AST, validador, pattern matcher (inclui as regras dos conectivos de aresta — §6), álgebra do buffer, geração de texto. |
-| `engine/colleges.ts` | Tabela dos 32 Colégios e a Lei da Simetria. |
+| `engine/colleges.ts` | Tabela dos 32 Colégios, a Lei da Simetria, e `listColleges()` (lista os 32 com a chave de formação, pro Grande Tomo exibir sem duplicar a tabela). |
 | `engine/sigil.ts` | Gerador do Selo Arcano. |
 | `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado. |
 | `components/MagicTranslator.tsx` | Renderiza o resultado compilado (ficha, bloco D&D 5e, Selo Arcano). |
 | `components/HelpGuide.tsx` | Guia de ajuda in-app (linguagem simples, espelha este documento). |
+| `pages/Naturalista.tsx` | O Estudo Naturalista: layout de livro-tomo (couro, pergaminho, tinta, índice giratório) com um léxico de palavras de poder livre — flavor, não é o sistema real. |
+| `pages/LivroMagias.tsx` | O Grande Tomo: **mesmo layout de livro** de `Naturalista.tsx` (propositalmente — ver nota abaixo), mas com conteúdo real: explica Núcleos, Aditivos, Conectivos, Kernels/Subnúcleos e as 32 Escolas puxando a descrição de cada um direto de `engine/constants.ts`/`engine/colleges.ts`, a mesma fonte que o compilador usa. |
+
+> **Por que duas páginas com o mesmo design?** `Naturalista.tsx` é flavor
+> (um léxico de palavras inventadas, sem ligação com o motor). `LivroMagias.tsx`
+> foi refeito pra usar exatamente o mesmo design — pedido explícito do
+> usuário — só que agora documentando o sistema de verdade por trás do
+> Codex. As duas telas compartilham a mesma estrutura JSX (livro
+> desktop/mobile, ribbon, lombada, índice com círculo mágico no hover) só
+> que com dados diferentes; é duplicação de layout deliberada (telas
+> independentes, sem um componente-livro compartilhado ainda), não um
+> componente reaproveitado.
 
 ## 11. Ideias em Aberto (ainda não implementadas)
 

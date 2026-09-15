@@ -69,6 +69,15 @@ export function resolveCollege(primaryElement: string, fusionElement?: string | 
   return COLLEGE_TABLE[k] || null;
 }
 
+// Lista todos os 32 Colégios, com a chave (os dois lados que os formam)
+// junto de cada um — usado pelo Grande Tomo (pages/LivroMagias.tsx) pra
+// exibir a tabela inteira sem duplicar os dados aqui numa segunda lista.
+export function listColleges(): (CollegeInfo & { key: string })[] {
+  return Object.entries(COLLEGE_TABLE)
+    .map(([k, info]) => ({ ...info, key: k }))
+    .sort((a, b) => a.number - b.number);
+}
+
 // --- A Lei da Simetria ---
 // "Criar faz a versão real e permanente — custa muito mana. Destruir faz
 // a versão efêmera — custa pouco." Aplicado aos números: Criar empurra
