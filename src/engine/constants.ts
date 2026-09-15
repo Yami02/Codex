@@ -109,6 +109,20 @@ export const EdgeSymbols: Record<string, string> = {
   [EdgeType.UNIAO]: '--'
 };
 
+// Cada conectivo agora tem uma regra real no compilador (engine/compiler.ts,
+// PatternMatcher.matchAndTransform) — não é mais só uma cor/símbolo na
+// tela. UNIAO e REVERSO existem no enum e no visual (EdgeVisual.tsx) mas
+// não estão no EdgeCycle (não são alcançáveis clicando numa aresta): são
+// símbolos reservados, sem regra própria ainda.
+export const EdgeDescriptions: Record<string, string> = {
+  [EdgeType.AND]: 'Combinação direta (padrão): os dois nós apenas coexistem e somam ao buffer, como sempre. É a aresta criada automaticamente ao conectar dois nós.',
+  [EdgeType.OR]: 'Alternativa: liga duas variantes do mesmo aditivo (ex: dois nós de Forma). O conjurador escolhe uma ao lançar; a ficha usa o pior caso (maior nível) para o nível/CD.',
+  [EdgeType.XOR]: 'Exclusão mútua: como Alternativa, mas as variantes nunca coexistem — a ficha descreve a primeira como padrão, e o conjurador troca pra outra. É também o que transforma Mover+Perceber juntos numa escolha intencional em vez de um erro de design.',
+  [EdgeType.SE_ENTAO]: 'Condicional: só pode sair de um nó de Teste ou Gatilho. O nó de destino passa a ser descrito como "se a condição, então o efeito" em vez de sempre ativo.',
+  [EdgeType.ATRIBUICAO]: 'Canalização: liga um Aumento/Redução a um aditivo de nível (Ponto, Manter, Forma, Mover, Perceber ou Gatilho) — em vez de reforçar o buffer genérico, soma ou subtrai 1 nível direto naquele aditivo.',
+  [EdgeType.CORRENTE]: 'Corrente: uma sequência de nós ligados em cadeia faz o efeito saltar de alvo em alvo — cada salto soma complexidade e aparece no texto final com dano decrescente por salto.',
+};
+
 export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.CONTROLE]: 'impondo domínio através de canais rúnicos',
   [AdditiveType.AUMENTO]: 'exaltando a amplitude da ressonância',

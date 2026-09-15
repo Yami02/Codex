@@ -9,6 +9,7 @@ import {
   GATILHO_LEVELS, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX,
   TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE,
   KERNEL_SCALE_AXIS,
+  AdditiveDescriptions,
 } from './constants';
 import { resolveCollege, polaritySymmetryDelta } from './colleges';
 
@@ -49,10 +50,17 @@ export class KernelASTNode extends ASTNode {
   accept(visitor: ASTVisitor) { visitor.visitKernel(this); }
 }
 
+export interface FlatEdge { sourceId: string; targetId: string; type: string; }
+
 export class ASTGraph {
   public nodes: ASTNode[] = [];
   public adjacency: Map<string, string[]> = new Map(); // child -> parents (dependencies)
   public forwardAdjacency: Map<string, string[]> = new Map(); // parent -> children
+  // Conectivos (EdgeType) preservados por aresta — antes eram descartados no
+  // parser e nunca lidos pelo compilador (puramente decorativos). Agora
+  // PatternMatcher lê `type` pra aplicar regras reais (ver §10 do
+  // docs/COMO_FUNCIONA.md).
+  public edges: FlatEdge[] = [];
 
   public addNode(node: ASTNode) {
     this.nodes.push(node);
@@ -60,7 +68,7 @@ export class ASTGraph {
     if (!this.forwardAdjacency.has(node.id)) this.forwardAdjacency.set(node.id, []);
   }
 
-  public addEdge(sourceId: string, targetId: string) {
+  public addEdge(sourceId: string, targetId: string, type: string = 'AND') {
     // sourceId -> targetId indicates target depends on source.
     if (this.adjacency.has(targetId)) {
       this.adjacency.get(targetId)!.push(sourceId);
@@ -68,6 +76,7 @@ export class ASTGraph {
     if (this.forwardAdjacency.has(sourceId)) {
       this.forwardAdjacency.get(sourceId)!.push(targetId);
     }
+    this.edges.push({ sourceId, targetId, type });
   }
 
   public getNode(id: string): ASTNode | undefined {
@@ -98,7 +107,7 @@ export class GraphToASTBuilder {
     }
 
     for (const e of graph.edges) {
-      ast.addEdge(e.sourceId, e.targetId);
+      ast.addEdge(e.sourceId, e.targetId, e.type || 'AND');
     }
 
     return ast;
@@ -214,6 +223,71 @@ export class PatternMatcher {
       return nodes;
   }
 
+  // Mesma ideia de flattenNodes, mas para arestas: um Kernel guarda seu
+  // próprio subgrafo (com suas próprias arestas), então os conectivos só
+  // ficam visíveis pro resto do compilador depois de achatados.
+  public static flattenEdges(ast: ASTGraph): FlatEdge[] {
+      let edges: FlatEdge[] = [...ast.edges];
+      for (const node of ast.nodes) {
+          if (node instanceof KernelASTNode && node.subGraph) {
+              edges = edges.concat(this.flattenEdges(node.subGraph));
+          }
+      }
+      return edges;
+  }
+
+  // Existe uma aresta do tipo `type` ligando dois nós quaisquer dentro do
+  // conjunto `ids` (em qualquer direção)? Usado pra detectar quando um
+  // grupo de nós do mesmo aditivo (ex: dois Forma) foi deliberadamente
+  // ligado por OR/XOR em vez de simplesmente duplicado por engano.
+  private static isLinkedByType(ids: string[], type: string, edges: FlatEdge[]): boolean {
+      const idSet = new Set(ids);
+      return edges.some(e => e.type === type && idSet.has(e.sourceId) && idSet.has(e.targetId));
+  }
+
+  // Resolve um grupo de nós do mesmo aditivo "de nível" (Ponto, Manter,
+  // Forma, Mover, Perceber, Gatilho). Sem nenhum conectivo especial entre
+  // eles, o comportamento é o de sempre: nível mais alto vence, avisado
+  // como [REDUNDÂNCIA] (provável engano). Ligados por OR, viram uma escolha
+  // real oferecida ao conjurador (ficha usa o pior caso). Ligados por XOR,
+  // viram variantes excludentes (ficha usa a primeira como padrão descrito).
+  private static resolveLeveledGroup(
+      nodes: AdditiveASTNode[],
+      levelBoost: Map<string, number>,
+      min: number,
+      defaultLevel: number,
+      max: number,
+      nameFn: (level: number) => string,
+      slotLabel: string,
+      flatEdges: FlatEdge[],
+      instabilities: string[]
+  ): number {
+      if (nodes.length === 0) return 0;
+      const levels = nodes.map(n => clamp((n.level ?? defaultLevel) + (levelBoost.get(n.id) || 0), min, max));
+      nodes.forEach((n, i) => {
+          const boost = levelBoost.get(n.id) || 0;
+          if (boost !== 0) {
+              instabilities.push(`[CANALIZAÇÃO] ${slotLabel} de "${n.id}" ajustado por Atribuição (${boost > 0 ? '+' : ''}${boost} nível) → nível final ${levels[i]}.`);
+          }
+      });
+      if (nodes.length === 1) return levels[0];
+
+      const ids = nodes.map(n => n.id);
+      const names = levels.map(nameFn);
+      if (this.isLinkedByType(ids, 'XOR', flatEdges)) {
+          instabilities.push(`[ESCOLHA XOR] ${slotLabel} tem variantes excludentes: ${names.join(' ou ')}. A ficha descreve "${names[0]}" como padrão; o conjurador escolhe uma das opções ao lançar, nunca as duas ao mesmo tempo.`);
+          return levels[0];
+      }
+      if (this.isLinkedByType(ids, 'OR', flatEdges)) {
+          const maxLevel = Math.max(...levels);
+          instabilities.push(`[ESCOLHA] ${slotLabel} oferece variantes ao conjurador: ${names.join(' ou ')}. A ficha usa o pior caso (${nameFn(maxLevel)}) para nível/CD.`);
+          return maxLevel;
+      }
+      const maxLevel = Math.max(...levels);
+      instabilities.push(`[REDUNDÂNCIA] ${nodes.length} nós de ${slotLabel} detectados; apenas o de maior nível (${nameFn(maxLevel)}) foi considerado. Use um único nó, ou ligue-os com uma aresta OR/XOR para uma escolha real.`);
+      return maxLevel;
+  }
+
   private static checkCycleFlat(ast: ASTGraph, subset: ASTNode[], length: number): boolean {
        let subsetIds = new Set(subset.map(n => n.id));
        let edgesCount = 0;
@@ -236,6 +310,36 @@ export class PatternMatcher {
       const instabilities: string[] = [];
 
       const allNodes = this.flattenNodes(ast);
+      // Conectivos: arestas achatadas (incluindo as de dentro de Kernels) e
+      // um índice id -> nó, pra que as regras abaixo consigam olhar quem
+      // está ligado a quem, e com qual tipo de aresta.
+      const flatEdges = this.flattenEdges(ast);
+      const nodeById = new Map(allNodes.map(n => [n.id, n]));
+
+      // --- ATRIBUIÇÃO (canalização): uma aresta ATRIBUICAO de um nó de
+      // Aumento/Redução pra um aditivo "de nível" (Ponto/Manter/Forma/
+      // Mover/Perceber/Gatilho) redireciona aquele modificador: em vez de
+      // reforçar o buffer genericamente (potency/complexity), ele soma ou
+      // subtrai 1 nível diretamente no aditivo de destino. `redirectedIds`
+      // guarda quais nós de Aumento/Redução tiveram seu efeito genérico
+      // anulado porque foram canalizados (evita contar o bônus duas vezes).
+      const leveledSlotTypes = new Set(['PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'GATILHO']);
+      const levelBoost = new Map<string, number>();
+      const redirectedIds = new Set<string>();
+      for (const e of flatEdges) {
+          if (e.type !== 'ATRIBUICAO') continue;
+          const src = nodeById.get(e.sourceId);
+          const tgt = nodeById.get(e.targetId);
+          const srcOk = src instanceof AdditiveASTNode && (src.additiveType === 'AUMENTO' || src.additiveType === 'REDUCAO');
+          const tgtOk = tgt instanceof AdditiveASTNode && leveledSlotTypes.has(tgt.additiveType);
+          if (srcOk && tgtOk) {
+              const delta = (src as AdditiveASTNode).additiveType === 'AUMENTO' ? 1 : -1;
+              levelBoost.set(tgt!.id, (levelBoost.get(tgt!.id) || 0) + delta);
+              redirectedIds.add(src!.id);
+          } else {
+              instabilities.push(`[ATRIBUIÇÃO INVÁLIDA] Uma aresta de Atribuição precisa sair de Aumento/Redução e apontar para um aditivo de nível (Ponto, Manter, Forma, Mover, Perceber ou Gatilho); a ligação entre "${e.sourceId}" e "${e.targetId}" foi ignorada.`);
+          }
+      }
 
       // --- FUSAO: funde um segundo elemento/polaridade ao Núcleo sem
       // exigir um segundo nó de Núcleo (que o validador semântico rejeita
@@ -247,7 +351,15 @@ export class PatternMatcher {
       if (fusaoNodes.length > 0) {
           fusionElement = fusaoNodes[0].fusionElement || null;
           if (fusaoNodes.length > 1) {
-              instabilities.push(`[REDUNDÂNCIA] ${fusaoNodes.length} nós de FUSAO detectados; apenas o primeiro (${fusionElement}) foi considerado. Use um único nó de FUSAO.`);
+              const ids = fusaoNodes.map(n => n.id);
+              const names = fusaoNodes.map(n => n.fusionElement || '???');
+              if (this.isLinkedByType(ids, 'XOR', flatEdges)) {
+                  instabilities.push(`[ESCOLHA XOR] Fusão tem variantes excludentes: ${names.join(' ou ')}. O Colégio descrito na ficha usa "${fusionElement}"; o conjurador escolhe uma fusão por vez, nunca as duas.`);
+              } else if (this.isLinkedByType(ids, 'OR', flatEdges)) {
+                  instabilities.push(`[ESCOLHA] Fusão oferece variantes ao conjurador: ${names.join(' ou ')}. O Colégio descrito na ficha usa "${fusionElement}".`);
+              } else {
+                  instabilities.push(`[REDUNDÂNCIA] ${fusaoNodes.length} nós de FUSAO detectados; apenas o primeiro (${fusionElement}) foi considerado. Use um único nó de FUSAO, ou ligue-os com OR/XOR para uma escolha real.`);
+              }
           }
       }
       const primaryElement = (ast.nodes.find(n => n instanceof CoreASTNode) as CoreASTNode | undefined)?.element || null;
@@ -297,37 +409,18 @@ export class PatternMatcher {
       // escondido e o estado "2 pontos = instável" que não tinha explicação
       // visível para quem estava montando o feitiço.
       const pontoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'PONTO');
-      let pontoLevel = 0;
-      if (pontoNodes.length > 0) {
-          const levels = pontoNodes.map(n => clamp(n.level ?? PONTO_LEVEL_MIN, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX));
-          pontoLevel = Math.max(...levels);
-          if (pontoNodes.length > 1) {
-              instabilities.push(`[REDUNDÂNCIA] ${pontoNodes.length} nós de PONTO detectados; apenas o de maior nível (${pontoLevel}) foi considerado. Use um único nó de PONTO e ajuste seu nível.`);
-          }
-      }
+      const pontoLevel = this.resolveLeveledGroup(pontoNodes, levelBoost, PONTO_LEVEL_MIN, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX, l => PONTO_LEVELS[l].name, 'Ponto', flatEdges, instabilities);
 
       // --- MANTER (duração): nível explícito no próprio nó ---
       const manterNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'MANTER');
-      let manterLevel = 0;
-      if (manterNodes.length > 0) {
-          const levels = manterNodes.map(n => clamp(n.level ?? 1, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX));
-          manterLevel = Math.max(...levels);
-          if (manterNodes.length > 1) {
-              instabilities.push(`[REDUNDÂNCIA] ${manterNodes.length} nós de MANTER detectados; apenas o de maior nível (${manterLevel}) foi considerado. Use um único nó de MANTER e ajuste seu nível.`);
-          }
-      }
+      const manterLevel = this.resolveLeveledGroup(manterNodes, levelBoost, MANTER_LEVEL_MIN, 1, MANTER_LEVEL_MAX, l => MANTER_LEVELS[l].name, 'Manter', flatEdges, instabilities);
 
       // --- FORMA (geometria): aditivo opcional que só refina uma Aura
       // (PONTO 3 -> Cone/Linha) ou um Alcance (PONTO 2 -> Esfera Remota).
       // Não é mais um "nível de força" — é uma escolha entre 3 variantes.
       const formaNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'FORMA');
-      let formaLevel = 0;
-      if (formaNodes.length > 0) {
-          const levels = formaNodes.map(n => clamp(n.level ?? FORMA_LEVEL_MIN, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX));
-          formaLevel = Math.max(...levels);
-          if (formaNodes.length > 1) {
-              instabilities.push(`[REDUNDÂNCIA] ${formaNodes.length} nós de FORMA detectados; apenas "${FORMA_LEVELS[formaLevel].name}" foi considerado. Use um único nó de FORMA.`);
-          }
+      let formaLevel = this.resolveLeveledGroup(formaNodes, levelBoost, FORMA_LEVEL_MIN, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX, l => FORMA_LEVELS[l].name, 'Forma', flatEdges, instabilities);
+      if (formaLevel > 0) {
           const formaInfo = FORMA_LEVELS[formaLevel];
           if (formaInfo.appliesToPontoLevel !== pontoLevel) {
               instabilities.push(`[FORMA SEM EFEITO] "${formaInfo.name}" só se aplica com PONTO nível ${formaInfo.appliesToPontoLevel}; no nível atual (${pontoLevel}) ela é ignorada.`);
@@ -336,30 +429,25 @@ export class PatternMatcher {
       }
 
       // --- MOVER / PERCEBER (modo): aditivos que substituem dano/cura por
-      // deslocamento ou informação. São mutuamente exclusivos — uma magia
-      // não pode "só mover" e "só perceber" ao mesmo tempo neste modelo.
+      // deslocamento ou informação. Por padrão são mutuamente exclusivos —
+      // mas uma aresta XOR explícita entre eles vira uma magia "versátil"
+      // intencional (dois modos, o conjurador escolhe um por lançamento),
+      // em vez de um erro de design silenciosamente resolvido.
       const moverNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'MOVER');
-      let moverLevel = 0;
-      if (moverNodes.length > 0) {
-          const levels = moverNodes.map(n => clamp(n.level ?? MOVER_LEVEL_MIN, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX));
-          moverLevel = Math.max(...levels);
-          if (moverNodes.length > 1) {
-              instabilities.push(`[REDUNDÂNCIA] ${moverNodes.length} nós de MOVER detectados; apenas o de maior nível (${moverLevel}) foi considerado. Use um único nó de MOVER.`);
-          }
-      }
+      const moverLevel = this.resolveLeveledGroup(moverNodes, levelBoost, MOVER_LEVEL_MIN, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX, l => MOVER_LEVELS[l].name, 'Mover', flatEdges, instabilities);
 
       const perceberNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'PERCEBER');
-      let perceberLevel = 0;
-      if (perceberNodes.length > 0) {
-          const levels = perceberNodes.map(n => clamp(n.level ?? PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX));
-          perceberLevel = Math.max(...levels);
-          if (perceberNodes.length > 1) {
-              instabilities.push(`[REDUNDÂNCIA] ${perceberNodes.length} nós de PERCEBER detectados; apenas o de maior nível (${perceberLevel}) foi considerado. Use um único nó de PERCEBER.`);
-          }
-      }
+      let perceberLevel = this.resolveLeveledGroup(perceberNodes, levelBoost, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX, l => PERCEBER_LEVELS[l].name, 'Perceber', flatEdges, instabilities);
 
+      let altPerceberInfo: { level: number; name: string; detail: string } | null = null;
       if (moverLevel > 0 && perceberLevel > 0) {
-          instabilities.push(`[MODOS CONFLITANTES] Mover e Perceber não podem atuar juntos na mesma magia; apenas Mover foi aplicado.`);
+          const linkedIds = [...moverNodes.map(n => n.id), ...perceberNodes.map(n => n.id)];
+          if (this.isLinkedByType(linkedIds, 'XOR', flatEdges)) {
+              instabilities.push(`[VERSÁTIL XOR] Mover e Perceber estão ligados por uma aresta de exclusão mútua: a magia oferece os dois modos, mas o conjurador escolhe apenas um por lançamento. A ficha detalha o modo Mover; Perceber (nível ${perceberLevel}) fica registrado como modo alternativo.`);
+              altPerceberInfo = PERCEBER_LEVELS[perceberLevel];
+          } else {
+              instabilities.push(`[MODOS CONFLITANTES] Mover e Perceber não podem atuar juntos na mesma magia; apenas Mover foi aplicado. Ligue-os com uma aresta XOR se a intenção for um modo alternável.`);
+          }
           perceberLevel = 0;
       }
       if ((moverLevel > 0 || perceberLevel > 0) && formaLevel > 0) {
@@ -372,15 +460,10 @@ export class PatternMatcher {
       // precisa; cada carga soma potência/complexidade ao feitiço final —
       // ver GATILHO_LEVELS em engine/constants.ts.
       const gatilhoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'GATILHO');
-      let gatilhoLevel = 0;
+      const gatilhoLevel = this.resolveLeveledGroup(gatilhoNodes, levelBoost, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX, l => GATILHO_LEVELS[l].name, 'Gatilho', flatEdges, instabilities);
       let triggerType = DEFAULT_TRIGGER_TYPE;
       if (gatilhoNodes.length > 0) {
-          const levels = gatilhoNodes.map(n => clamp(n.level ?? GATILHO_LEVEL_MIN, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX));
-          gatilhoLevel = Math.max(...levels);
           triggerType = gatilhoNodes[0].triggerType && TRIGGER_TYPES[gatilhoNodes[0].triggerType] ? gatilhoNodes[0].triggerType : DEFAULT_TRIGGER_TYPE;
-          if (gatilhoNodes.length > 1) {
-              instabilities.push(`[REDUNDÂNCIA] ${gatilhoNodes.length} nós de GATILHO detectados; apenas o de maior nível (${gatilhoLevel}) foi considerado. Use um único nó de GATILHO.`);
-          }
       }
 
       // --- TESTE: aditivo binário (sem nível) que troca a jogada de ataque
@@ -390,6 +473,62 @@ export class PatternMatcher {
       const hasTeste = allNodes.some(n => n instanceof AdditiveASTNode && n.additiveType === 'TESTE');
       if (hasTeste && (moverLevel > 0 || perceberLevel > 0)) {
           instabilities.push(`[TESTE SEM EFEITO] Teste não se aplica a magias de Mover ou Perceber, que não têm ataque nem teste.`);
+      }
+
+      // --- SE_ENTAO (condicional): só é válida saindo de um nó com um
+      // resultado incerto em jogo — Teste (o alvo pode passar ou falhar) ou
+      // Gatilho (o gatilho pode disparar ou não). O nó de destino passa a
+      // ser descrito como um efeito condicionado, não sempre ativo — ver
+      // `conditionalEffects` no retorno e o texto gerado em
+      // MagicCompilerEngine.execute.
+      const conditionalEffects: { targetId: string; conditionLabel: string; targetLabel: string }[] = [];
+      for (const e of flatEdges) {
+          if (e.type !== 'SE_ENTAO') continue;
+          const src = nodeById.get(e.sourceId);
+          const tgt = nodeById.get(e.targetId);
+          const isTesteSrc = src instanceof AdditiveASTNode && src.additiveType === 'TESTE';
+          const isGatilhoSrc = src instanceof AdditiveASTNode && src.additiveType === 'GATILHO';
+          if (!tgt || (!isTesteSrc && !isGatilhoSrc)) {
+              instabilities.push(`[CONDIÇÃO INVÁLIDA] SE_ENTÃO precisa sair de um nó de Teste ou Gatilho; a aresta a partir de "${e.sourceId}" foi ignorada.`);
+              continue;
+          }
+          let targetLabel = e.targetId;
+          if (tgt instanceof AdditiveASTNode) targetLabel = AdditiveDescriptions[tgt.additiveType] || tgt.additiveType;
+          else if (tgt instanceof KernelASTNode) targetLabel = AdditiveDescriptions[tgt.kernelType] || tgt.kernelType;
+          conditionalEffects.push({ targetId: e.targetId, conditionLabel: isTesteSrc ? 'o alvo falhar no teste de resistência' : 'o gatilho disparar', targetLabel });
+      }
+
+      // --- CORRENTE (cadeia): uma sequência de nós ligados por arestas
+      // CORRENTE representa o efeito saltando de alvo em alvo. `chainHops`
+      // é o comprimento da maior cadeia encontrada — cada salto além do
+      // primeiro soma complexidade (mais alvos para gerenciar) e vira uma
+      // cláusula extra no texto final.
+      const correnteEdges = flatEdges.filter(e => e.type === 'CORRENTE');
+      let chainHops = 0;
+      if (correnteEdges.length > 0) {
+          const adj = new Map<string, string[]>();
+          for (const e of correnteEdges) {
+              if (!adj.has(e.sourceId)) adj.set(e.sourceId, []);
+              adj.get(e.sourceId)!.push(e.targetId);
+          }
+          const memo = new Map<string, number>();
+          const visiting = new Set<string>();
+          let hasCycle = false;
+          const longestFrom = (id: string): number => {
+              if (memo.has(id)) return memo.get(id)!;
+              if (visiting.has(id)) { hasCycle = true; return 0; }
+              visiting.add(id);
+              let best = 0;
+              for (const child of (adj.get(id) || [])) best = Math.max(best, 1 + longestFrom(child));
+              visiting.delete(id);
+              memo.set(id, best);
+              return best;
+          };
+          const allChainIds = new Set(correnteEdges.flatMap(e => [e.sourceId, e.targetId]));
+          for (const id of allChainIds) chainHops = Math.max(chainHops, longestFrom(id));
+          if (hasCycle) {
+              instabilities.push(`[CORRENTE CÍCLICA] A cadeia de arestas CORRENTE forma um loop; o comprimento foi truncado para evitar um salto infinito.`);
+          }
       }
 
       // Nota: o antigo "Alerta do Triângulo Base" (exigia 3+ nós no total)
@@ -413,9 +552,13 @@ export class PatternMatcher {
           formaLevel,
           moverLevel,
           perceberLevel,
+          altPerceberInfo,
           gatilhoLevel,
           triggerType,
           hasTeste,
+          redirectedIds,
+          conditionalEffects,
+          chainHops,
           pontosLength: pontoNodes.length,
           totalComponents: allNodes.length,
           kernelsAtivos,
@@ -534,7 +677,13 @@ export class MagicCompilerEngine {
       if (node instanceof CoreASTNode) {
           buffer = mergeAttrs(buffer, NodeAttributesDict[node.element] || {});
       } else if (node instanceof AdditiveASTNode) {
-          buffer = mergeAttrs(buffer, NodeAttributesDict[node.additiveType] || {});
+          // Um Aumento/Redução canalizado por ATRIBUICAO (ver PatternMatcher)
+          // já converteu seu efeito em nível no aditivo de destino — contar
+          // o potency/complexity genérico dele aqui seria pagar duas vezes
+          // pelo mesmo bônus.
+          if (!patterns.redirectedIds.has(node.id)) {
+              buffer = mergeAttrs(buffer, NodeAttributesDict[node.additiveType] || {});
+          }
           // FUSAO carrega os atributos do próprio elemento escolhido (o
           // "segundo Núcleo"), somados como se fosse um Núcleo de verdade.
           if (node.additiveType === 'FUSAO' && node.fusionElement) {
@@ -544,6 +693,13 @@ export class MagicCompilerEngine {
           buffer = mergeAttrs(buffer, NodeAttributesDict[node.kernelType] || {});
       }
     }
+
+    // CORRENTE: cada salto além do primeiro alvo soma complexidade (mais
+    // alvos pra gerenciar na mesma malha) — ver PatternMatcher.chainHops.
+    if (patterns.chainHops > 0) {
+        buffer = mergeAttrs(buffer, { complexity: patterns.chainHops });
+    }
+    buffer.chainHops = patterns.chainHops;
 
     // A Lei da Simetria: Criar (fusão com COMPOR) é a versão permanente e
     // cara — soma complexidade/potência (que elevam nível e CD via as
@@ -858,6 +1014,29 @@ export class MagicCompilerEngine {
     const triggerInfo = TRIGGER_TYPES[patterns.triggerType] || TRIGGER_TYPES[DEFAULT_TRIGGER_TYPE];
     if (gatilhoInfo) {
         dndFullText += `\n\n[CAPACITOR: ${gatilhoInfo.name.toUpperCase()}]\nEm vez de se manifestar na hora, a magia é armazenada num glifo (${gatilhoInfo.cargas} de carga). O efeito só ${triggerInfo.description} — Gatilho de ${triggerInfo.name}.`;
+    }
+
+    // Modo alternativo (Mover XOR Perceber): a mesma malha serve pros dois,
+    // o conjurador escolhe qual manifestar a cada lançamento — ver o bloco
+    // [VERSÁTIL XOR] gerado pelo PatternMatcher.
+    if (patterns.altPerceberInfo) {
+        dndFullText += `\n\n[MODO ALTERNATIVO: PERCEBER]\nEm vez de deslocar, o conjurador pode escolher perceber: ${patterns.altPerceberInfo.detail}.`;
+    }
+
+    // SE_ENTAO: efeitos condicionados a um Teste (o alvo pode falhar ou
+    // resistir) ou a um Gatilho (que pode disparar ou não) — descritos à
+    // parte do restante, que continua sempre ativo.
+    if (patterns.conditionalEffects.length > 0) {
+        const clauses = patterns.conditionalEffects.map((cond: { targetId: string; conditionLabel: string; targetLabel: string }) =>
+            `Se ${cond.conditionLabel}, então: ${cond.targetLabel}.`
+        );
+        dndFullText += `\n\n[CONDICIONAL]\n${clauses.join(' ')}`;
+    }
+
+    // CORRENTE: a energia salta em cadeia pra alvos adicionais além do
+    // primeiro impacto, perdendo força a cada salto.
+    if (patterns.chainHops > 0 && !isMode) {
+        dndFullText += `\n\n[CORRENTE]\nApós atingir o primeiro alvo, a energia salta em cadeia para até ${patterns.chainHops} alvo(s) adicional(is) ao alcance, cada salto causando metade do dano do salto anterior.`;
     }
 
     if (isDeterministic && !isMode) {

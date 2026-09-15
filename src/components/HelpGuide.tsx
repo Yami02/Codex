@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EdgeType, EdgeSymbols, EdgeDescriptions } from '../magicConstants';
 
 // Guia de ajuda em linguagem simples — não é documentação técnica, é pra
 // quem está montando uma magia pela primeira vez e não faz ideia do que
@@ -43,6 +44,13 @@ const OUTROS = [
   { t: 'Selo Arcano', d: 'Um símbolo único gerado pra cada magia compilada, baseado nos atributos dela — nunca dois selos iguais para magias diferentes.' },
 ];
 
+// Clique numa aresta (a linha entre dois nós) para trocar o tipo dela —
+// cada um faz uma coisa diferente de verdade agora, não é só cor.
+const CONECTIVOS = [EdgeType.AND, EdgeType.OR, EdgeType.XOR, EdgeType.SE_ENTAO, EdgeType.ATRIBUICAO, EdgeType.CORRENTE].map(t => ({
+  t: `${EdgeSymbols[t]}  ${t}`,
+  d: EdgeDescriptions[t],
+}));
+
 const TabButton = ({ active, onClick, children }: any) => (
   <button
     onClick={onClick}
@@ -70,7 +78,7 @@ const Entry = ({ t, d }: { t: string; d: string }) => (
 );
 
 const HelpGuide = ({ onClose }: { onClose: () => void }) => {
-  const [tab, setTab] = useState<'USAR' | 'NUCLEOS' | 'ADITIVOS' | 'OUTROS'>('USAR');
+  const [tab, setTab] = useState<'USAR' | 'NUCLEOS' | 'ADITIVOS' | 'CONECTIVOS' | 'OUTROS'>('USAR');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -82,12 +90,17 @@ const HelpGuide = ({ onClose }: { onClose: () => void }) => {
           <TabButton active={tab === 'USAR'} onClick={() => setTab('USAR')}>Como Usar</TabButton>
           <TabButton active={tab === 'NUCLEOS'} onClick={() => setTab('NUCLEOS')}>Núcleos</TabButton>
           <TabButton active={tab === 'ADITIVOS'} onClick={() => setTab('ADITIVOS')}>Aditivos</TabButton>
+          <TabButton active={tab === 'CONECTIVOS'} onClick={() => setTab('CONECTIVOS')}>Conectivos</TabButton>
           <TabButton active={tab === 'OUTROS'} onClick={() => setTab('OUTROS')}>Kernel / Colégio</TabButton>
         </div>
 
         {tab === 'USAR' && USANDO.map(e => <Entry key={e.t} {...e} />)}
         {tab === 'NUCLEOS' && NUCLEOS.map(e => <Entry key={e.t} {...e} />)}
         {tab === 'ADITIVOS' && ADITIVOS.map(e => <Entry key={e.t} {...e} />)}
+        {tab === 'CONECTIVOS' && <>
+          <p style={{ color: '#8a7d9b', fontSize: '0.8rem', marginTop: 0 }}>Clique numa aresta (a linha entre dois nós) pra trocar o tipo dela, nessa ordem.</p>
+          {CONECTIVOS.map(e => <Entry key={e.t} {...e} />)}
+        </>}
         {tab === 'OUTROS' && OUTROS.map(e => <Entry key={e.t} {...e} />)}
 
         <button className="action-btn" onClick={onClose} style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }}>Fechar</button>

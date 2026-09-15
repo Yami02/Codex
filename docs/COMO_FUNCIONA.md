@@ -15,11 +15,12 @@ vive dentro do próprio app: botão **❓ Ajuda** no Codex (`src/components/Help
 3. [Núcleos](#3-núcleos)
 4. [Aditivos](#4-aditivos)
 5. [Kernels](#5-kernels)
-6. [Os 32 Colégios (Fusão)](#6-os-32-colégios-fusão)
-7. [Capacitor / Gatilho](#7-capacitor--gatilho)
-8. [Selo Arcano](#8-selo-arcano)
-9. [Onde cada coisa mora no código](#9-onde-cada-coisa-mora-no-código)
-10. [Ideias em Aberto (ainda não implementadas)](#10-ideias-em-aberto-ainda-não-implementadas)
+6. [Conectivos de Aresta (Edges)](#6-conectivos-de-aresta-edges)
+7. [Os 32 Colégios (Fusão)](#7-os-32-colégios-fusão)
+8. [Capacitor / Gatilho](#8-capacitor--gatilho)
+9. [Selo Arcano](#9-selo-arcano)
+10. [Onde cada coisa mora no código](#10-onde-cada-coisa-mora-no-código)
+11. [Ideias em Aberto (ainda não implementadas)](#11-ideias-em-aberto-ainda-não-implementadas)
 
 ---
 
@@ -128,7 +129,41 @@ específico do que o Núcleo. Cada um escala a magia por "Aumento"
 | Estado | Complexibilidade | Paralisado (Constituição) |
 | Caos | Complexibilidade | Atordoado (Constituição) |
 
-## 6. Os 32 Colégios (Fusão)
+## 6. Conectivos de Aresta (Edges)
+
+`engine/compiler.ts` (`ASTGraph.edges`, `PatternMatcher.matchAndTransform`).
+Até esta mudança, `EdgeType` existia (arestas coloridas, com um símbolo
+diferente por tipo, cicláveis clicando na aresta) mas era **100%
+decorativo**: o compilador nunca lia `edge.type`, só a existência da
+conexão (pra ordenação topológica). Toda ligação se comportava
+exatamente igual, qualquer que fosse o tipo escolhido.
+
+Agora `ASTGraph` guarda o tipo de cada aresta e `PatternMatcher` lê seis
+deles (os mesmos do `EdgeCycle`, alcançáveis clicando numa aresta) pra
+aplicar uma regra real. **A aresta padrão criada ao conectar dois nós
+continua sendo AND** — por isso toda magia já montada antes desta mudança
+se comporta exatamente igual; os outros cinco tipos só mudam alguma coisa
+quando o jogador explicitamente cicla a aresta pra eles.
+
+| Conectivo | Regra real |
+|---|---|
+| **AND** (padrão) | Combinação direta: os nós ligados só coexistem e somam ao buffer, como sempre funcionou. Nenhuma mudança de comportamento. |
+| **OR** | Alternativa: liga duas variantes do **mesmo aditivo de nível** (Ponto, Manter, Forma, Mover, Perceber, Gatilho ou Fusão). Em vez do aviso de `[REDUNDÂNCIA]` (que assume engano), o compilador registra `[ESCOLHA]`: o conjurador escolhe uma variante ao lançar, e a ficha usa o pior caso (maior nível) pra nível/CD, pra continuar balanceada nos dois casos. |
+| **XOR** | Exclusão mútua: mesma detecção de grupo do OR, mas registrado como `[ESCOLHA XOR]` e a ficha descreve a **primeira variante declarada** como padrão (não o pior caso) — as opções nunca coexistem por definição, então não há por que descrever pelo caso mais forte. É também o que torna **Mover + Perceber juntos** uma magia "versátil" intencional (`[VERSÁTIL XOR]`, com o modo Perceber anotado como alternativa no texto final) em vez do aviso antigo de `[MODOS CONFLITANTES]` — que continua acontecendo normalmente se os dois estiverem presentes sem uma aresta XOR entre eles. |
+| **SE_ENTAO** | Condicional: só é uma aresta válida saindo de um nó de **Teste** ou **Gatilho** — os únicos aditivos com um resultado incerto em jogo (o alvo pode passar ou falhar no teste; o gatilho pode disparar ou não). Saindo de qualquer outro nó, é rejeitada como `[CONDIÇÃO INVÁLIDA]`. Quando válida, o nó de destino é descrito à parte no texto final, como `[CONDICIONAL] Se o alvo falhar no teste de resistência, então: <efeito>` (ou `Se o gatilho disparar, então: <efeito>`) — o efeito continua contando pro nível/CD, só a descrição deixa claro que ele não é incondicional. |
+| **ATRIBUICAO** | Canalização: liga um nó de **Aumento/Redução** a um aditivo de nível (Ponto, Manter, Forma, Mover, Perceber ou Gatilho). Em vez de somar `potency`/`complexity` genericamente ao buffer, o Aumento/Redução soma (ou subtrai) **1 nível direto** no aditivo de destino (respeitando o mínimo/máximo dele) — e sua contribuição genérica é anulada, pra não contar o bônus duas vezes. Registrado como `[CANALIZAÇÃO]`. Uma Atribuição fora desse par (origem/destino errados) é rejeitada como `[ATRIBUIÇÃO INVÁLIDA]`. |
+| **CORRENTE** | Corrente/cadeia: uma sequência de nós ligados em cadeia (A→B→C...) faz o efeito saltar de alvo em alvo. O compilador mede o comprimento da maior cadeia (`chainHops`, à prova de ciclo — um loop de CORRENTE vira `[CORRENTE CÍCLICA]` e é truncado); cada salto além do primeiro soma `+1` a `complexity` (mais alvos pra gerenciar, o que pode elevar nível/CD) e aparece no texto final como `[CORRENTE] ... salta para até N alvo(s) adicional(is) ..., cada salto causando metade do dano do salto anterior`. |
+
+> `EdgeType` também tem `UNIAO` e `REVERSO` no enum e um desenho próprio em
+> `EdgeVisual.tsx`, mas nenhum dos dois está em `EdgeCycle` — não são
+> alcançáveis clicando numa aresta, então ficaram de fora desta rodada
+> (sem regra própria ainda).
+>
+> O guia em linguagem simples (aba "Conectivos" em `HelpGuide.tsx`) espelha
+> esta tabela a partir de `EdgeDescriptions` (`engine/constants.ts`), pra
+> não haver duas explicações divergentes.
+
+## 7. Os 32 Colégios (Fusão)
 
 `engine/colleges.ts`. O aditivo **Fusão** carrega um segundo elemento (um
 dos 8 valores de Núcleo) sem precisar de um segundo nó de Núcleo — resolve
@@ -158,7 +193,7 @@ usuário.
 > ~128 magias nomeadas do grimório original do usuário — o compilador
 > gera magias a partir do grafo, não de uma lista fixa de feitiços.
 
-## 7. Capacitor / Gatilho
+## 8. Capacitor / Gatilho
 
 O aditivo **Gatilho** é o Capacitor: em vez de a magia se manifestar ao
 ser conjurada, ela fica armazenada num glifo até uma condição se cumprir.
@@ -188,7 +223,7 @@ carregar (N turnos) + Gatilho de X"`), e o texto final ganha um bloco
 > magia carregada o bastante dura um ano") — Manter continua sendo o
 > único eixo de duração por enquanto.
 
-## 8. Selo Arcano
+## 9. Selo Arcano
 
 `engine/sigil.ts`. Gera um glifo único e determinístico pra cada magia
 compilada, baseado no "Gorilla of Destiny's Spell Writing Guide": um
@@ -199,27 +234,28 @@ outra já usada) por valor possível daquele atributo.
 `cyclicallyUniqueBinaryNumbers(n)` foi validado byte a byte contra o
 dicionário do livro original.
 
-## 9. Onde cada coisa mora no código
+## 10. Onde cada coisa mora no código
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType), runas, descrições, `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`). |
+| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`). |
 | `types/magic.ts` | Interfaces de nó/aresta/grafo; reexporta os enums de `constants.ts`. |
-| `engine/compiler.ts` | O motor: AST, validador, pattern matcher, álgebra do buffer, geração de texto. |
+| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (inclui as regras dos conectivos de aresta — §6), álgebra do buffer, geração de texto. |
 | `engine/colleges.ts` | Tabela dos 32 Colégios e a Lei da Simetria. |
 | `engine/sigil.ts` | Gerador do Selo Arcano. |
 | `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado. |
 | `components/MagicTranslator.tsx` | Renderiza o resultado compilado (ficha, bloco D&D 5e, Selo Arcano). |
 | `components/HelpGuide.tsx` | Guia de ajuda in-app (linguagem simples, espelha este documento). |
 
-## 10. Ideias em Aberto (ainda não implementadas)
+## 11. Ideias em Aberto (ainda não implementadas)
 
 Três ideias levantadas pelo usuário numa sessão de brainstorm, explicitamente
 adiadas ("não vou fazer agora, no momento" / "só documentar tudo por
-agora"). Nenhum código foi alterado por causa delas — isto é só o registro
-pra retomar depois, com detalhe suficiente pra não perder o raciocínio.
+agora"). A terceira (conectivos de aresta) já foi implementada desde então
+— ver a nota no fim desta seção. As outras duas continuam em aberto, só
+documentadas, sem código.
 
-### 10.1 Nível infinito via mana investida (curva tipo Fibonacci)
+### 11.1 Nível infinito via mana investida (curva tipo Fibonacci)
 
 Ideia central: **nível deixa de ser uma categoria escolhida e passa a ser
 puramente uma função da mana gasta**. Não existe "escolher lançar nível 3"
@@ -248,7 +284,7 @@ derivado disso.
   vira um novo campo de buffer ou um recurso externo ao grafo (atributo do
   personagem, não da magia).
 
-### 10.2 "Nível 0" / conjuração ambiental + Kernel de Absorção
+### 11.2 "Nível 0" / conjuração ambiental + Kernel de Absorção
 
 Ideia de magia de custo zero (ou muito reduzido) quando conjurada **a
 favor do ambiente**, e cara ou impossível quando contra ele.
@@ -278,28 +314,9 @@ favor do ambiente**, e cara ou impossível quando contra ele.
   fogo→cura); e se isso é um `KernelType` novo ou um modo do Gatilho
   existente.
 
-### 10.3 Conectivos de aresta (AND/OR/XOR/SE_ENTAO/ATRIBUICAO/CORRENTE) são decorativos
+### ~~10.3 Conectivos de aresta são decorativos~~ — resolvido
 
-Achado confirmado por inspeção direta do código: `EdgeType` existe em
-`engine/constants.ts` e as arestas carregam um `edge.type`, mas
-**`compiler.ts` nunca lê `edge.type` em lugar nenhum do pipeline** — os
-conectivos aparecem visualmente no grafo (rune/símbolo por tipo,
-`EdgeSymbols`/`EdgeCycle`) mas não alteram nem o buffer, nem o
-`PatternMatcher`, nem a álgebra, nem o texto gerado. Hoje toda conexão se
-comporta exatamente igual, seja qual for o tipo escolhido.
-
-Citação do usuário: "a gente tem que estabelecer regras para poder
-utilizar eles de forma melhor. Ou aboli-los ou criar regras para que eles
-funcionem melhor."
-
-Duas saídas possíveis pra próxima sessão, nenhuma decidida ainda:
-1. **Dar regras reais** — cada tipo de conectivo passaria a mudar como o
-   `PatternMatcher`/buffer combinam os nós que ele liga (ex: `SE_ENTAO`
-   como condicional real ligado a Teste/Gatilho; `CORRENTE` como
-   propagação sequencial de efeito; `AND`/`OR`/`XOR` como lógica de
-   ativação entre múltiplos ramos do grafo).
-2. **Abolir** — remover `EdgeType` do sistema e simplificar pra um único
-   tipo de conexão sem semântica, já que hoje é isso que já acontece na
-   prática (só sem admitir).
-
-Nenhuma das duas foi escolhida — fica registrado como pendência em aberto.
+Esta era a terceira ideia registrada aqui. **Já foi implementada** (regras
+reais pra AND/OR/XOR/SE_ENTAO/ATRIBUICAO/CORRENTE) — ver §6 (Conectivos de
+Aresta) mais acima. Deixado de fora dessa seção porque não é mais uma
+ideia em aberto.
