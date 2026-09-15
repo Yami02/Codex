@@ -19,6 +19,7 @@ vive dentro do próprio app: botão **❓ Ajuda** no Codex (`src/components/Help
 7. [Capacitor / Gatilho](#7-capacitor--gatilho)
 8. [Selo Arcano](#8-selo-arcano)
 9. [Onde cada coisa mora no código](#9-onde-cada-coisa-mora-no-código)
+10. [Ideias em Aberto (ainda não implementadas)](#10-ideias-em-aberto-ainda-não-implementadas)
 
 ---
 
@@ -210,3 +211,95 @@ dicionário do livro original.
 | `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado. |
 | `components/MagicTranslator.tsx` | Renderiza o resultado compilado (ficha, bloco D&D 5e, Selo Arcano). |
 | `components/HelpGuide.tsx` | Guia de ajuda in-app (linguagem simples, espelha este documento). |
+
+## 10. Ideias em Aberto (ainda não implementadas)
+
+Três ideias levantadas pelo usuário numa sessão de brainstorm, explicitamente
+adiadas ("não vou fazer agora, no momento" / "só documentar tudo por
+agora"). Nenhum código foi alterado por causa delas — isto é só o registro
+pra retomar depois, com detalhe suficiente pra não perder o raciocínio.
+
+### 10.1 Nível infinito via mana investida (curva tipo Fibonacci)
+
+Ideia central: **nível deixa de ser uma categoria escolhida e passa a ser
+puramente uma função da mana gasta**. Não existe "escolher lançar nível 3"
+— existe "quanto mana você tem pra gastar", e o nível resultante é
+derivado disso.
+
+- Um conjurador com mais mana disponível (ex: 300 de mana) consegue "pagar"
+  por uma magia de nível muito mais alto que o normal.
+- Quanto maior o nível, **mais aditivos/núcleos/capacidade** a magia
+  suporta — nível vira, na prática, o "orçamento" de quantos nós o grafo
+  pode ter e quão fortes eles podem ser.
+- O custo por nível **não escala linear nem 2x por nível** — a ideia é uma
+  curva parecida com Fibonacci: cada nível seguinte custa
+  significativamente mais que o anterior (não simplesmente o dobro), de
+  forma que nível 6, por exemplo, representa uma complexidade extrema
+  comparado a nível 1 ou 2.
+- Importante (citação do usuário): "uma magia level 1, uma magia level 2,
+  a única diferença é a quantidade de mana que ele consegue colocar.
+  Somente isso. Não tem mais outra diferença." — ou seja, nível não é um
+  eixo qualitativo separado, é 100% derivado da mana investida. Isso
+  substituiria (ou se sobreporia a) `computeSpellLevel` atual, que hoje
+  deriva nível de `totalComponents`/buffer sem noção de "mana disponível
+  pelo conjurador" como recurso externo.
+- Em aberto: qual é a fórmula exata da curva de custo, como ela se
+  relaciona com `computeSpellLevel`/`computeDC` existentes, e se "mana"
+  vira um novo campo de buffer ou um recurso externo ao grafo (atributo do
+  personagem, não da magia).
+
+### 10.2 "Nível 0" / conjuração ambiental + Kernel de Absorção
+
+Ideia de magia de custo zero (ou muito reduzido) quando conjurada **a
+favor do ambiente**, e cara ou impossível quando contra ele.
+
+- Exemplo do usuário: um mago de água tentando conjurar fogo num lugar
+  dominado por fogo tem muita dificuldade (ou não consegue). Um mago de
+  fogo, nesse mesmo lugar cheio de fogo, possivelmente **nem precisa gastar
+  mana** pra fazer algo de nível 0 — ele só está canalizando energia que já
+  está lá.
+- Proposta concreta: um novo **Kernel de Absorção** (não um Núcleo — o
+  usuário foi explícito que a ideia é um Kernel), que captura energia
+  elemental externa/ambiente e a guarda num glifo, em vez de gerar a
+  energia do zero.
+  - Exemplo dado: um alvo pegando fogo → o conjurador absorve esse fogo pra
+    dentro de um glifo, em vez de deixá-lo se dissipar.
+  - Quanto mais o glifo acumula (mais fogo absorvido), mais potente fica o
+    que pode ser feito com aquela energia depois — inclusive convertendo
+    pra outro uso (ex: fogo absorvido → depois usado pra **curar** pessoas,
+    trocando de elemento/efeito na conversão).
+  - Conecta diretamente com o Capacitor/Gatilho (§7) já implementado: a
+    Absorção seria uma forma alternativa de encher um capacitor — em vez de
+    "gastar N turnos conjurando", seria "captar energia ambiente/de um
+    evento por N unidades".
+- Em aberto: como medir "a favor" vs "contra" o ambiente (precisa de algum
+  conceito de "ambiente elemental atual" que hoje não existe no sistema);
+  a fórmula de conversão entre elemento absorvido e elemento de saída (ex:
+  fogo→cura); e se isso é um `KernelType` novo ou um modo do Gatilho
+  existente.
+
+### 10.3 Conectivos de aresta (AND/OR/XOR/SE_ENTAO/ATRIBUICAO/CORRENTE) são decorativos
+
+Achado confirmado por inspeção direta do código: `EdgeType` existe em
+`engine/constants.ts` e as arestas carregam um `edge.type`, mas
+**`compiler.ts` nunca lê `edge.type` em lugar nenhum do pipeline** — os
+conectivos aparecem visualmente no grafo (rune/símbolo por tipo,
+`EdgeSymbols`/`EdgeCycle`) mas não alteram nem o buffer, nem o
+`PatternMatcher`, nem a álgebra, nem o texto gerado. Hoje toda conexão se
+comporta exatamente igual, seja qual for o tipo escolhido.
+
+Citação do usuário: "a gente tem que estabelecer regras para poder
+utilizar eles de forma melhor. Ou aboli-los ou criar regras para que eles
+funcionem melhor."
+
+Duas saídas possíveis pra próxima sessão, nenhuma decidida ainda:
+1. **Dar regras reais** — cada tipo de conectivo passaria a mudar como o
+   `PatternMatcher`/buffer combinam os nós que ele liga (ex: `SE_ENTAO`
+   como condicional real ligado a Teste/Gatilho; `CORRENTE` como
+   propagação sequencial de efeito; `AND`/`OR`/`XOR` como lógica de
+   ativação entre múltiplos ramos do grafo).
+2. **Abolir** — remover `EdgeType` do sistema e simplificar pra um único
+   tipo de conexão sem semântica, já que hoje é isso que já acontece na
+   prática (só sem admitir).
+
+Nenhuma das duas foi escolhida — fica registrado como pendência em aberto.
