@@ -55,9 +55,9 @@ const TabButton = ({ active, onClick, children }: any) => (
   <button
     onClick={onClick}
     style={{
-      background: active ? 'rgba(212,175,55,0.15)' : 'transparent',
-      border: '1px solid rgba(212,175,55,0.4)',
-      color: active ? '#d4af37' : '#8a7d9b',
+      background: active ? 'rgba(139,0,0,0.1)' : 'rgba(255,255,255,0.3)',
+      border: `1px solid ${active ? '#8b0000' : 'rgba(74,55,40,0.25)'}`,
+      color: active ? '#8b0000' : '#5c3a21',
       padding: '8px 16px',
       borderRadius: '6px',
       cursor: 'pointer',
@@ -72,8 +72,8 @@ const TabButton = ({ active, onClick, children }: any) => (
 
 const Entry = ({ t, d }: { t: string; d: string }) => (
   <div style={{ marginBottom: '14px' }}>
-    <div style={{ color: '#d4af37', fontFamily: 'Cinzel, serif', fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '2px' }}>{t}</div>
-    <div style={{ color: '#e0d8c0', fontSize: '0.85rem', lineHeight: 1.5 }}>{d}</div>
+    <div style={{ color: '#6d1313', fontFamily: 'Cinzel, serif', fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '2px' }}>{t}</div>
+    <div style={{ color: '#2c1d11', fontSize: '0.85rem', lineHeight: 1.5 }}>{d}</div>
   </div>
 );
 
@@ -83,10 +83,10 @@ const HelpGuide = ({ onClose }: { onClose: () => void }) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', maxHeight: '80vh', overflowY: 'auto' }}>
-        <h2 style={{ color: '#e1b12c', marginTop: 0 }}>📖 Guia Rápido</h2>
-        <p style={{ color: '#7f8fa6', marginTop: '-8px' }}>Explicação simples de como usar o Codex e o que cada peça faz.</p>
+        <h2 style={{ color: '#6d1313', marginTop: 0, fontFamily: 'Cinzel, serif' }}>📖 Guia Rápido</h2>
+        <p style={{ color: '#5c3a21', marginTop: '-8px' }}>Explicação simples de como usar o Codex e o que cada peça faz.</p>
 
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '12px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px', borderBottom: '1px solid rgba(74,55,40,0.2)', paddingBottom: '12px' }}>
           <TabButton active={tab === 'USAR'} onClick={() => setTab('USAR')}>Como Usar</TabButton>
           <TabButton active={tab === 'NUCLEOS'} onClick={() => setTab('NUCLEOS')}>Núcleos</TabButton>
           <TabButton active={tab === 'ADITIVOS'} onClick={() => setTab('ADITIVOS')}>Aditivos</TabButton>
@@ -98,7 +98,7 @@ const HelpGuide = ({ onClose }: { onClose: () => void }) => {
         {tab === 'NUCLEOS' && NUCLEOS.map(e => <Entry key={e.t} {...e} />)}
         {tab === 'ADITIVOS' && ADITIVOS.map(e => <Entry key={e.t} {...e} />)}
         {tab === 'CONECTIVOS' && <>
-          <p style={{ color: '#8a7d9b', fontSize: '0.8rem', marginTop: 0 }}>Clique numa aresta (a linha entre dois nós) pra trocar o tipo dela, nessa ordem.</p>
+          <p style={{ color: '#5c3a21', fontSize: '0.8rem', marginTop: 0 }}>Clique numa aresta (a linha entre dois nós) pra trocar o tipo dela, nessa ordem.</p>
           {CONECTIVOS.map(e => <Entry key={e.t} {...e} />)}
         </>}
         {tab === 'OUTROS' && OUTROS.map(e => <Entry key={e.t} {...e} />)}

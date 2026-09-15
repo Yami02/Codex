@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, Upload, ArrowLeft, PlusCircle, Map, Target, Skull, Leaf, Compass, ChevronDown, ChevronRight, Trash2, Navigation, Save, Zap, ListTree, Castle, Users, Flag, Edit2, Feather } from 'lucide-react';
+import { Download, Upload, ArrowLeft, PlusCircle, Map, Target, Skull, Leaf, Compass, ChevronDown, ChevronRight, Trash2, Navigation, Save, Zap, ListTree, Castle, Users, Flag, Edit2, Feather, Menu, X } from 'lucide-react';
 
 export const parseDice = (diceStr: string) => {
   const match = diceStr.toLowerCase().match(/(\d+)d(\d+)(?:\s*\+\s*(\d+))?/);
@@ -131,6 +131,7 @@ const tabs: { id: EntityType, label: string, icon: React.ReactNode }[] = [
 ];
 
 export const CriarMundo = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<EntityType>('continente');
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -407,8 +408,25 @@ export const CriarMundo = () => {
         }
       `}</style>
 
+      {/* Mobile Sidebar Toggle */}
+      <button
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="lg:hidden fixed bottom-6 right-6 z-[150] w-14 h-14 flex items-center justify-center rounded-full bg-[#d4af37] border border-[#f5eedc]/60 text-[#1a120b] shadow-[0_5px_25px_rgba(212,175,55,0.4)]"
+        aria-label={isSidebarOpen ? 'Fechar menu de categorias' : 'Abrir menu de categorias'}
+      >
+        {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[90]"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Categories (Totally glued to the left) */}
-      <aside className="fixed left-0 top-0 w-[250px] h-full flex-shrink-0 leather-strip flex flex-col z-[100] shadow-[10px_0_20px_rgba(0,0,0,0.8)] m-0 pb-4 overflow-hidden">
+      <aside className={`fixed left-0 top-0 w-[250px] max-w-[85vw] h-full flex-shrink-0 leather-strip flex flex-col z-[100] shadow-[10px_0_20px_rgba(0,0,0,0.8)] m-0 pb-4 overflow-hidden transition-transform duration-300 ease-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent opacity-30"></div>
         
         <div className="p-4 flex flex-col gap-2">
@@ -424,6 +442,7 @@ export const CriarMundo = () => {
                    setActiveTab(tab.id);
                    setEditingId(null);
                    setFormData({ tipo: tab.id });
+                   setIsSidebarOpen(false);
                 }}
                 className={`relative flex items-center justify-between gap-3 px-4 py-3 mb-3 text-sm transition-all transform hover:scale-105 hover:-rotate-1 ${
                   isActive ? 'scale-105 -rotate-1 z-10' : 'opacity-80 rotate-1'
@@ -472,7 +491,7 @@ export const CriarMundo = () => {
       </aside>
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col h-full relative ml-[250px] w-[calc(100%-250px)]">
+      <div className="flex-1 flex flex-col h-full relative w-full lg:ml-[250px] lg:w-[calc(100%-250px)]">
         
         {/* Top Navbar */}
         <nav className="flex items-center justify-between px-6 py-4 border-b border-[#3a2818]/50 bg-transparent sticky top-0 z-20">
@@ -585,7 +604,7 @@ export const CriarMundo = () => {
 
                   {/* Monstros e Animais - Status específicos */}
                   {['monstro', 'animal'].includes(activeTab) && (
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                       <div>
                         <label className="block text-[10px] font-cinzel font-bold text-[#990000] tracking-widest uppercase mb-1">Vigor</label>
                         <input type="number" value={formData.hp || ''} onChange={e => setFormData({...formData, hp: e.target.value})} className="w-full pencil-input text-center text-[#990000] font-bold" placeholder="Ex: 120" />
@@ -670,7 +689,7 @@ export const CriarMundo = () => {
                   {['monstro', 'animal'].includes(activeTab) && (
                     <div className="w-full">
                       <label className="block text-[11px] font-cinzel font-bold text-[#1f1a18] tracking-widest uppercase mb-3 text-center border-b border-[#5c4a3d] pb-1 border-dashed">Essência Corporal</label>
-                      <div className="w-full grid grid-cols-6 gap-1 px-1">
+                      <div className="w-full grid grid-cols-3 sm:grid-cols-6 gap-1 px-1">
                         {['fisico', 'precisao', 'resistencia', 'mente', 'vontade', 'eloquencia'].map((attr) => (
                            <div key={attr} className="flex flex-col border border-[#5c4a3d]/20 bg-white/20 p-1">
                              <span className="text-[9px] font-cinzel font-bold tracking-widest uppercase text-[#5c4a3d] mb-1 text-center">{attr.substring(0,3)}</span>
@@ -700,7 +719,7 @@ export const CriarMundo = () => {
                        </label>
                        <div className="space-y-3 mt-3">
                          {(formData.ataques || []).map((atk, idx) => (
-                           <div key={idx} className="p-3 border border-[#5c4a3d]/40 grid grid-cols-2 gap-3 relative bg-black/5 transform rotate-1">
+                           <div key={idx} className="p-3 border border-[#5c4a3d]/40 grid grid-cols-1 sm:grid-cols-2 gap-3 relative bg-black/5 transform rotate-1">
                              <button 
                                onClick={() => setFormData(prev => ({ ...prev, ataques: prev.ataques?.filter((_, i) => i !== idx) }))}
                                className="absolute -right-2 -top-2 bg-[#8b0000] text-white rounded-full p-1 border border-[#400000] hover:scale-110 transition-transform shadow-md"

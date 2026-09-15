@@ -269,13 +269,13 @@ const MagicTranslator = ({ graph }: any) => {
             )}
 
             {/* Advanced Mode Toggle */}
-            <div style={{ marginTop: '30px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '20px' }}>
-              <button 
+            <div style={{ marginTop: '30px', borderTop: '1px solid rgba(92, 58, 33, 0.3)', paddingTop: '20px' }}>
+              <button
                 onClick={() => setIsAdvancedMode(!isAdvancedMode)}
                 style={{
-                  background: isAdvancedMode ? 'rgba(212, 175, 55, 0.15)' : 'rgba(0,0,0,0.4)',
-                  border: '1px solid rgba(212, 175, 55, 0.5)',
-                  color: '#d4af37',
+                  background: isAdvancedMode ? 'rgba(139, 0, 0, 0.08)' : 'rgba(92, 58, 33, 0.08)',
+                  border: '1px solid rgba(92, 58, 33, 0.4)',
+                  color: '#5c3a21',
                   padding: '8px 16px',
                   borderRadius: '6px',
                   cursor: 'pointer',
