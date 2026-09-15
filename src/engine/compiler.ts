@@ -337,10 +337,22 @@ export class PatternMatcher {
           formaLevel = 0;
       }
 
-      let otherComponents = allNodes.length - allNodes.filter(n => n instanceof CoreASTNode).length;
-      if (allNodes.length >= 2 && otherComponents < 2) {
-          instabilities.push("Alerta de Instabilidade! A geometria atual carece do 'Triângulo Base'. Risco alto de colapso arcanamente imprevisível no conjurador.");
+      // --- TESTE: aditivo binário (sem nível) que troca a jogada de ataque
+      // por um teste de resistência do alvo em PONTO 1 (Toque) ou 2
+      // (Alcance) — o alcance da magia não deveria decidir sozinho se ela é
+      // um ataque ou um teste; isso depende da magia, não da distância.
+      const hasTeste = allNodes.some(n => n instanceof AdditiveASTNode && n.additiveType === 'TESTE');
+      if (hasTeste && (moverLevel > 0 || perceberLevel > 0)) {
+          instabilities.push(`[TESTE SEM EFEITO] Teste não se aplica a magias de Mover ou Perceber, que não têm ataque nem teste.`);
       }
+
+      // Nota: o antigo "Alerta do Triângulo Base" (exigia 3+ nós no total)
+      // foi removido. Ele vinha da era em que PONTO/MANTER eram contados em
+      // cópias empilhadas e um "triângulo" geométrico era necessário para
+      // formar uma topologia válida. Hoje um único nó de PONTO já é uma
+      // magia completa e legítima (Fire Bolt é literalmente Núcleo+Ponto),
+      // então aquele alerta apenas marcava toda magia simples como instável
+      // sem motivo real.
 
       const kernelsAtivosNodes = allNodes.filter(n => n instanceof KernelASTNode) as KernelASTNode[];
       const kernelsAtivos = kernelsAtivosNodes.length;
@@ -353,7 +365,9 @@ export class PatternMatcher {
           formaLevel,
           moverLevel,
           perceberLevel,
+          hasTeste,
           pontosLength: pontoNodes.length,
+          totalComponents: allNodes.length,
           kernelsAtivos,
           mainKernel,
           transmutationLogs: logs,
@@ -380,7 +394,14 @@ export class MagicCompilerEngine {
     const patterns = PatternMatcher.matchAndTransform(astGraph);
     semanticErrors.push(...patterns.topologicalInstabilities);
 
-    if (patterns.pontoLevel === 0) {
+    // Sem PONTO não é sinônimo de instável: uma magia Pessoal legítima
+    // (ex: Escudo, uma aura permanente em você mesmo) não precisa de
+    // alcance nenhum, desde que tenha algum outro componente (Manter,
+    // Controle, Gatilho...). Só é de fato instável quando não sobrou nada
+    // além do Núcleo sozinho — uma magia sem nenhum efeito definido.
+    const isTrulyEmpty = patterns.pontoLevel === 0 && patterns.totalComponents <= 1;
+    const isPersonalOnly = patterns.pontoLevel === 0 && patterns.totalComponents > 1;
+    if (isTrulyEmpty) {
         semanticErrors.push("A energia manifesta-se de forma estática. Risco de Colapso iminente.");
     }
 
@@ -436,10 +457,16 @@ export class MagicCompilerEngine {
     // Determina isDeterministic
     const isDeterministic = patterns.pontoLevel === PONTO_LEVEL_MAX && semanticErrors.length === 0;
     // Save (teste de resistência) vs. ataque: Aura é sempre teste; Alcance
-    // normalmente é ataque à distância, exceto quando FORMA=Esfera Remota
-    // o transforma numa explosão em área (também teste). Mover/Perceber não
-    // causam dano, então nunca pedem teste de resistência.
-    const isSaveBased = !moverInfo && !perceberInfo && (patterns.pontoLevel === 3 || (patterns.pontoLevel === 2 && formaInfo?.level === 3));
+    // normalmente é ataque à distância, exceto quando FORMA=Esfera Remota a
+    // transforma numa explosão em área (também teste), ou quando o aditivo
+    // TESTE está presente (a magia impõe teste independente do alcance —
+    // ex: Chama Sagrada é à distância mas usa teste de Destreza, não
+    // ataque). Mover/Perceber não causam dano, então nunca pedem teste.
+    const isSaveBased = !moverInfo && !perceberInfo && (
+        patterns.pontoLevel === 3 ||
+        (patterns.pontoLevel === 2 && formaInfo?.level === 3) ||
+        (patterns.hasTeste && (patterns.pontoLevel === 1 || patterns.pontoLevel === 2))
+    );
 
     let damageBase = currentAttrs.damageType || (element !== 'Desconhecido' ? element : 'Energia Pura');
     const mainDamageAttr = (currentAttrs.entropy || 0) + (currentAttrs.strength || 0) + (currentAttrs.volume || 0) + (currentAttrs.order || 0);
@@ -459,7 +486,7 @@ export class MagicCompilerEngine {
         type: 'CAST'
     });
 
-    const fase2Name = patterns.pontoLevel === 0 ? 'Nenhum / Instável' : (formaInfo ? formaInfo.name : pontoInfo.vetor);
+    const fase2Name = isPersonalOnly ? 'Pessoal (Você mesmo)' : (isTrulyEmpty ? 'Nenhum / Instável' : (formaInfo ? formaInfo.name : pontoInfo.vetor));
     const fase2ModoSufixo = moverInfo ? ` — Modo Mover: ${moverInfo.name}` : perceberInfo ? ` — Modo Perceber: ${perceberInfo.name}` : '';
     events.push({
         step: stepCount++,
@@ -479,7 +506,7 @@ export class MagicCompilerEngine {
     events.push({
         step: stepCount++,
         title: `Status Final`,
-        description: isDeterministic ? `Malha 100% conectada (--). Sucesso Determinístico aplicado. CD descartada e Evasão suprimida. Dano Constante Ambiental.` : (semanticErrors.length > 0 && patterns.pontoLevel === 0 ? `Malha corrompida. Protocolo de falha acionado.` : `Malha operando sob incerteza parcial. Resolvendo impactos e testes (CD).`),
+        description: isDeterministic ? `Malha 100% conectada (--). Sucesso Determinístico aplicado. CD descartada e Evasão suprimida. Dano Constante Ambiental.` : (isTrulyEmpty ? `Malha corrompida. Protocolo de falha acionado.` : (isPersonalOnly ? `Malha fechada sobre o próprio conjurador. Nenhum alvo externo necessário.` : `Malha operando sob incerteza parcial. Resolvendo impactos e testes (CD).`)),
         type: 'IMPACT',
         dice: (moverInfo || perceberInfo) ? undefined : ((element === 'VIDA/CURA' || currentAttrs.healing) ? healDamage : spellDamage),
         element
@@ -496,20 +523,29 @@ export class MagicCompilerEngine {
         description += `\n`;
     }
 
-    const rangeStr = patterns.pontoLevel === 0 ? 'Nenhum / Instável' : (formaInfo ? formaInfo.rangeStr : pontoInfo.rangeStr);
+    const rangeStr = isPersonalOnly ? 'Pessoal' : (isTrulyEmpty ? 'Nenhum / Instável' : (formaInfo ? formaInfo.rangeStr : pontoInfo.rangeStr));
     const level = 1 + Math.floor((currentAttrs.complexity || 0) / 3) + Math.floor(events.length / 4);
     const dc = 10 + Math.floor(level / 2) + Math.floor((currentAttrs.potency || 0) / 2);
     const durationStr = manterInfo.duration;
 
     // D&D 5e Block Processing
-    const dndRange = patterns.pontoLevel === 0 ? 'Nulo / Instável' : (formaInfo ? formaInfo.dndRange : pontoInfo.dndRange);
+    const dndRange = isPersonalOnly ? 'Pessoal' : (isTrulyEmpty ? 'Nulo / Instável' : (formaInfo ? formaInfo.dndRange : pontoInfo.dndRange));
     const dndDuration = manterInfo.dndDuration;
 
     let isHealing = element === 'VIDA/CURA' || currentAttrs.healing;
 
     let dndFullText = "";
-    if (patterns.pontoLevel === 0) {
+    if (isTrulyEmpty) {
         dndFullText = `A magia não possui geometria de ancoragem ou expansão válida, manifestando-se estaticamente sem alcance. Nenhum alvo pode ser definido logicamente.`;
+    } else if (isPersonalOnly) {
+        // Sem PONTO, mas com outros componentes: efeito Pessoal legítimo
+        // (ex: Escudo) — a energia nunca sai de você, então não há alvo,
+        // ataque, teste ou dano a um terceiro.
+        if (isHealing) {
+             dndFullText = `Você direciona a energia inteiramente para dentro de si mesmo, sem afetar nada externo. Uma onda de ${damageBase.toLowerCase()} reforça sua própria vitalidade.`;
+        } else {
+             dndFullText = `Você direciona ${damageBase.toLowerCase()} inteiramente para dentro de si mesmo, sem projetá-lo a nenhum alvo externo — a energia reforça sua própria defesa ou capacidade enquanto a magia perdurar.`;
+        }
     } else if (moverInfo) {
         // MOVER: PONTO decide quem é afetado (você / um alvo / a área),
         // MOVER decide a distância — não há dano, cura nem teste envolvido.
@@ -558,11 +594,26 @@ export class MagicCompilerEngine {
         } else {
              dndFullText = `Você arremessa um foco de energia primordial que detona ao atingir um ponto à distância, envolvendo a área numa esfera devastadora. Cada criatura na esfera sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}. Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`;
         }
+    } else if (patterns.pontoLevel === 2 && patterns.hasTeste) {
+        // Alcance + TESTE: à distância, mas resolvido por teste de
+        // resistência do alvo em vez de jogada de ataque (ex: Chama Sagrada).
+        if (isHealing) {
+             dndFullText = `Você dispara um vetor cinético curativo através do espaço, atingindo com precisão um alvo. O feixe estabiliza feridas restaurando ${healDamage} pontos de vida.`;
+        } else {
+             dndFullText = `Você concentra ${damageBase.toLowerCase()} num feixe preciso direcionado a um alvo à distância. Ele tenta resistência de ${saveAbility} (CD ${dc}) ou sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.`;
+        }
     } else if (patterns.pontoLevel === 2) {
         if (isHealing) {
              dndFullText = `Você dispara um vetor cinético curativo através do espaço, atingindo com precisão um alvo. O feixe estabiliza feridas restaurando ${healDamage} pontos de vida.`;
         } else {
              dndFullText = `Você gera um vetor balístico contendo força letal primordial. Faça um ataque à distância com magia. O alvo recebe ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A cinemática é inevitável (auto-hit).' : ''}`;
+        }
+    } else if (patterns.hasTeste) {
+        // Toque + TESTE: mesma ideia, mas ao toque em vez de à distância.
+        if (isHealing) {
+             dndFullText = `Ao tocar uma criatura, sua energia divina infunde vitalidade nela, curando-a em ${healDamage} pontos de vida através de feixes de ${damageBase.toLowerCase()}.`;
+        } else {
+             dndFullText = `Ao encostar no alvo, você libera ${damageBase.toLowerCase()} diretamente em seu corpo. Ele tenta resistência de ${saveAbility} (CD ${dc}) ou sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.`;
         }
     } else {
         if (isHealing) {
@@ -599,7 +650,7 @@ export class MagicCompilerEngine {
         if (roll <= 3) {
             catText = "CRÍTICO/CATASTRÓFICO";
             failEffect = "Singularidade, Bumerangue de Dano Dobrado, ou Fenda Elemental.";
-            if (patterns.pontoLevel === 0) {
+            if (isTrulyEmpty) {
                 dndFullText = `[FALHA CATASTRÓFICA]\nUma fissura mística se rompe bem no seu núcleo arcano, dilacerando a realidade. A magia não surte o efeito desejado; em vez disso, colapsa violentamente causando: ${failEffect}`;
             } else {
                 dndFullText += `\n\n[FALHA CATASTRÓFICA]\nA malha rompeu causando: ${failEffect}`;

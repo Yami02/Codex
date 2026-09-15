@@ -26,7 +26,8 @@ export enum AdditiveType {
   ECO = 'ECO',
   FORMA = 'FORMA',
   MOVER = 'MOVER',
-  PERCEBER = 'PERCEBER'
+  PERCEBER = 'PERCEBER',
+  TESTE = 'TESTE'
 }
 
 export enum KernelType {
@@ -74,6 +75,7 @@ export const AdditiveRunes: Record<string, string> = {
   [AdditiveType.FORMA]: 'ᛗ',
   [AdditiveType.MOVER]: 'ᛜ',
   [AdditiveType.PERCEBER]: 'ᛇ',
+  [AdditiveType.TESTE]: 'ᚹ',
   // Kernel Runes
   [KernelType.ENTROPIA]: 'ᚲ', 
   [KernelType.MORFOLOGIA]: '᚛', 
@@ -116,6 +118,7 @@ export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.FORMA]: 'moldando a geometria de propagação do efeito (Cone, Linha ou Esfera Remota)',
   [AdditiveType.MOVER]: 'desloca no espaço, sem dano — você, um alvo ou a área ao redor',
   [AdditiveType.PERCEBER]: 'não causa dano nem cura: revela uma informação sobre o alvo ou a área',
+  [AdditiveType.TESTE]: 'troca a jogada de ataque por um teste de resistência do alvo, mesmo à distância ou ao toque',
   // Kernels
   [KernelType.ENTROPIA]: 'Buffer de Entropia: Manipula a agitação térmica.',
   [KernelType.MORFOLOGIA]: 'Buffer de Morfologia: Define a forma/formato natural da energia.',
@@ -264,6 +267,7 @@ export const NodeAttributesDict: Record<string, any> = {
   [AdditiveType.FORMA]: { complexity: +1, tags: ['FORMA'] },
   [AdditiveType.MOVER]: { velocity: +4, tags: ['MOVER'] },
   [AdditiveType.PERCEBER]: { complexity: +3, tags: ['PERCEBER'] },
+  [AdditiveType.TESTE]: { complexity: +1, tags: ['TESTE'] },
 
   // Kernel Defaults (Buffers): mais específicos que o Núcleo, por isso
   // sobrescrevem a condição/habilidade de resistência dele quando ativos.

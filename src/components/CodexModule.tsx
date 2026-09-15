@@ -503,7 +503,7 @@ import { useNavigate } from 'react-router-dom';
                 Passe o mouse sobre um aditivo para ver o que ele faz. Ponto, Manter, Forma, Mover e Perceber têm nível ajustável: adicione um só e use +/− ao selecioná-lo. Forma só faz efeito com Ponto em Aura ou Alcance. Mover e Perceber substituem dano/cura pelo próprio efeito (deslocamento/informação) e não podem atuar juntos.
               </p>
               <div className="sidebar-grid">
-                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
+                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'TESTE', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#fd79a8', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #fd79a8', paddingLeft: '8px' }}>Subcírculos</h3>
