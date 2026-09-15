@@ -8,6 +8,7 @@ import {
   PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX,
   KERNEL_SCALE_AXIS,
 } from './constants';
+import { resolveCollege, polaritySymmetryDelta } from './colleges';
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -35,7 +36,8 @@ export class CoreASTNode extends ASTNode {
 export class AdditiveASTNode extends ASTNode {
   // `level` carrega a intensidade explícita do aditivo (PONTO 1-3, MANTER 0-4).
   // Um único nó basta: não é mais preciso empilhar cópias para escalar o efeito.
-  constructor(id: string, public additiveType: string, public level?: number) { super(id); }
+  // `fusionElement` é usado só pelo aditivo FUSAO (ver engine/colleges.ts).
+  constructor(id: string, public additiveType: string, public level?: number, public fusionElement?: string) { super(id); }
   accept(visitor: ASTVisitor) { visitor.visitAdditive(this); }
 }
 
@@ -85,7 +87,7 @@ export class GraphToASTBuilder {
       if (n.type === NodeType.CORE) {
         ast.addNode(new CoreASTNode(n.id, n.element || n.name));
       } else if (n.type === NodeType.ADDITIVE) {
-        ast.addNode(new AdditiveASTNode(n.id, n.additiveType || n.name, n.level));
+        ast.addNode(new AdditiveASTNode(n.id, n.additiveType || n.name, n.level, n.fusionElement));
       } else if (n.type === NodeType.KERNEL || n.type === NodeType.SUBCIRCLE) {
         const subAst = n.magicGraph ? this.build(n.magicGraph) : new ASTGraph();
         ast.addNode(new KernelASTNode(n.id, n.additiveType || n.element || n.name || 'SUBCIRCLE', subAst));
@@ -232,18 +234,33 @@ export class PatternMatcher {
 
       const allNodes = this.flattenNodes(ast);
 
+      // --- FUSAO: funde um segundo elemento/polaridade ao Núcleo sem
+      // exigir um segundo nó de Núcleo (que o validador semântico rejeita
+      // como "Colapso Dimensional"). Isso é o que torna as combinações
+      // abaixo (Fogo+Terra=Metal, Luz+Compor=Vida/Cura...) alcançáveis de
+      // verdade — antes, só existiam na teoria. Ver engine/colleges.ts.
+      const fusaoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'FUSAO');
+      let fusionElement: string | null = null;
+      if (fusaoNodes.length > 0) {
+          fusionElement = fusaoNodes[0].fusionElement || null;
+          if (fusaoNodes.length > 1) {
+              instabilities.push(`[REDUNDÂNCIA] ${fusaoNodes.length} nós de FUSAO detectados; apenas o primeiro (${fusionElement}) foi considerado. Use um único nó de FUSAO.`);
+          }
+      }
+      const primaryElement = (ast.nodes.find(n => n instanceof CoreASTNode) as CoreASTNode | undefined)?.element || null;
+
       let hasElement = (e: string) => allNodes.some(n => (n instanceof CoreASTNode && n.element === e) || (n instanceof KernelASTNode && n.kernelType === e));
       let hasAdditive = (a: string) => allNodes.some(n => (n instanceof AdditiveASTNode && n.additiveType === a));
 
       let elements = new Set(allNodes.filter(n => n instanceof CoreASTNode).map(n => (n as CoreASTNode).element));
-      let compor = hasElement('COMPOR') || hasAdditive('COMPOR');
-      let decompor = hasElement('DECOMPOR') || hasAdditive('DECOMPOR');
-      let fogo = hasElement('FOGO');
-      let terra = hasElement('TERRA');
-      let agua = hasElement('ÁGUA') || hasElement('AGUA');
-      let ar = hasElement('AR');
-      let luz = hasElement('LUZ');
-      let sombra = hasElement('SOMBRA');
+      let compor = hasElement('COMPOR') || hasAdditive('COMPOR') || fusionElement === 'COMPOR';
+      let decompor = hasElement('DECOMPOR') || hasAdditive('DECOMPOR') || fusionElement === 'DECOMPOR';
+      let fogo = hasElement('FOGO') || fusionElement === 'FOGO';
+      let terra = hasElement('TERRA') || fusionElement === 'TERRA';
+      let agua = hasElement('ÁGUA') || hasElement('AGUA') || fusionElement === 'AGUA';
+      let ar = hasElement('AR') || fusionElement === 'AR';
+      let luz = hasElement('LUZ') || fusionElement === 'LUZ';
+      let sombra = hasElement('SOMBRA') || fusionElement === 'SOMBRA';
 
       let finalElement = 'Desconhecido';
 
@@ -370,6 +387,8 @@ export class PatternMatcher {
 
       return {
           finalElement,
+          fusionElement,
+          primaryElement,
           pontoLevel,
           manterLevel,
           formaLevel,
@@ -495,10 +514,29 @@ export class MagicCompilerEngine {
           buffer = mergeAttrs(buffer, NodeAttributesDict[node.element] || {});
       } else if (node instanceof AdditiveASTNode) {
           buffer = mergeAttrs(buffer, NodeAttributesDict[node.additiveType] || {});
+          // FUSAO carrega os atributos do próprio elemento escolhido (o
+          // "segundo Núcleo"), somados como se fosse um Núcleo de verdade.
+          if (node.additiveType === 'FUSAO' && node.fusionElement) {
+              buffer = mergeAttrs(buffer, NodeAttributesDict[node.fusionElement] || {});
+          }
       } else if (node instanceof KernelASTNode) {
           buffer = mergeAttrs(buffer, NodeAttributesDict[node.kernelType] || {});
       }
     }
+
+    // A Lei da Simetria: Criar (fusão com COMPOR) é a versão permanente e
+    // cara — soma complexidade/potência (que elevam nível e CD via as
+    // fórmulas abaixo); Destruir (fusão com DECOMPOR) é a versão efêmera e
+    // barata — subtrai. Ver engine/colleges.ts.
+    const symmetryDelta = polaritySymmetryDelta(patterns.fusionElement);
+    if (symmetryDelta) {
+        buffer = mergeAttrs(buffer, symmetryDelta);
+    }
+
+    // Resolve qual dos 32 Colégios está ativo (Núcleo principal + fusão).
+    // Um Colégio muda o NOME e o vocabulário da magia — é uma identidade
+    // diferente do Núcleo puro, não só uma variação de intensidade.
+    const college = patterns.primaryElement ? resolveCollege(patterns.primaryElement, patterns.fusionElement) : null;
 
     // Dobra os seletores de modo (resolvidos por nó no PatternMatcher, não
     // por soma) para dentro do mesmo buffer, como mais alguns eixos —
@@ -767,11 +805,22 @@ export class MagicCompilerEngine {
             default: spellName = `Sintonia de ${patterns.mainKernel} (${element})`; break;
         }
     }
-    // Mover/Perceber mudam a própria natureza do feitiço, então o nome e a
-    // escola de magia priorizam isso sobre o Kernel escalar.
+    // Um Colégio (Núcleo + Fusão) é a identidade mais específica possível
+    // da magia — prioriza sobre o nome derivado do Kernel escalar.
+    if (college) {
+        spellName = college.name;
+    }
+    // Mover/Perceber mudam a própria natureza do feitiço, então a escola de
+    // magia prioriza isso sobre o Kernel escalar (mas o nome do Colégio,
+    // quando existe, continua valendo — ex: "Colégio da Adivinação"
+    // fazendo uma leitura à distância continua sendo Adivinação).
     let magicSchool = 'Evocação';
-    if (moverInfo) { spellName = `Deslocamento de ${element}`; magicSchool = 'Conjuração'; }
-    else if (perceberInfo) { spellName = `Percepção de ${element}`; magicSchool = 'Adivinhação'; }
+    if (moverInfo) { if (!college) spellName = `Deslocamento de ${element}`; magicSchool = 'Conjuração'; }
+    else if (perceberInfo) { if (!college) spellName = `Percepção de ${element}`; magicSchool = 'Adivinhação'; }
+
+    if (college) {
+        dndFullText += `\n\n[${college.name.toUpperCase()}]\nEsta magia pertence ao colégio que trata de ${college.vocabulary}.`;
+    }
 
     if (isDeterministic && !isMode) {
         dndFullText += `\n\n[DETERMINISMO ABSOLUTO]\nA precisão desta malha anula todas as defesas. Nenhum Teste de Resistência (CD) é exigido, e rolagens de ataque são omitidas. O dano associado é uma Constante Ambiental (Automático e Inevitável).`;
@@ -795,6 +844,9 @@ export class MagicCompilerEngine {
       instabilities: semanticErrors,
       logs: events,
       element,
+      // Colégio ativo (Núcleo + Fusão), ou null se a magia usa só o
+      // Núcleo puro sem fusão — ver engine/colleges.ts.
+      college,
       needsDC: isSaveBased && dc > 10 && !isDeterministic,
       // 'MOVER' | 'PERCEBER' | null — diz à UI que a magia não tem dano/cura.
       mode: moverInfo ? 'MOVER' : perceberInfo ? 'PERCEBER' : null,

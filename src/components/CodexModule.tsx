@@ -16,6 +16,13 @@ import MagicDSLTerminal from './MagicDSLTerminal';
       MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
       PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX
     } from '../magicConstants';
+    import { resolveCollege } from '../engine/colleges';
+
+    // Valores possíveis pra FUSAO: os mesmos 8 do Núcleo — combinar dois
+    // elementos (ou um elemento + Compor/Decompor como polaridade) revela
+    // um dos 32 Colégios (ver engine/colleges.ts), sem precisar de um
+    // segundo nó de Núcleo.
+    const FUSAO_ELEMENT_OPTIONS = ['FOGO', 'AGUA', 'TERRA', 'AR', 'LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'];
 
     // PONTO, MANTER, FORMA, MOVER e PERCEBER são aditivos "de nível": um
     // único nó no círculo carrega um número (alcance 1-3 / duração 0-4 /
@@ -181,7 +188,10 @@ import { useNavigate } from 'react-router-dom';
         }
         else if (item.type === NodeType.ADDITIVE) {
           const leveled = LEVELED_ADDITIVES[item.name];
-          if (leveled) {
+          if (item.name === AdditiveType.FUSAO) {
+            const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === AdditiveType.FUSAO);
+            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: AdditiveType.FUSAO, fusionElement: 'TERRA', layer: 1, angleOffset: 0 });
+          } else if (leveled) {
             const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === item.name);
             if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: item.name, level: leveled.defaultLevel, layer: 1, angleOffset: 0 });
           } else {
@@ -210,7 +220,10 @@ import { useNavigate } from 'react-router-dom';
         }
         else if (type === NodeType.ADDITIVE) {
           const leveled = LEVELED_ADDITIVES[name];
-          if (leveled) {
+          if (name === AdditiveType.FUSAO) {
+            const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === AdditiveType.FUSAO);
+            if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: AdditiveType.FUSAO, fusionElement: 'TERRA', layer: 1, angleOffset: 0 });
+          } else if (leveled) {
             const exists = newGraph.nodes.some(n => n.type === NodeType.ADDITIVE && n.additiveType === name);
             if (!exists) newGraph.nodes.push({ id: newId, type: NodeType.ADDITIVE, additiveType: name, level: leveled.defaultLevel, layer: 1, angleOffset: 0 });
           } else {
@@ -375,6 +388,39 @@ import { useNavigate } from 'react-router-dom';
                 );
               })()}
 
+              {selectedNode.type === NodeType.ADDITIVE && selectedNode.additiveType === AdditiveType.FUSAO && (() => {
+                const coreNode = activeGraph.nodes.find(n => n.type === NodeType.CORE);
+                const college = coreNode ? resolveCollege(coreNode.element, selectedNode.fusionElement) : null;
+                return (
+                  <div className="action-group">
+                    <div style={{ maxWidth: '200px' }}>
+                      <div className="action-label">Fusão (2º Elemento/Polaridade)</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginTop: '4px' }}>
+                        {FUSAO_ELEMENT_OPTIONS.map(el => (
+                          <div
+                            key={el}
+                            className="mini-btn"
+                            onClick={() => updateNodeCustomProperty(selectedNode.id, 'fusionElement', el)}
+                            title={el}
+                            style={{
+                              fontSize: '0.6rem',
+                              padding: '4px 2px',
+                              borderColor: selectedNode.fusionElement === el ? '#d4af37' : undefined,
+                              color: selectedNode.fusionElement === el ? '#d4af37' : undefined,
+                            }}
+                          >
+                            {el.slice(0, 4)}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: college ? '#d4af37' : '#8a7d9b', marginTop: '6px', lineHeight: 1.3 }}>
+                        {college ? college.name : 'Adicione um Núcleo para revelar o Colégio.'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="action-group">
                 <div>
                   <div className="action-label">Acões</div>
@@ -503,7 +549,7 @@ import { useNavigate } from 'react-router-dom';
                 Passe o mouse sobre um aditivo para ver o que ele faz. Ponto, Manter, Forma, Mover e Perceber têm nível ajustável: adicione um só e use +/− ao selecioná-lo. Forma só faz efeito com Ponto em Aura ou Alcance. Mover e Perceber substituem dano/cura pelo próprio efeito (deslocamento/informação) e não podem atuar juntos.
               </p>
               <div className="sidebar-grid">
-                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'TESTE', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
+                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'TESTE', 'FUSAO', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#fd79a8', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #fd79a8', paddingLeft: '8px' }}>Subcírculos</h3>

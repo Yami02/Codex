@@ -17,7 +17,7 @@ const MagicTranslator = ({ graph }: any) => {
         const result = MagicCompilerEngine.execute(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode } = result;
+        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode, college } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
 
         // Selo Arcano: assinatura geométrica única desta magia compilada,
@@ -50,8 +50,8 @@ const MagicTranslator = ({ graph }: any) => {
           <div className="spell-description ink-drying" style={{ fontFamily: 'Caveat, cursive', fontSize: '1.4rem', mixBlendMode: 'multiply' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '2px dashed rgba(139,90,43,0.3)', paddingBottom: '15px' }}>
               <div style={{ flex: 1 }}>
-                <h2 style={{ margin: 0, fontFamily: 'Cinzel, serif', color: '#5c3a21', fontSize: '1.8rem', letterSpacing: '2px', fontWeight: 'bold' }}>Manifestação de {element}</h2>
-                <div style={{ fontSize: '1.1rem', color: '#8b0000', marginTop: '6px', fontWeight: 'bold' }}>{level}º Círculo | Transmutação Arcanística</div>
+                <h2 style={{ margin: 0, fontFamily: 'Cinzel, serif', color: '#5c3a21', fontSize: '1.8rem', letterSpacing: '2px', fontWeight: 'bold' }}>{college ? college.name : `Manifestação de ${element}`}</h2>
+                <div style={{ fontSize: '1.1rem', color: '#8b0000', marginTop: '6px', fontWeight: 'bold' }}>{level}º Círculo | {college ? college.vocabulary : 'Transmutação Arcanística'}</div>
               </div>
               <div className="runic-text" style={{ fontSize: '3rem', color: '#8b0000', opacity: 0.8, marginLeft: '20px' }}>{CoreRunes[element]}</div>
             </div>

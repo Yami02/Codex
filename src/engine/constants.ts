@@ -27,7 +27,8 @@ export enum AdditiveType {
   FORMA = 'FORMA',
   MOVER = 'MOVER',
   PERCEBER = 'PERCEBER',
-  TESTE = 'TESTE'
+  TESTE = 'TESTE',
+  FUSAO = 'FUSAO'
 }
 
 export enum KernelType {
@@ -76,6 +77,7 @@ export const AdditiveRunes: Record<string, string> = {
   [AdditiveType.MOVER]: 'ᛜ',
   [AdditiveType.PERCEBER]: 'ᛇ',
   [AdditiveType.TESTE]: 'ᚹ',
+  [AdditiveType.FUSAO]: 'ᛝ',
   // Kernel Runes
   [KernelType.ENTROPIA]: 'ᚲ', 
   [KernelType.MORFOLOGIA]: '᚛', 
@@ -119,6 +121,7 @@ export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.MOVER]: 'desloca no espaço, sem dano — você, um alvo ou a área ao redor',
   [AdditiveType.PERCEBER]: 'não causa dano nem cura: revela uma informação sobre o alvo ou a área',
   [AdditiveType.TESTE]: 'troca a jogada de ataque por um teste de resistência do alvo, mesmo à distância ou ao toque',
+  [AdditiveType.FUSAO]: 'funde um segundo elemento (ou Compor/Decompor) ao Núcleo, revelando um dos 32 Colégios',
   // Kernels
   [KernelType.ENTROPIA]: 'Buffer de Entropia: Manipula a agitação térmica.',
   [KernelType.MORFOLOGIA]: 'Buffer de Morfologia: Define a forma/formato natural da energia.',
@@ -268,6 +271,10 @@ export const NodeAttributesDict: Record<string, any> = {
   [AdditiveType.MOVER]: { velocity: +4, tags: ['MOVER'] },
   [AdditiveType.PERCEBER]: { complexity: +3, tags: ['PERCEBER'] },
   [AdditiveType.TESTE]: { complexity: +1, tags: ['TESTE'] },
+  // FUSAO em si não carrega atributos fixos — quem contribui é o elemento
+  // escolhido (fusionElement, somado à parte pelo compilador) e a
+  // assimetria de Criar/Destruir (ver Lei da Simetria em engine/colleges.ts).
+  [AdditiveType.FUSAO]: { tags: ['FUSAO'] },
 
   // Kernel Defaults (Buffers): mais específicos que o Núcleo, por isso
   // sobrescrevem a condição/habilidade de resistência dele quando ativos.

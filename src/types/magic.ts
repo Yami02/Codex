@@ -95,6 +95,10 @@ export interface AdditiveNode extends BaseNode {
   // Substitui a antiga convenção de "empilhar N cópias do mesmo nó" —
   // ver PONTO_LEVELS/MANTER_LEVELS em engine/constants.ts.
   level?: number;
+  // Usado só pelo aditivo FUSAO: qual segundo elemento/polaridade (um dos
+  // 8 valores de CoreElement) se combina com o Núcleo principal — ver
+  // COLLEGE_TABLE em engine/colleges.ts.
+  fusionElement?: string;
 }
 
 export interface SubCircleNode extends BaseNode {
