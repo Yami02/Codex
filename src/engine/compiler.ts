@@ -187,6 +187,16 @@ export class ExecutionTraversal {
 }
 
 // 5. Reconhecedor de Padrões Topológicos (Graph Pattern Matcher)
+//
+// O trabalho deste estágio é puramente de SELEÇÃO: decidir, a partir da
+// topologia do grafo, qual nível está ativo em cada aditivo "de modo"
+// (PONTO/MANTER/FORMA/MOVER/PERCEBER) e se TESTE está presente. Esses
+// níveis não são somados como o resto do buffer — são seletores discretos
+// (qual das 3-5 variantes está ativa), então continuam sendo resolvidos
+// aqui por nó, não pela álgebra do buffer. Depois de resolvidos, o motor
+// (seção 7) os dobra para dentro do mesmo buffer numérico que os atributos
+// físicos (entropia, luminância...), para que toda fórmula posterior leia
+// de um único vetor.
 export class PatternMatcher {
   public static flattenNodes(ast: ASTGraph): ASTNode[] {
       let nodes: ASTNode[] = [];
@@ -376,8 +386,72 @@ export class PatternMatcher {
   }
 }
 
+// 6. Álgebra do Buffer
+//
+// SpellBuffer é o único vetor numérico do compilador: cada Núcleo, Aditivo
+// e Kernel contribui para ele por SOMA (ver NodeAttributesDict + mergeAttrs
+// abaixo) — nunca por multiplicação, então dois FOGOs equivalentes sempre
+// somam, nunca compõem exponencialmente. Os seletores de PONTO/MANTER/
+// FORMA/MOVER/PERCEBER/TESTE (resolvidos por nó no PatternMatcher, porque
+// são "qual variante" e não "quanto", então não fazem sentido somados) são
+// dobrados para dentro deste mesmo vetor como mais alguns eixos
+// (alcance/duracao/forma/mover/perceber/teste), para que TODA fórmula do
+// motor leia de um único lugar em vez de misturar `currentAttrs.x` com
+// variáveis soltas como `patterns.pontoLevel`.
+//
+// As funções abaixo são a "álgebra": cada uma é pura (buffer → número),
+// nomeada pelo que calcula, e é a única responsável por aquele número no
+// feitiço final. O texto mágico (mais abaixo, em MagicCompilerEngine) só
+// LÊ esses números e o buffer para escolher entre um punhado de gabaritos
+// de prosa — a álgebra decide "quanto", a prosa só veste "como soa".
+export type SpellBuffer = Record<string, any>;
 
-// 6. O Motor Principal do Compilador
+function mergeAttrs(a: SpellBuffer, b: SpellBuffer): SpellBuffer {
+  const res = { ...a };
+  for (const key in b) {
+      if (typeof b[key] === 'number') res[key] = (res[key] || 0) + b[key];
+      else if (Array.isArray(b[key])) res[key] = [...new Set([...(res[key] || []), ...b[key]])];
+      else res[key] = b[key];
+  }
+  return res;
+}
+
+// magnitude = soma dos eixos "físicos" que dão peso a um efeito (entropia,
+// força, volume, ordem). alcance/duração somam meio ponto de dado cada —
+// um feitiço mais abrangente ou mais longo tende a carregar mais peso.
+function computeDamageDice(buffer: SpellBuffer): number {
+  const magnitude = (buffer.entropy || 0) + (buffer.strength || 0) + (buffer.volume || 0) + (buffer.order || 0);
+  const numDice = Math.floor(magnitude / 2) + Math.floor((buffer.alcance || 0) / 2) + Math.floor((buffer.duracao || 0) / 2);
+  return Math.max(1, numDice);
+}
+
+function computeSpellLevel(buffer: SpellBuffer, eventCount: number): number {
+  return 1 + Math.floor((buffer.complexity || 0) / 3) + Math.floor(eventCount / 4);
+}
+
+function computeDC(level: number, buffer: SpellBuffer): number {
+  return 10 + Math.floor(level / 2) + Math.floor((buffer.potency || 0) / 2);
+}
+
+// Aura (alcance 3) é sempre teste; Alcance (2) + Esfera Remota (forma 3)
+// também vira teste (a explosão atinge uma área, não um único alvo);
+// TESTE liga isso explicitamente em Toque (1) ou Alcance (2). Mover/
+// Perceber nunca pedem teste — não causam dano.
+function resolveIsSaveBased(buffer: SpellBuffer, isMode: boolean): boolean {
+  if (isMode) return false;
+  if (buffer.alcance === 3) return true;
+  if (buffer.alcance === 2 && buffer.forma === 3) return true;
+  if (buffer.teste > 0 && (buffer.alcance === 1 || buffer.alcance === 2)) return true;
+  return false;
+}
+
+// Determinismo (dano automático, sem CD/ataque) só no teto de PONTO (Aura),
+// e só quando a malha está livre de instabilidades.
+function resolveIsDeterministic(buffer: SpellBuffer, hasErrors: boolean): boolean {
+  return buffer.alcance === PONTO_LEVEL_MAX && !hasErrors;
+}
+
+// 7. O Motor Principal do Compilador
 export class MagicCompilerEngine {
   public static execute(graphObject: any) {
     if (!graphObject.nodes || graphObject.nodes.length === 0) {
@@ -408,77 +482,77 @@ export class MagicCompilerEngine {
     // 4. Travessia (Resolução da Ordem de Avaliação)
     const executionOrder = ExecutionTraversal.resolveOrder(astGraph);
 
-    // 5. Geração do Buffer de Saída (D&D Output)
-    const events: ActionBufferItem[] = [];
-    let stepCount = 1;
-
-    let currentAttrs: any = {};
+    // 5. Construção do Buffer (o vetor único)
+    // Cada Núcleo/Aditivo/Kernel soma seus eixos (NodeAttributesDict) ao
+    // buffer, na ordem topológica — um Kernel é processado depois do
+    // Núcleo, então quando ambos definem o mesmo eixo não-numérico
+    // (ex: saveAbility), o do Kernel prevalece por ser mais específico.
+    let buffer: SpellBuffer = {};
     let element = patterns.finalElement;
 
-    // Calcular atributos totais
     for (const node of executionOrder) {
       if (node instanceof CoreASTNode) {
-          currentAttrs = this.mergeAttrs(currentAttrs, NodeAttributesDict[node.element] || {});
+          buffer = mergeAttrs(buffer, NodeAttributesDict[node.element] || {});
       } else if (node instanceof AdditiveASTNode) {
-          currentAttrs = this.mergeAttrs(currentAttrs, NodeAttributesDict[node.additiveType] || {});
+          buffer = mergeAttrs(buffer, NodeAttributesDict[node.additiveType] || {});
       } else if (node instanceof KernelASTNode) {
-          // Um Kernel é mais específico que o Núcleo puro: sua condição e
-          // habilidade de resistência (ver NodeAttributesDict) sobrescrevem
-          // a do elemento base, já que ele é processado depois na travessia.
-          currentAttrs = this.mergeAttrs(currentAttrs, NodeAttributesDict[node.kernelType] || {});
+          buffer = mergeAttrs(buffer, NodeAttributesDict[node.kernelType] || {});
       }
     }
 
+    // Dobra os seletores de modo (resolvidos por nó no PatternMatcher, não
+    // por soma) para dentro do mesmo buffer, como mais alguns eixos —
+    // daqui em diante, toda fórmula lê só do buffer, nunca de `patterns.*`.
+    buffer.alcance = patterns.pontoLevel;
+    buffer.duracao = patterns.manterLevel;
+    buffer.forma = patterns.formaLevel;
+    buffer.mover = patterns.moverLevel;
+    buffer.perceber = patterns.perceberLevel;
+    buffer.teste = patterns.hasTeste ? 1 : 0;
+
+    const isMode = patterns.moverLevel > 0 || patterns.perceberLevel > 0;
+
     // Condição imposta pelo efeito e habilidade usada para resisti-la.
     // Vêm do elemento (Núcleo) e, se houver, são refinadas pelo Kernel ativo.
-    const saveAbility: string = currentAttrs.saveAbility || 'Destreza';
-    const activeDebuffs: string[] = currentAttrs.debuffs || [];
+    const saveAbility: string = buffer.saveAbility || 'Destreza';
+    const activeDebuffs: string[] = buffer.debuffs || [];
 
     // Régua de alcance/duração: uma só tabela (PONTO_LEVELS/MANTER_LEVELS)
     // alimenta tanto o texto curto da ficha quanto o bloco formal D&D 5e,
     // então os dois nunca mais divergem entre si.
-    const pontoInfo = PONTO_LEVELS[patterns.pontoLevel];
-    const manterInfo = MANTER_LEVELS[patterns.manterLevel];
+    const pontoInfo = PONTO_LEVELS[buffer.alcance];
+    const manterInfo = MANTER_LEVELS[buffer.duracao];
     // FORMA (quando aplicável) substitui a geometria padrão de PONTO por
     // uma variante direcional (Cone/Linha) ou remota (Esfera) — ver
     // FORMA_LEVELS em engine/constants.ts para as regras de aplicabilidade.
-    const formaInfo = patterns.formaLevel > 0 ? FORMA_LEVELS[patterns.formaLevel] : null;
+    const formaInfo = buffer.forma > 0 ? FORMA_LEVELS[buffer.forma] : null;
     // MOVER/PERCEBER são aditivos de "modo": quando ativos, o resultado da
     // magia deixa de ser dano/cura e passa a ser deslocamento ou informação
-    // (ver FORMA_LEVELS/MOVER_LEVELS/PERCEBER_LEVELS em engine/constants.ts).
-    const moverInfo = patterns.moverLevel > 0 ? MOVER_LEVELS[patterns.moverLevel] : null;
-    const perceberInfo = patterns.perceberLevel > 0 ? PERCEBER_LEVELS[patterns.perceberLevel] : null;
+    // (ver MOVER_LEVELS/PERCEBER_LEVELS em engine/constants.ts).
+    const moverInfo = buffer.mover > 0 ? MOVER_LEVELS[buffer.mover] : null;
+    const perceberInfo = buffer.perceber > 0 ? PERCEBER_LEVELS[buffer.perceber] : null;
 
     // Cada Kernel escala o feitiço por "Aumento" (amplitude) ou
     // "Complexibilidade" (natureza do efeito) — ver KERNEL_SCALE_AXIS.
     let eixoEscopo = patterns.mainKernel ? (KERNEL_SCALE_AXIS[patterns.mainKernel] || 'Aumento') : 'Base';
     let descEscala = eixoEscopo;
 
-    // Determina isDeterministic
-    const isDeterministic = patterns.pontoLevel === PONTO_LEVEL_MAX && semanticErrors.length === 0;
-    // Save (teste de resistência) vs. ataque: Aura é sempre teste; Alcance
-    // normalmente é ataque à distância, exceto quando FORMA=Esfera Remota a
-    // transforma numa explosão em área (também teste), ou quando o aditivo
-    // TESTE está presente (a magia impõe teste independente do alcance —
-    // ex: Chama Sagrada é à distância mas usa teste de Destreza, não
-    // ataque). Mover/Perceber não causam dano, então nunca pedem teste.
-    const isSaveBased = !moverInfo && !perceberInfo && (
-        patterns.pontoLevel === 3 ||
-        (patterns.pontoLevel === 2 && formaInfo?.level === 3) ||
-        (patterns.hasTeste && (patterns.pontoLevel === 1 || patterns.pontoLevel === 2))
-    );
+    // A álgebra decide os números; a prosa (mais abaixo) só lê o resultado.
+    const isDeterministic = resolveIsDeterministic(buffer, semanticErrors.length > 0);
+    const isSaveBased = resolveIsSaveBased(buffer, isMode);
 
-    let damageBase = currentAttrs.damageType || (element !== 'Desconhecido' ? element : 'Energia Pura');
-    const mainDamageAttr = (currentAttrs.entropy || 0) + (currentAttrs.strength || 0) + (currentAttrs.volume || 0) + (currentAttrs.order || 0);
-    const numDice = Math.max(1, Math.floor(mainDamageAttr / 2) + Math.floor(patterns.pontoLevel / 2) + Math.floor(patterns.manterLevel / 2));
-    const bonus = currentAttrs.potency > 0 ? `+${currentAttrs.potency * 2}` : '';
-    const safeDice = numDice > 0 ? numDice : 1;
-    let spellDamage = patterns.pontoLevel === 0 ? `0` : `${safeDice}d6${bonus}`;
-    let healDamage = patterns.pontoLevel === 0 ? `0` : `${safeDice}d8${bonus}`;
+    let damageBase = buffer.damageType || (element !== 'Desconhecido' ? element : 'Energia Pura');
+    const safeDice = computeDamageDice(buffer);
+    const bonus = buffer.potency > 0 ? `+${buffer.potency * 2}` : '';
+    let spellDamage = buffer.alcance === 0 ? `0` : `${safeDice}d6${bonus}`;
+    let healDamage = buffer.alcance === 0 ? `0` : `${safeDice}d8${bonus}`;
 
     // PIPELINE DE EXECUÇÃO STRICT (Codexv3)
-    let fase1Desc = `Varredura profunda: Ponto nível ${patterns.pontoLevel} e Manter nível ${patterns.manterLevel} detectados. ${semanticErrors.length === 0 ? 'Estabilidade verificada.' : 'Instabilidade detectada!'}`;
-    if (isDeterministic) fase1Desc = `Varredura profunda: Ponto nível ${patterns.pontoLevel} e Manter nível ${patterns.manterLevel} detectados. Estabilidade Redundante.`;
+    const events: ActionBufferItem[] = [];
+    let stepCount = 1;
+
+    let fase1Desc = `Varredura profunda: Ponto nível ${buffer.alcance} e Manter nível ${buffer.duracao} detectados. ${semanticErrors.length === 0 ? 'Estabilidade verificada.' : 'Instabilidade detectada!'}`;
+    if (isDeterministic) fase1Desc = `Varredura profunda: Ponto nível ${buffer.alcance} e Manter nível ${buffer.duracao} detectados. Estabilidade Redundante.`;
     events.push({
         step: stepCount++,
         title: `Forja (Estabilidade)`,
@@ -508,7 +582,7 @@ export class MagicCompilerEngine {
         title: `Status Final`,
         description: isDeterministic ? `Malha 100% conectada (--). Sucesso Determinístico aplicado. CD descartada e Evasão suprimida. Dano Constante Ambiental.` : (isTrulyEmpty ? `Malha corrompida. Protocolo de falha acionado.` : (isPersonalOnly ? `Malha fechada sobre o próprio conjurador. Nenhum alvo externo necessário.` : `Malha operando sob incerteza parcial. Resolvendo impactos e testes (CD).`)),
         type: 'IMPACT',
-        dice: (moverInfo || perceberInfo) ? undefined : ((element === 'VIDA/CURA' || currentAttrs.healing) ? healDamage : spellDamage),
+        dice: isMode ? undefined : ((element === 'VIDA/CURA' || buffer.healing) ? healDamage : spellDamage),
         element
     });
 
@@ -519,20 +593,20 @@ export class MagicCompilerEngine {
     for (const step of events) {
         description += `**[Step ${step.step}]: ${step.title}**\n`;
         description += `*${step.description}*\n`;
-        if (step.dice && patterns.pontoLevel > 0) description += `> Impacto Resultante: **${step.dice}**\n`;
+        if (step.dice && buffer.alcance > 0) description += `> Impacto Resultante: **${step.dice}**\n`;
         description += `\n`;
     }
 
     const rangeStr = isPersonalOnly ? 'Pessoal' : (isTrulyEmpty ? 'Nenhum / Instável' : (formaInfo ? formaInfo.rangeStr : pontoInfo.rangeStr));
-    const level = 1 + Math.floor((currentAttrs.complexity || 0) / 3) + Math.floor(events.length / 4);
-    const dc = 10 + Math.floor(level / 2) + Math.floor((currentAttrs.potency || 0) / 2);
+    const level = computeSpellLevel(buffer, events.length);
+    const dc = computeDC(level, buffer);
     const durationStr = manterInfo.duration;
 
     // D&D 5e Block Processing
     const dndRange = isPersonalOnly ? 'Pessoal' : (isTrulyEmpty ? 'Nulo / Instável' : (formaInfo ? formaInfo.dndRange : pontoInfo.dndRange));
     const dndDuration = manterInfo.dndDuration;
 
-    let isHealing = element === 'VIDA/CURA' || currentAttrs.healing;
+    let isHealing = element === 'VIDA/CURA' || buffer.healing;
 
     let dndFullText = "";
     if (isTrulyEmpty) {
@@ -549,9 +623,9 @@ export class MagicCompilerEngine {
     } else if (moverInfo) {
         // MOVER: PONTO decide quem é afetado (você / um alvo / a área),
         // MOVER decide a distância — não há dano, cura nem teste envolvido.
-        if (patterns.pontoLevel === 1) {
+        if (buffer.alcance === 1) {
              dndFullText = `Você desaparece num piscar e reaparece ${moverInfo.distance} adiante, atravessando o espaço instantaneamente — ou agarra uma criatura ao alcance e a desloca pela mesma distância.`;
-        } else if (patterns.pontoLevel === 2) {
+        } else if (buffer.alcance === 2) {
              dndFullText = `Uma força invisível dispara em direção a um alvo à distância, empurrando-o ou puxando-o ${moverInfo.distance} na direção que você desejar.`;
         } else {
              dndFullText = `Uma onda de força emana de você, deslocando cada criatura na área ${moverInfo.distance} para longe ou para perto, à sua escolha.`;
@@ -559,34 +633,34 @@ export class MagicCompilerEngine {
     } else if (perceberInfo) {
         // PERCEBER: mesma lógica — PONTO decide o alcance da percepção,
         // PERCEBER decide a profundidade da informação revelada.
-        if (patterns.pontoLevel === 1) {
+        if (buffer.alcance === 1) {
              dndFullText = `Ao tocar o alvo ou a superfície, você absorve uma impressão sensorial imediata: ${perceberInfo.detail}.`;
-        } else if (patterns.pontoLevel === 2) {
+        } else if (buffer.alcance === 2) {
              dndFullText = `Você projeta sua percepção em direção a um ponto distante e capta uma impressão clara: ${perceberInfo.detail}.`;
         } else {
              dndFullText = `Uma onda de sensibilidade arcana se espalha ao seu redor: dentro da área, você ${perceberInfo.detail}.`;
         }
-    } else if (patterns.pontoLevel === 3 && formaInfo?.level === 1) {
+    } else if (buffer.alcance === 3 && formaInfo?.level === 1) {
         // Cone: mesma Aura, mas direcionada à sua frente em vez de 360°.
         if (isHealing) {
              dndFullText = `Você emite um cone de energia regenerativa à sua frente. Cada aliado na área recupera ${healDamage} pontos de vida.`;
         } else {
              dndFullText = `Você projeta um cone de energia primordial à sua frente, atingindo tudo em seu caminho. Cada criatura na área sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`}`;
         }
-    } else if (patterns.pontoLevel === 3 && formaInfo?.level === 2) {
+    } else if (buffer.alcance === 3 && formaInfo?.level === 2) {
         // Linha: mesma Aura, mas um feixe reto em vez de um raio ao redor.
         if (isHealing) {
              dndFullText = `Um feixe curativo contínuo se propaga a partir de você em linha reta. Cada aliado atingido recupera ${healDamage} pontos de vida.`;
         } else {
              dndFullText = `Um feixe reto e contínuo de energia dispara a partir de você, perfurando tudo em linha. Cada criatura atingida sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`}`;
         }
-    } else if (patterns.pontoLevel === 3) {
+    } else if (buffer.alcance === 3) {
         if (isHealing) {
              dndFullText = `Uma aura de vitalidade emana de você (ou de um ponto ancorado), envolvendo tudo ao redor. Cada criatura dentro do alcance da aura recupera ${healDamage} pontos de vida enquanto permanecer na área.`;
         } else {
              dndFullText = `Uma aura de energia primordial emana de você, consumindo o espaço ao redor. Cada criatura na área sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A emanação é implacável: dano automático, sem teste de resistência.' : ` Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`}`;
         }
-    } else if (patterns.pontoLevel === 2 && formaInfo?.level === 3) {
+    } else if (buffer.alcance === 2 && formaInfo?.level === 3) {
         // Esfera Remota: o projétil detona num ponto à distância — vira
         // teste de resistência em área, não mais ataque à distância.
         if (isHealing) {
@@ -594,7 +668,7 @@ export class MagicCompilerEngine {
         } else {
              dndFullText = `Você arremessa um foco de energia primordial que detona ao atingir um ponto à distância, envolvendo a área numa esfera devastadora. Cada criatura na esfera sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}. Alvos tentam resistência de ${saveAbility} (CD ${dc}) para reduzir à metade.`;
         }
-    } else if (patterns.pontoLevel === 2 && patterns.hasTeste) {
+    } else if (buffer.alcance === 2 && buffer.teste > 0) {
         // Alcance + TESTE: à distância, mas resolvido por teste de
         // resistência do alvo em vez de jogada de ataque (ex: Chama Sagrada).
         if (isHealing) {
@@ -602,13 +676,13 @@ export class MagicCompilerEngine {
         } else {
              dndFullText = `Você concentra ${damageBase.toLowerCase()} num feixe preciso direcionado a um alvo à distância. Ele tenta resistência de ${saveAbility} (CD ${dc}) ou sofre ${spellDamage} de dano de ${damageBase.toLowerCase()}.`;
         }
-    } else if (patterns.pontoLevel === 2) {
+    } else if (buffer.alcance === 2) {
         if (isHealing) {
              dndFullText = `Você dispara um vetor cinético curativo através do espaço, atingindo com precisão um alvo. O feixe estabiliza feridas restaurando ${healDamage} pontos de vida.`;
         } else {
              dndFullText = `Você gera um vetor balístico contendo força letal primordial. Faça um ataque à distância com magia. O alvo recebe ${spellDamage} de dano de ${damageBase.toLowerCase()}.${isDeterministic ? ' A cinemática é inevitável (auto-hit).' : ''}`;
         }
-    } else if (patterns.hasTeste) {
+    } else if (buffer.teste > 0) {
         // Toque + TESTE: mesma ideia, mas ao toque em vez de à distância.
         if (isHealing) {
              dndFullText = `Ao tocar uma criatura, sua energia divina infunde vitalidade nela, curando-a em ${healDamage} pontos de vida através de feixes de ${damageBase.toLowerCase()}.`;
@@ -623,16 +697,16 @@ export class MagicCompilerEngine {
         }
     }
 
-    if (patterns.manterLevel >= 4) {
+    if (buffer.duracao >= 4) {
         dndFullText += ` A energia se estabiliza num capacitor autossustentável, persistindo indefinidamente sem exigir concentração contínua do conjurador — até que seja dissipada por vontade própria ou por magia antagônica.`;
-    } else if ((patterns.manterLevel === 2 || patterns.manterLevel === 3) && !moverInfo && !perceberInfo) {
+    } else if ((buffer.duracao === 2 || buffer.duracao === 3) && !isMode) {
         dndFullText += ` Devido à forte presença térmica ou entrópica, a área do feitiço se torna persistentemente instável. Qualquer criatura que inicie seu turno na área ou alvo afetado sofrerá efeitos secundários proporcionais à magia enquanto durar a concentração.`;
     }
 
     // Condição imposta pelo elemento/kernel ativo (ver saveAbility/activeDebuffs
     // acima). Um efeito de cura nunca impõe condição — só o dano/controle.
     // Mover/Perceber também nunca impõem condição: não são efeitos hostis.
-    if (activeDebuffs.length > 0 && !isHealing && !moverInfo && !perceberInfo && patterns.pontoLevel > 0) {
+    if (activeDebuffs.length > 0 && !isHealing && !isMode && buffer.alcance > 0) {
         const debuffList = activeDebuffs.join(', ');
         if (isSaveBased && isDeterministic) {
             dndFullText += ` O efeito também deixa os atingidos ${debuffList} até o fim do próximo turno, sem chance de resistência.`;
@@ -699,11 +773,11 @@ export class MagicCompilerEngine {
     if (moverInfo) { spellName = `Deslocamento de ${element}`; magicSchool = 'Conjuração'; }
     else if (perceberInfo) { spellName = `Percepção de ${element}`; magicSchool = 'Adivinhação'; }
 
-    if (isDeterministic && !moverInfo && !perceberInfo) {
+    if (isDeterministic && !isMode) {
         dndFullText += `\n\n[DETERMINISMO ABSOLUTO]\nA precisão desta malha anula todas as defesas. Nenhum Teste de Resistência (CD) é exigido, e rolagens de ataque são omitidas. O dano associado é uma Constante Ambiental (Automático e Inevitável).`;
     }
 
-    const debugPathBlock = `[DEBUG_PATH]: { PontoNivel: ${patterns.pontoLevel}, ManterNivel: ${patterns.manterLevel}, FormaNivel: ${patterns.formaLevel}, MoverNivel: ${patterns.moverLevel}, PerceberNivel: ${patterns.perceberLevel}, Fase2_Vetor: [${fase2Name}], Escala: [${descEscala}], SaveBased: [${isSaveBased}], Status: [${semanticErrors.length === 0 ? 'Sucesso' : 'Instável'}] }`;
+    const debugPathBlock = `[DEBUG_PATH]: { Buffer: ${JSON.stringify({ alcance: buffer.alcance, duracao: buffer.duracao, forma: buffer.forma, mover: buffer.mover, perceber: buffer.perceber, teste: buffer.teste })}, Fase2_Vetor: [${fase2Name}], Escala: [${descEscala}], SaveBased: [${isSaveBased}], Status: [${semanticErrors.length === 0 ? 'Sucesso' : 'Instável'}] }`;
 
     const dndBlock = {
         name: spellName,
@@ -717,7 +791,7 @@ export class MagicCompilerEngine {
 
     return {
       description,
-      attrs: currentAttrs,
+      attrs: buffer,
       instabilities: semanticErrors,
       logs: events,
       element,
@@ -727,7 +801,7 @@ export class MagicCompilerEngine {
       saveAbility,
       // Mover/Perceber não são efeitos hostis: não impõem a condição do
       // elemento, mesmo que o Núcleo ativo normalmente imponha uma.
-      conditions: (moverInfo || perceberInfo) ? [] : activeDebuffs,
+      conditions: isMode ? [] : activeDebuffs,
       rangeStr,
       level,
       dc,
@@ -735,15 +809,5 @@ export class MagicCompilerEngine {
       dndBlock,
       debugPathBlock
     };
-  }
-
-  private static mergeAttrs(a: any, b: any) {
-    const res = { ...a };
-    for (const key in b) {
-        if (typeof b[key] === 'number') res[key] = (res[key] || 0) + b[key];
-        else if (Array.isArray(b[key])) res[key] = [...new Set([...(res[key]||[]), ...b[key]])];
-        else res[key] = b[key];
-    }
-    return res;
   }
 }
