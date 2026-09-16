@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { EdgeType, EdgeSymbols, EdgeDescriptions } from '../magicConstants';
+import PontoShapeDiagram from './PontoShapeDiagram';
 
 // Guia de ajuda em linguagem simples — não é documentação técnica, é pra
 // quem está montando uma magia pela primeira vez e não faz ideia do que
@@ -8,7 +9,7 @@ import { EdgeType, EdgeSymbols, EdgeDescriptions } from '../magicConstants';
 
 const USANDO = [
   { t: 'Núcleo', d: 'Arraste um elemento (Fogo, Água...) da barra lateral pro círculo, ou clique nele. Só cabe um Núcleo por vez — arrastar outro substitui o atual.' },
-  { t: 'Aditivos', d: 'Clique ou arraste um aditivo pra adicionar. Alguns (Ponto, Manter, Forma, Mover, Perceber, Fusão, Gatilho) têm um controle próprio quando você seleciona o nó — nível com +/−, ou um seletor de elemento/gatilho.' },
+  { t: 'Aditivos', d: 'Clique ou arraste um aditivo pra adicionar. Alguns (Manter, Forma, Mover, Perceber, Fusão, Gatilho) têm um controle próprio quando você seleciona o nó — nível com +/−, ou um seletor de elemento/gatilho. Ponto é diferente: não tem nível, é geométrico (veja a aba Aditivos).' },
   { t: 'Selecionar e conectar', d: 'Clique num elemento pra selecioná-lo (fica com um brilho dourado). Clique em outro elemento em seguida pra criar uma conexão entre os dois.' },
   { t: 'Camada e Orientação', d: 'Com um aditivo selecionado, as setas ↑ ↓ mudam a distância dele até o centro (camada), e ↶ ↷ giram a posição dele ao redor do círculo.' },
   { t: 'Modo Exibição', d: 'Esconde os controles de edição e mostra só o círculo mágico, pra tirar print ou mostrar pra alguém.' },
@@ -27,7 +28,7 @@ const NUCLEOS = [
 ];
 
 const ADITIVOS = [
-  { t: 'Ponto', d: 'Até onde a magia alcança: Toque (corpo-a-corpo), Alcance (à distância) ou Aura (ao seu redor).' },
+  { t: 'Ponto', d: 'Até onde a magia alcança — mas não é um número que você ajusta: é uma figura que você DESENHA. Adicione um Ponto sozinho pra Toque (corpo-a-corpo). Adicione 3 e ligue cada um aos outros dois (clique num, depois no outro) pra fechar um Triângulo = Alcance/Projétil. Adicione 4 e feche um Quadrado = Aura. Só soltar os nós sem ligar não conta.' },
   { t: 'Manter', d: 'Quanto tempo o efeito dura, do instantâneo até uma aura permanente.' },
   { t: 'Forma', d: 'Muda o formato: Cone ou Linha (numa Aura), ou Esfera Remota (num Alcance, vira uma explosão à distância).' },
   { t: 'Mover', d: 'Em vez de causar dano ou cura, desloca alguém (ou você mesmo) no espaço.' },
@@ -99,7 +100,14 @@ const HelpGuide = ({ onClose }: { onClose: () => void }) => {
 
         {tab === 'USAR' && USANDO.map(e => <Entry key={e.t} {...e} />)}
         {tab === 'NUCLEOS' && NUCLEOS.map(e => <Entry key={e.t} {...e} />)}
-        {tab === 'ADITIVOS' && ADITIVOS.map(e => <Entry key={e.t} {...e} />)}
+        {tab === 'ADITIVOS' && <>
+          {ADITIVOS.map(e => (
+            <React.Fragment key={e.t}>
+              <Entry {...e} />
+              {e.t === 'Ponto' && <PontoShapeDiagram />}
+            </React.Fragment>
+          ))}
+        </>}
         {tab === 'CONECTIVOS' && <>
           <p style={{ color: '#8a7d9b', fontSize: '0.8rem', marginTop: 0 }}>Clique numa aresta (a linha entre dois nós) pra trocar o tipo dela, nessa ordem.</p>
           {CONECTIVOS.map(e => <Entry key={e.t} {...e} />)}

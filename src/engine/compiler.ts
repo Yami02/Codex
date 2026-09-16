@@ -1,7 +1,7 @@
 import { MagicGraph, MagicNode, MagicEdge, NodeType, EdgeType, CoreElement, AdditiveType } from '../types/magic';
 import {
   NodeAttributesDict,
-  PONTO_LEVELS, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX,
+  PONTO_LEVELS, PONTO_LEVEL_MAX, PONTO_COUNT_TO_TIER,
   MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX,
   FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
   MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
@@ -252,6 +252,52 @@ export class PatternMatcher {
       return edges.some(e => e.type === type && idSet.has(e.sourceId) && idSet.has(e.targetId));
   }
 
+  // O conjunto `ids` forma uma figura FECHADA (um ciclo simples passando
+  // por todos eles — triângulo pra 3 nós, quadrado pra 4)? Conta as
+  // arestas entre os próprios membros do grupo (qualquer tipo, sem
+  // direção) e exige exatamente `ids.length` arestas com cada nó tocando
+  // exatamente 2 delas — a única forma de um grafo simples com N nós ficar
+  // "2-regular" é ser um único ciclo de comprimento N. Usado pelo Ponto
+  // (§5 do docs/COMO_FUNCIONA.md): 3 Pontos só valem como Projétil se
+  // estiverem de fato ligados em triângulo, não só soltos no círculo.
+  private static formsClosedPolygon(ids: string[], edges: FlatEdge[]): boolean {
+      if (ids.length <= 1) return true;
+      const idSet = new Set(ids);
+      const relevant = edges.filter(e => e.sourceId !== e.targetId && idSet.has(e.sourceId) && idSet.has(e.targetId));
+      if (relevant.length !== ids.length) return false;
+      const degree = new Map<string, number>(ids.map(id => [id, 0]));
+      for (const e of relevant) {
+          degree.set(e.sourceId, (degree.get(e.sourceId) || 0) + 1);
+          degree.set(e.targetId, (degree.get(e.targetId) || 0) + 1);
+      }
+      return ids.every(id => degree.get(id) === 2);
+  }
+
+  // Quais nós são alcançáveis a partir do Núcleo, andando pelas arestas
+  // (em qualquer direção)? "De dentro pra fora": um compilador de verdade
+  // resolve a figura a partir da raiz (o Núcleo), não filtrando o grafo
+  // inteiro às cegas — um Ponto solto, sem nenhum caminho até o Núcleo,
+  // não faz parte da magia.
+  private static reachableFromCore(ast: ASTGraph, flatEdges: FlatEdge[]): Set<string> {
+      const core = ast.nodes.find(n => n instanceof CoreASTNode);
+      if (!core) return new Set();
+      const neighbors = new Map<string, string[]>();
+      const link = (a: string, b: string) => {
+          if (!neighbors.has(a)) neighbors.set(a, []);
+          neighbors.get(a)!.push(b);
+      };
+      for (const e of flatEdges) { link(e.sourceId, e.targetId); link(e.targetId, e.sourceId); }
+      const visited = new Set<string>([core.id]);
+      const queue = [core.id];
+      while (queue.length > 0) {
+          const cur = queue.shift()!;
+          for (const next of (neighbors.get(cur) || [])) {
+              if (!visited.has(next)) { visited.add(next); queue.push(next); }
+          }
+      }
+      return visited;
+  }
+
   // Resolve um grupo de nós do mesmo aditivo "de nível" (Ponto, Manter,
   // Forma, Mover, Perceber, Gatilho). Sem nenhum conectivo especial entre
   // eles, o comportamento é o de sempre: nível mais alto vence, avisado
@@ -324,13 +370,16 @@ export class PatternMatcher {
       const nodeById = new Map(allNodes.map(n => [n.id, n]));
 
       // --- ATRIBUIÇÃO (canalização): uma aresta ATRIBUICAO de um nó de
-      // Aumento/Redução pra um aditivo "de nível" (Ponto/Manter/Forma/
-      // Mover/Perceber/Gatilho) redireciona aquele modificador: em vez de
+      // Aumento/Redução pra um aditivo "de nível" (Manter/Forma/Mover/
+      // Perceber/Gatilho) redireciona aquele modificador: em vez de
       // reforçar o buffer genericamente (potency/complexity), ele soma ou
       // subtrai 1 nível diretamente no aditivo de destino. `redirectedIds`
       // guarda quais nós de Aumento/Redução tiveram seu efeito genérico
       // anulado porque foram canalizados (evita contar o bônus duas vezes).
-      const leveledSlotTypes = new Set(['PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'GATILHO']);
+      // Ponto NÃO entra mais nessa lista: desde que virou geométrico (figura
+      // por contagem/forma, não um dial de nível — ver bloco de PONTO mais
+      // abaixo), não há mais "nível" nenhum nele pra Atribuição reforçar.
+      const leveledSlotTypes = new Set(['MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'GATILHO']);
       const levelBoost = new Map<string, number>();
       const redirectedIds = new Set<string>();
       for (const e of flatEdges) {
@@ -344,7 +393,7 @@ export class PatternMatcher {
               levelBoost.set(tgt!.id, (levelBoost.get(tgt!.id) || 0) + delta);
               redirectedIds.add(src!.id);
           } else {
-              instabilities.push(`[ATRIBUIÇÃO INVÁLIDA] Uma aresta de Atribuição precisa sair de Aumento/Redução e apontar para um aditivo de nível (Ponto, Manter, Forma, Mover, Perceber ou Gatilho); a ligação entre "${e.sourceId}" e "${e.targetId}" foi ignorada.`);
+              instabilities.push(`[ATRIBUIÇÃO INVÁLIDA] Uma aresta de Atribuição precisa sair de Aumento/Redução e apontar para um aditivo de nível (Manter, Forma, Mover, Perceber ou Gatilho); a ligação entre "${e.sourceId}" e "${e.targetId}" foi ignorada.`);
           }
       }
 
@@ -410,13 +459,33 @@ export class PatternMatcher {
           });
       }
 
-      // --- PONTO (alcance/topologia): nível explícito no próprio nó ---
-      // Cada nó de PONTO carrega seu `level` (1-3). Não é mais a contagem de
-      // nós empilhados que define o alcance — isso elimina o número mágico
-      // escondido e o estado "2 pontos = instável" que não tinha explicação
-      // visível para quem estava montando o feitiço.
-      const pontoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'PONTO');
-      const pontoLevel = this.resolveLeveledGroup(pontoNodes, levelBoost, PONTO_LEVEL_MIN, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX, l => PONTO_LEVELS[l].name, 'Ponto', flatEdges, instabilities);
+      // --- PONTO (alcance/geometria): resolvido "de dentro pra fora" ---
+      // Não é mais um dial de intensidade (nível 1-3 num nó só) — é
+      // geométrico de verdade: a quantidade de nós de Ponto alcançáveis a
+      // partir do Núcleo, e se eles estão de fato DESENHADOS formando a
+      // figura certa (arestas fechando um triângulo/quadrado entre eles,
+      // não só soltos). 1 Ponto sozinho = Toque; 3 em triângulo = Projétil;
+      // 4 em quadrado = Aura. Ver PONTO_LEVELS/PONTO_COUNT_TO_TIER e
+      // `formsClosedPolygon`/`reachableFromCore` acima.
+      const reachableIds = this.reachableFromCore(ast, flatEdges);
+      const allPontoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'PONTO');
+      const pontoNodes = allPontoNodes.filter(n => reachableIds.has(n.id));
+      if (pontoNodes.length !== allPontoNodes.length) {
+          instabilities.push(`[PONTO DESCONECTADO] ${allPontoNodes.length - pontoNodes.length} nó(s) de Ponto não têm nenhum caminho até o Núcleo e foram ignorados na leitura da figura.`);
+      }
+      const pontoCount = pontoNodes.length;
+      const pontoTier = PONTO_COUNT_TO_TIER[pontoCount];
+      let pontoLevel = 0;
+      if (pontoCount === 0) {
+          pontoLevel = 0;
+      } else if (!pontoTier) {
+          instabilities.push(`[GEOMETRIA INVÁLIDA] ${pontoCount} nó(s) de Ponto não correspondem a nenhuma figura reconhecida — use 1 (Ponto = Toque), 3 ligados em Triângulo (Projétil) ou 4 ligados em Quadrado (Aura).`);
+      } else if (pontoCount > 1 && !this.formsClosedPolygon(pontoNodes.map(n => n.id), flatEdges)) {
+          const shapeName = PONTO_LEVELS[pontoTier].shapeName;
+          instabilities.push(`[GEOMETRIA INVÁLIDA] ${pontoCount} nós de Ponto encontrados, mas não estão ligados entre si formando um ${shapeName} — conecte cada um aos outros ${pontoCount - 1} pra fechar a figura.`);
+      } else {
+          pontoLevel = pontoTier;
+      }
 
       // --- MANTER (duração): nível explícito no próprio nó ---
       const manterNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'MANTER');
@@ -430,7 +499,9 @@ export class PatternMatcher {
       if (formaLevel > 0) {
           const formaInfo = FORMA_LEVELS[formaLevel];
           if (formaInfo.appliesToPontoLevel !== pontoLevel) {
-              instabilities.push(`[FORMA SEM EFEITO] "${formaInfo.name}" só se aplica com PONTO nível ${formaInfo.appliesToPontoLevel}; no nível atual (${pontoLevel}) ela é ignorada.`);
+              const requiredShape = PONTO_LEVELS[formaInfo.appliesToPontoLevel]?.shapeName || '?';
+              const currentShape = pontoLevel > 0 ? PONTO_LEVELS[pontoLevel]?.shapeName : 'nenhuma figura';
+              instabilities.push(`[FORMA SEM EFEITO] "${formaInfo.name}" só se aplica com Ponto em ${requiredShape} (${PONTO_LEVELS[formaInfo.appliesToPontoLevel]?.name}); a figura atual é ${currentShape}, então ela é ignorada.`);
               formaLevel = 0;
           }
       }

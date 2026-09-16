@@ -7,6 +7,7 @@ import {
   NodeAttributesDict, KERNEL_SCALE_AXIS,
 } from '../magicConstants';
 import { listColleges } from '../engine/colleges';
+import PontoShapeDiagram from '../components/PontoShapeDiagram';
 
 // Mesmo design d'O Estudo Naturalista (pages/Naturalista.tsx): o mesmo
 // livro-tomo de couro com páginas de pergaminho, a mesma tinta e o mesmo
@@ -63,7 +64,11 @@ const ADITIVO_NOMES: Record<string, string> = {
 const aditivosData = {
   titulo: 'Os Aditivos',
   intro: 'Um Aditivo refina o que o Núcleo já é — alcance, duração, forma, ou uma capacidade nova inteira. É por aqui que o sistema cresce: pode-se somar quantos Aditivos novos forem precisos, desde que nenhum deles reescreva o significado de um Núcleo.',
-  words: ADITIVO_ORDER.map((a) => ({ name: ADITIVO_NOMES[a], desc: AdditiveDescriptions[a] })),
+  words: ADITIVO_ORDER.map((a) => ({
+    name: ADITIVO_NOMES[a],
+    desc: AdditiveDescriptions[a],
+    diagram: a === AdditiveType.PONTO ? <PontoShapeDiagram color="#6d1313" lineColor="#6d1313" /> : null,
+  })),
 };
 
 const CONECTIVO_ORDER = [EdgeType.AND, EdgeType.OR, EdgeType.XOR, EdgeType.SE_ENTAO, EdgeType.ATRIBUICAO, EdgeType.CORRENTE];
@@ -319,6 +324,7 @@ export const LivroMagias = () => {
               <p className="font-serif text-[#2c1d11] text-[1.1rem] leading-relaxed text-justify relative pl-4 border-l-2 border-transparent group-hover:border-[#6d1313]/20 transition-all">
                 {w.desc}
               </p>
+              {w.diagram}
             </div>
           ))}
         </div>

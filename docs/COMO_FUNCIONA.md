@@ -33,8 +33,9 @@ vive dentro do próprio app: botão **❓ Ajuda** no Codex (`src/components/Help
 2. **Validador Semântico** (`SemanticValidator`): exige exatamente 1 Núcleo;
    Kernels não podem estar vazios.
 3. **Pattern Matcher** (`PatternMatcher.matchAndTransform`): resolve, a
-   partir da topologia do grafo, o nível de cada aditivo "de modo" (Ponto,
-   Manter, Forma, Mover, Perceber, Gatilho), a fusão ativa (Fusão), e o
+   partir da topologia do grafo, o nível de cada aditivo "de modo" (Manter,
+   Forma, Mover, Perceber, Gatilho), a figura geométrica de Ponto (§4.1 —
+   diferente dos outros, não é um nível), a fusão ativa (Fusão), e o
    elemento final combinado (ex: Fogo+Terra+Compor = Metal).
 4. **Construção do Buffer**: soma os atributos de cada Núcleo/Aditivo/Kernel
    num único vetor numérico.
@@ -116,7 +117,7 @@ sobrescreve a condição/resistência dele.
 
 | Aditivo | O que faz | Nível? |
 |---|---|---|
-| Ponto | Alcance: 1=Toque, 2=Alcance, 3=Aura | 1-3 |
+| Ponto | Alcance: **geométrico**, não numérico — ver §4.1 | — (figura, não nível) |
 | Manter | Duração: 0=Instantânea … 4=Capacitor (aura permanente, sem concentração) | 0-4 |
 | Forma | Geometria: 1=Cone/2=Linha (só com Ponto 3), 3=Esfera Remota (só com Ponto 2, vira teste em área) | 1-3 |
 | Mover | Substitui dano/cura por deslocamento. Ponto decide quem é afetado; o nível de Mover decide a distância | 1-3 |
@@ -129,17 +130,64 @@ sobrescreve a condição/resistência dele.
 Regras de conflito já implementadas (o compilador avisa como
 instabilidade, nunca falha em silêncio):
 - Mover + Perceber juntos → só Mover prevalece.
-- Forma presente mas Ponto no nível errado → Forma é ignorada.
+- Forma presente mas Ponto na figura errada → Forma é ignorada.
 - Forma + (Mover ou Perceber) → Forma é ignorada.
 - Teste + (Mover ou Perceber) → avisado como sem efeito (não fazem
   ataque nem teste).
-- Múltiplos nós do mesmo aditivo de nível → só o de maior nível conta,
-  avisado como redundância.
+- Múltiplos nós do mesmo aditivo de nível (Manter/Forma/Mover/
+  Perceber/Gatilho) → só o de maior nível conta, avisado como redundância.
+  Ponto **não** segue essa regra — ver §4.1, ele tem as próprias regras de
+  contagem/figura.
 
 **Pessoal**: uma magia sem Ponto mas com outro aditivo presente (ex:
 Manter sozinho) não é instável — é um efeito Pessoal legítimo (o
 conjurador é o próprio alvo, sem ataque/teste/dano a terceiros). Só é
 tratada como vazia de verdade quando não sobra nada além do Núcleo.
+
+### 4.1 Ponto é geométrico, não um dial de nível
+
+Diferente de Manter/Forma/Mover/Perceber/Gatilho, o Ponto **não** carrega
+um `level` ajustado num único nó. O alcance é lido "de dentro pra fora"
+— um compilador de verdade resolve a partir da raiz (o Núcleo), não
+filtrando o grafo às cegas: o motor anda pelas arestas a partir do Núcleo
+(`PatternMatcher.reachableFromCore`) e olha quantos nós de Ponto estão
+alcançáveis e se estão **desenhados formando uma figura fechada** entre si
+(`PatternMatcher.formsClosedPolygon` — cada nó do grupo precisa tocar
+exatamente 2 arestas dentro do próprio grupo, a única forma de um grafo
+simples de N nós ser um ciclo único de comprimento N):
+
+| Nós de Ponto conectados entre si | Figura | Resultado |
+|---|---|---|
+| 1 (sozinho, sem precisar de figura) | Ponto | Toque (Corpo-a-Corpo) |
+| 3, ligados em ciclo (A-B, B-C, C-A) | Triângulo | Alcance (Projétil) |
+| 4, ligados em ciclo (A-B, B-C, C-D, D-A) | Quadrado | Aura |
+| 2, ou 5+, ou 3/4 soltos sem fechar o ciclo | nenhuma reconhecida | `[GEOMETRIA INVÁLIDA]`, alcance ignorado (0) |
+| Ponto sem nenhum caminho até o Núcleo | — | `[PONTO DESCONECTADO]`, ignorado na contagem |
+
+Isso revive (com explicação de verdade, desta vez) uma ideia que tinha
+sido removida — o motor já contou nós de Ponto empilhados numa versão
+anterior, mas "2 pontos = instável" era um número mágico escondido sem
+nenhuma explicação visível. Agora a mesma contagem existe, mas com uma
+regra clara por trás (a figura que ela forma) e com a Ajuda in-app e O
+Grande Tomo mostrando literalmente os três desenhos (um ponto, um
+triângulo, um quadrado — `components/PontoShapeDiagram.tsx`).
+
+Consequências em cascata:
+- Só criar 3 ou 4 nós de Ponto **não basta** — é preciso clicar num, depois
+  no outro, pra desenhar as arestas que fecham a figura (mesma interação
+  de sempre pra ligar dois nós quaisquer no canvas).
+- **Atribuição (§6) não alcança mais Ponto**: como ele não tem `level`,
+  uma aresta de Atribuição saindo de Aumento/Redução em direção a um nó de
+  Ponto agora é sempre `[ATRIBUIÇÃO INVÁLIDA]` — só Manter/Forma/Mover/
+  Perceber/Gatilho continuam sendo alvos válidos.
+- OR/XOR entre nós de Ponto não têm mais um significado especial de
+  "variante" (isso era só pro modelo de nível único) — a resolução de
+  figura roda igual, o que importa são as arestas que fecham o ciclo.
+- **Compatibilidade**: magias salvas na versão anterior (um único nó de
+  Ponto com `level: 2` ou `3`) agora resolvem como Toque, porque o
+  `level` armazenado no nó deixou de ser lido — o alcance real passa a
+  depender de quantos nós de Ponto existem e como estão ligados. Mudança
+  de comportamento deliberada (pedido explícito do usuário), não um bug.
 
 ## 5. Kernels
 
@@ -406,14 +454,16 @@ dicionário do livro original.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType — 10 valores incluindo `ABSORCAO`, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `KERNEL_INTENSITY_LEVELS` — §5.1, `ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL` — §5.2, `MANIFESTACAO_TABLE` — §1.1, `MANA_POR_NIVEL`/`PRESTIGE_ARCHETYPES` — §9). |
+| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType — 10 valores incluindo `ABSORCAO`, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`/`PONTO_COUNT_TO_TIER` — §4.1 (geométrico, não é mais um dial), `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `KERNEL_INTENSITY_LEVELS` — §5.1, `ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL` — §5.2, `MANIFESTACAO_TABLE` — §1.1, `MANA_POR_NIVEL`/`PRESTIGE_ARCHETYPES` — §9). |
 | `types/magic.ts` | Interfaces de nó/aresta/grafo; reexporta os enums de `constants.ts`. `KernelNode.sourceElement` — §5.2. |
-| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (conectivos de aresta — §6, Lei do Combo de Kernels — §5.1, Absorção Ambiental — §5.2), álgebra do buffer (`computeManaCost` — §9), geração de texto. |
+| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (conectivos de aresta — §6, geometria de Ponto — §4.1, Lei do Combo de Kernels — §5.1, Absorção Ambiental — §5.2), álgebra do buffer (`computeManaCost` — §9), geração de texto. |
 | `engine/colleges.ts` | Tabela dos 32 Colégios, a Lei da Simetria, e `listColleges()` (lista os 32 com a chave de formação, pro Grande Tomo exibir sem duplicar a tabela). |
 | `engine/sigil.ts` | Gerador do Selo Arcano. |
-| `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado (inclui o seletor "Trocar Tipo de Kernel" e o seletor de `sourceElement` da Absorção — §5.2). |
+| `engine/spellBuilder.ts` | Monta um grafo a partir das respostas do assistente guiado (`MagicDSLTerminal.tsx`); gera N nós de Ponto ligados em ciclo (§4.1), não mais um único nó com `level`. |
+| `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado (inclui o seletor "Trocar Tipo de Kernel" e o seletor de `sourceElement` da Absorção — §5.2; Ponto foi removido de `LEVELED_ADDITIVES` — §4.1). |
+| `components/PontoShapeDiagram.tsx` | Desenho SVG reutilizável (ponto / triângulo de 3 pontos / quadrado de 4 pontos) usado pela Ajuda in-app e por O Grande Tomo pra ilustrar §4.1 — puramente ilustrativo, não afeta o compilador. |
 | `components/MagicTranslator.tsx` | Renderiza o resultado compilado (ficha, bloco D&D 5e, Selo Arcano). |
-| `components/HelpGuide.tsx` | Guia de ajuda in-app (linguagem simples, espelha este documento). |
+| `components/HelpGuide.tsx` | Guia de ajuda in-app (linguagem simples, espelha este documento); usa `PontoShapeDiagram` na aba Aditivos. |
 | `pages/Naturalista.tsx` | O Estudo Naturalista: layout de livro-tomo (couro, pergaminho, tinta, índice giratório) com um léxico de palavras de poder livre — flavor, não é o sistema real. |
 | `pages/LivroMagias.tsx` | O Grande Tomo: **mesmo layout de livro** de `Naturalista.tsx` (propositalmente — ver nota abaixo), mas com conteúdo real: explica Núcleos, Aditivos, Conectivos, Kernels/Subnúcleos e as 32 Escolas puxando a descrição de cada um direto de `engine/constants.ts`/`engine/colleges.ts`, a mesma fonte que o compilador usa. |
 

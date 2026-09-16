@@ -11,7 +11,6 @@ import HelpGuide from './HelpGuide';
       NodeType, CoreElement, AdditiveType, KernelType, EdgeType,
       CoreRunes, AdditiveRunes, EdgeCycle, EdgeSymbols,
       AdditiveDescriptions, NodeAttributesDict,
-      PONTO_LEVELS, PONTO_LEVEL_MIN, PONTO_LEVEL_MAX,
       MANTER_LEVELS, MANTER_LEVEL_MIN, MANTER_LEVEL_MAX,
       FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
       MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
@@ -28,12 +27,20 @@ import HelpGuide from './HelpGuide';
     // segundo nó de Núcleo.
     const FUSAO_ELEMENT_OPTIONS = ['FOGO', 'AGUA', 'TERRA', 'AR', 'LUZ', 'SOMBRA', 'COMPOR', 'DECOMPOR'];
 
-    // PONTO, MANTER, FORMA, MOVER e PERCEBER são aditivos "de nível": um
-    // único nó no círculo carrega um número (alcance 1-3 / duração 0-4 /
-    // geometria 1-3 / distância 1-3 / profundidade 1-3) em vez de o jogador
-    // precisar arrastar várias cópias idênticas para escalar o efeito.
+    // MANTER, FORMA, MOVER e PERCEBER são aditivos "de nível": um único nó
+    // no círculo carrega um número (duração 0-4 / geometria 1-3 /
+    // distância 1-3 / profundidade 1-3) em vez de o jogador precisar
+    // arrastar várias cópias idênticas para escalar o efeito.
+    //
+    // PONTO é diferente (de propósito): NÃO é um dial de nível — é
+    // geométrico. O alcance é lido pela QUANTIDADE de nós de Ponto que
+    // você desenha e liga entre si, formando uma figura (1 sozinho =
+    // Toque, 3 em triângulo = Projétil, 4 em quadrado = Aura). Por isso
+    // PONTO fica de fora deste mapa: arrastar/clicar "Ponto" várias vezes
+    // deve criar vários nós (não é bloqueado como duplicata), e não tem
+    // seletor de +/- nível. Ver PONTO_LEVELS/PONTO_COUNT_TO_TIER em
+    // engine/constants.ts e §5 do docs/COMO_FUNCIONA.md.
     const LEVELED_ADDITIVES = {
-      [AdditiveType.PONTO]: { min: PONTO_LEVEL_MIN, max: PONTO_LEVEL_MAX, table: PONTO_LEVELS, defaultLevel: PONTO_LEVEL_MIN, axisLabel: 'Alcance' },
       [AdditiveType.MANTER]: { min: MANTER_LEVEL_MIN, max: MANTER_LEVEL_MAX, table: MANTER_LEVELS, defaultLevel: 1, axisLabel: 'Duração' },
       [AdditiveType.FORMA]: { min: FORMA_LEVEL_MIN, max: FORMA_LEVEL_MAX, table: FORMA_LEVELS, defaultLevel: FORMA_LEVEL_MIN, axisLabel: 'Formato' },
       [AdditiveType.MOVER]: { min: MOVER_LEVEL_MIN, max: MOVER_LEVEL_MAX, table: MOVER_LEVELS, defaultLevel: MOVER_LEVEL_MIN, axisLabel: 'Distância' },
@@ -676,7 +683,7 @@ import { useNavigate } from 'react-router-dom';
               
               <h3 style={{ fontSize: '1.1rem', color: '#3498db', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #3498db', paddingLeft: '8px' }}>Aditivos</h3>
               <p style={{ fontSize: '0.7rem', color: '#8a7d9b', margin: '4px 0 10px', fontStyle: 'italic' }}>
-                Passe o mouse sobre um aditivo para ver o que ele faz. Ponto, Manter, Forma, Mover e Perceber têm nível ajustável: adicione um só e use +/− ao selecioná-lo. Forma só faz efeito com Ponto em Aura ou Alcance. Mover e Perceber substituem dano/cura pelo próprio efeito (deslocamento/informação) e não podem atuar juntos.
+                Passe o mouse sobre um aditivo para ver o que ele faz. Manter, Forma, Mover e Perceber têm nível ajustável: adicione um só e use +/− ao selecioná-lo. Ponto é diferente: é geométrico, não tem nível — adicione 1 nó de Ponto sozinho pra Toque, ou 3/4 nós e ligue-os entre si (clique num, depois no outro) fechando um Triângulo (Projétil) ou Quadrado (Aura). Forma só faz efeito com Ponto em Aura ou Alcance. Mover e Perceber substituem dano/cura pelo próprio efeito (deslocamento/informação) e não podem atuar juntos.
               </p>
               <div className="sidebar-grid">
                 {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'TESTE', 'FUSAO', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}

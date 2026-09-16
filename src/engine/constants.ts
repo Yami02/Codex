@@ -124,7 +124,7 @@ export const EdgeDescriptions: Record<string, string> = {
   [EdgeType.OR]: 'Alternativa: liga duas variantes do mesmo aditivo (ex: dois nós de Forma). O conjurador escolhe uma ao lançar; a ficha usa o pior caso (maior nível) para o nível/CD.',
   [EdgeType.XOR]: 'Exclusão mútua: como Alternativa, mas as variantes nunca coexistem — a ficha descreve a primeira como padrão, e o conjurador troca pra outra. É também o que transforma Mover+Perceber juntos numa escolha intencional em vez de um erro de design.',
   [EdgeType.SE_ENTAO]: 'Condicional: só pode sair de um nó de Teste ou Gatilho. O nó de destino passa a ser descrito como "se a condição, então o efeito" em vez de sempre ativo.',
-  [EdgeType.ATRIBUICAO]: 'Canalização: liga um Aumento/Redução a um aditivo de nível (Ponto, Manter, Forma, Mover, Perceber ou Gatilho) — em vez de reforçar o buffer genérico, soma ou subtrai 1 nível direto naquele aditivo.',
+  [EdgeType.ATRIBUICAO]: 'Canalização: liga um Aumento/Redução a um aditivo de nível (Manter, Forma, Mover, Perceber ou Gatilho — Ponto não tem mais nível, é geométrico) — em vez de reforçar o buffer genérico, soma ou subtrai 1 nível direto naquele aditivo.',
   [EdgeType.CORRENTE]: 'Corrente: uma sequência de nós ligados em cadeia faz o efeito saltar de alvo em alvo — cada salto soma complexidade e aparece no texto final com dano decrescente por salto.',
 };
 
@@ -132,7 +132,7 @@ export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.CONTROLE]: 'impondo domínio através de canais rúnicos',
   [AdditiveType.AUMENTO]: 'exaltando a amplitude da ressonância',
   [AdditiveType.REDUCAO]: 'suprimindo a intensidade do fluxo',
-  [AdditiveType.PONTO]: 'ancorando a lógica em uma coordenada fixa',
+  [AdditiveType.PONTO]: 'o alcance é geométrico: 1 Ponto sozinho é Toque, 3 Pontos ligados formando um Triângulo é Projétil, 4 Pontos ligados formando um Quadrado é Aura — desenhe a figura, não ajuste um número',
   [AdditiveType.MANTER]: 'persistindo a estrutura através de loops temporais',
   [AdditiveType.GATILHO]: 'o Capacitor: guarda a magia num glifo em vez de gastá-la agora — dispara depois, por um gatilho, e cargas extras a tornam mais forte',
   [AdditiveType.ECO]: 'replicando a assinatura energética',
@@ -157,26 +157,43 @@ export const AdditiveDescriptions: Record<string, string> = {
 // ==========================================
 // NÍVEIS DE ADITIVOS (PONTO / MANTER)
 // ==========================================
-// Em vez de inferir o alcance/duração contando quantos nós idênticos
-// foram empilhados no círculo, cada nó de PONTO/MANTER carrega seu
-// próprio `level`, ajustado diretamente por um controle na UI.
-// Isso torna a criação de magias auditável: 1 nó, 1 número, 1 efeito.
+// MANTER continua com um `level` explícito ajustado por um controle na UI
+// (não é geométrico). PONTO é diferente: não tem dial de intensidade — o
+// alcance é lido geometricamente, "de dentro pra fora" a partir do Núcleo
+// (compilador de verdade: o que importa é a figura desenhada no grafo, não
+// um número escondido num nó). O jogador desenha nós de Ponto conectados
+// entre si formando uma figura reconhecida:
+//   - 1 Ponto sozinho          → Toque (Corpo-a-Corpo)
+//   - 3 Pontos em TRIÂNGULO    → Projétil (Alcance)
+//   - 4 Pontos em QUADRADO     → Aura
+// "Triângulo"/"Quadrado" exigem as arestas fechando a figura de verdade
+// (cada Ponto do grupo ligado aos outros dois, formando um ciclo) — só
+// soltar 3 ou 4 nós sem ligá-los entre si não forma nada (ver
+// `PatternMatcher.formsClosedPolygon` em engine/compiler.ts). Qualquer
+// outra contagem (2, 5+) não corresponde a nenhuma figura conhecida.
 
 export interface PontoLevelInfo {
-  level: number;
-  name: string;         // Nome mostrado no seletor e no bloco de magia
+  level: number;         // "Tier" resolvido (1/2/3) — mesmo número que FORMA_LEVELS.appliesToPontoLevel já usava
+  pointCount: number;    // quantos nós de Ponto formam essa figura
+  shapeName: string;     // nome da figura geométrica (Ponto / Triângulo / Quadrado)
+  name: string;          // Nome mostrado no seletor e no bloco de magia
   rangeStr: string;      // Resumo curto (ficha)
   dndRange: string;      // Alcance formal (bloco D&D 5e)
   vetor: string;          // Rótulo usado no log de compilação (fase "Projeção")
 }
 
 export const PONTO_LEVELS: Record<number, PontoLevelInfo> = {
-  1: { level: 1, name: 'Corpo-a-Corpo (Toque)', rangeStr: 'Toque / Corpo-a-Corpo',  dndRange: 'Toque',                                vetor: 'Toque / Corpo-a-Corpo' },
-  2: { level: 2, name: 'Alcance (Projétil)',    rangeStr: 'Projétil Arcano (18m)',  dndRange: '18 metros (60 pés)',                   vetor: 'Projétil' },
-  3: { level: 3, name: 'Aura',                  rangeStr: 'Aura ao seu redor (9m)', dndRange: 'Emanação de 9 metros a partir de você', vetor: 'Aura' },
+  1: { level: 1, pointCount: 1, shapeName: 'Ponto',     name: 'Corpo-a-Corpo (Toque)', rangeStr: 'Toque / Corpo-a-Corpo',  dndRange: 'Toque',                                vetor: 'Toque / Corpo-a-Corpo' },
+  2: { level: 2, pointCount: 3, shapeName: 'Triângulo', name: 'Alcance (Projétil)',    rangeStr: 'Projétil Arcano (18m)',  dndRange: '18 metros (60 pés)',                   vetor: 'Projétil' },
+  3: { level: 3, pointCount: 4, shapeName: 'Quadrado',  name: 'Aura',                  rangeStr: 'Aura ao seu redor (9m)', dndRange: 'Emanação de 9 metros a partir de você', vetor: 'Aura' },
 };
 export const PONTO_LEVEL_MIN = 1;
 export const PONTO_LEVEL_MAX = 3;
+
+// Índice inverso pointCount -> tier, usado pelo compilador pra resolver o
+// alcance a partir de quantos nós de Ponto (conectados na figura certa)
+// existem no grafo.
+export const PONTO_COUNT_TO_TIER: Record<number, number> = { 1: 1, 3: 2, 4: 3 };
 
 export interface ManterLevelInfo {
   level: number;

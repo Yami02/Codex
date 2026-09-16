@@ -7,13 +7,15 @@ export interface WizardAnswers {
   filtro: 'TODOS' | 'INIMIGOS' | 'ALIADOS';
 }
 
-// Nível de PONTO/MANTER que cada resposta guiada do assistente produz.
-// Ver PONTO_LEVELS / MANTER_LEVELS em engine/constants.ts para o que cada
-// número significa (alcance e duração, respectivamente).
-const EXPANSAO_TO_PONTO_LEVEL: Record<WizardAnswers['expansao'], number> = {
+// Ponto é geométrico (ver PONTO_LEVELS/PONTO_COUNT_TO_TIER em
+// engine/constants.ts): o assistente não escolhe mais um "nível" — ele
+// decide QUANTOS nós de Ponto desenhar e liga todos entre si, fechando um
+// Triângulo (Projétil) ou Quadrado (Aura). MANTER continua com um `level`
+// normal (ver MANTER_LEVELS).
+const EXPANSAO_TO_PONTO_COUNT: Record<WizardAnswers['expansao'], number> = {
   TOQUE: 1,
-  PROJETIL: 2,
-  AREA: 3, // Nível 3 de PONTO = Aura
+  PROJETIL: 3, // 3 nós de Ponto ligados em triângulo
+  AREA: 4,     // 4 nós de Ponto ligados em quadrado
 };
 
 const DURACAO_TO_MANTER_LEVEL: Record<WizardAnswers['duracao'], number> = {
@@ -48,21 +50,36 @@ export class SpellGraphBuilder {
       layer: 0
     } as any);
 
-    // Nós de camada 1: um único PONTO (nível = alcance) e, se houver
-    // duração, um único MANTER (nível = duração). Nada de empilhar cópias.
+    // Nós de camada 1: N nós de PONTO (contagem = figura geométrica, ver
+    // EXPANSAO_TO_PONTO_COUNT acima) todos ligados ao Núcleo e, quando são
+    // 3+ deles, ligados também entre si em ciclo (fechando o Triângulo/
+    // Quadrado) — e, se houver duração, um único MANTER (nível = duração).
     const layer1Nodes: MagicNode[] = [];
 
-    const pontoLevel = EXPANSAO_TO_PONTO_LEVEL[answers.expansao];
-    const pontoNode = {
-        id: getId('ponto'),
-        type: NodeType.ADDITIVE,
-        family: AdditiveFamily.VETORIAL,
-        additiveType: AdditiveType.PONTO,
-        level: pontoLevel,
-        layer: 1
-    } as any;
-    layer1Nodes.push(pontoNode);
-    addEdge(coreId, pontoNode.id);
+    const pontoCount = EXPANSAO_TO_PONTO_COUNT[answers.expansao];
+    const pontoNodes: MagicNode[] = [];
+    for (let i = 0; i < pontoCount; i++) {
+        const node = {
+            id: getId('ponto'),
+            type: NodeType.ADDITIVE,
+            family: AdditiveFamily.VETORIAL,
+            additiveType: AdditiveType.PONTO,
+            layer: 1
+        } as any;
+        pontoNodes.push(node);
+        layer1Nodes.push(node);
+        addEdge(coreId, node.id);
+    }
+    // Fecha o ciclo entre os próprios nós de Ponto (A-B, B-C, ..., volta
+    // pro A) — é essa aresta extra que faz o grupo valer como
+    // Triângulo/Quadrado de verdade, não só nós soltos (ver
+    // PatternMatcher.formsClosedPolygon em engine/compiler.ts).
+    if (pontoNodes.length > 1) {
+        pontoNodes.forEach((node, i) => {
+            const next = pontoNodes[(i + 1) % pontoNodes.length];
+            addEdge(node.id, next.id, EdgeType.AND, EdgeCategory.ESTRUTURAL);
+        });
+    }
 
     const manterLevel = DURACAO_TO_MANTER_LEVEL[answers.duracao];
     let manterNode: MagicNode | null = null;
