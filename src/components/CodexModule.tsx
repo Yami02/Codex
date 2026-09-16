@@ -217,7 +217,7 @@ import { useNavigate } from 'react-router-dom';
 
       const handleDirectAdd = (type, name) => {
         if (viewMode) return;
-        if (window.innerWidth <= 1024) setIsSidebarOpen(false);
+        if (window.innerWidth <= 1023) setIsSidebarOpen(false);
         const newId = `node_${Date.now()}`;
         let newGraph = { ...activeGraph, nodes: [...activeGraph.nodes], edges: [...activeGraph.edges] };
 

@@ -305,7 +305,7 @@ body { margin: 0; background-color: #05040a; font-family: 'EB Garamond', serif; 
       letter-spacing: 0.5px;
     }
     
-    @media (max-width: 1024px) {
+    @media (max-width: 1023px) {
       .node-action-bar { bottom: 85px; padding: 10px 12px; gap: 8px; border-radius: 12px; }
       .action-group { padding-right: 8px; gap: 6px; }
       .mini-btn { width: 34px; height: 34px; border-radius: 6px; }
@@ -553,7 +553,7 @@ body { margin: 0; background-color: #05040a; font-family: 'EB Garamond', serif; 
       position: relative;
     }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 1023px) {
       .app-container { flex-direction: column; overflow: hidden; display: flex; height: 100dvh; position: relative; }
       .sidebar {
         position: fixed;
