@@ -6,6 +6,10 @@ import {
   FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
   MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
   PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX,
+  ILUSAO_LEVELS, ILUSAO_LEVEL_MIN, ILUSAO_LEVEL_MAX,
+  PROTECAO_LEVELS, PROTECAO_LEVEL_MIN, PROTECAO_LEVEL_MAX,
+  COMANDO_LEVELS, COMANDO_LEVEL_MIN, COMANDO_LEVEL_MAX,
+  CONVOCACAO_LEVELS, CONVOCACAO_LEVEL_MIN, CONVOCACAO_LEVEL_MAX,
   GATILHO_LEVELS, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX,
   TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE,
   KERNEL_SCALE_AXIS,
@@ -379,7 +383,7 @@ export class PatternMatcher {
       // Ponto NÃO entra mais nessa lista: desde que virou geométrico (figura
       // por contagem/forma, não um dial de nível — ver bloco de PONTO mais
       // abaixo), não há mais "nível" nenhum nele pra Atribuição reforçar.
-      const leveledSlotTypes = new Set(['MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'GATILHO']);
+      const leveledSlotTypes = new Set(['MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'GATILHO', 'ILUSAO', 'PROTECAO', 'COMANDO', 'CONVOCACAO']);
       const levelBoost = new Map<string, number>();
       const redirectedIds = new Set<string>();
       for (const e of flatEdges) {
@@ -393,7 +397,7 @@ export class PatternMatcher {
               levelBoost.set(tgt!.id, (levelBoost.get(tgt!.id) || 0) + delta);
               redirectedIds.add(src!.id);
           } else {
-              instabilities.push(`[ATRIBUIÇÃO INVÁLIDA] Uma aresta de Atribuição precisa sair de Aumento/Redução e apontar para um aditivo de nível (Manter, Forma, Mover, Perceber ou Gatilho); a ligação entre "${e.sourceId}" e "${e.targetId}" foi ignorada.`);
+              instabilities.push(`[ATRIBUIÇÃO INVÁLIDA] Uma aresta de Atribuição precisa sair de Aumento/Redução e apontar para um aditivo de nível (Manter, Forma, Mover, Perceber, Gatilho, Ilusão, Proteção, Comando ou Convocação); a ligação entre "${e.sourceId}" e "${e.targetId}" foi ignorada.`);
           }
       }
 
@@ -528,8 +532,54 @@ export class PatternMatcher {
           }
           perceberLevel = 0;
       }
-      if ((moverLevel > 0 || perceberLevel > 0) && formaLevel > 0) {
-          instabilities.push(`[FORMA SEM EFEITO] Forma não se aplica a magias de Mover ou Perceber.`);
+      // --- ILUSÃO / PROTEÇÃO / COMANDO / CONVOCAÇÃO (modo): mesma família de
+      // Mover/Perceber (substituem dano/cura pelo próprio efeito), fechando
+      // Ilusão, Abjuração, Encantamento e Conjuração — escolas que os 32
+      // Colégios já citavam de nome ("percepção enganada", "escudos e wards
+      // permanentes", "a mente dos outros", "a criatura real, trazida
+      // inteira") sem nenhuma mecânica própria por trás. Só um modo vence:
+      // primeiro Mover/Perceber (regra acima, já resolvida) tem prioridade
+      // se algum dos dois estiver ativo; senão, entre estes quatro, a ordem
+      // de prioridade é Convocação > Comando > Proteção > Ilusão.
+      const ilusaoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'ILUSAO');
+      let ilusaoLevel = this.resolveLeveledGroup(ilusaoNodes, levelBoost, ILUSAO_LEVEL_MIN, ILUSAO_LEVEL_MIN, ILUSAO_LEVEL_MAX, l => ILUSAO_LEVELS[l].name, 'Ilusão', flatEdges, instabilities);
+
+      const protecaoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'PROTECAO');
+      let protecaoLevel = this.resolveLeveledGroup(protecaoNodes, levelBoost, PROTECAO_LEVEL_MIN, PROTECAO_LEVEL_MIN, PROTECAO_LEVEL_MAX, l => PROTECAO_LEVELS[l].name, 'Proteção', flatEdges, instabilities);
+
+      const comandoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'COMANDO');
+      let comandoLevel = this.resolveLeveledGroup(comandoNodes, levelBoost, COMANDO_LEVEL_MIN, COMANDO_LEVEL_MIN, COMANDO_LEVEL_MAX, l => COMANDO_LEVELS[l].name, 'Comando', flatEdges, instabilities);
+
+      const convocacaoNodes = allNodes.filter((n): n is AdditiveASTNode => n instanceof AdditiveASTNode && n.additiveType === 'CONVOCACAO');
+      let convocacaoLevel = this.resolveLeveledGroup(convocacaoNodes, levelBoost, CONVOCACAO_LEVEL_MIN, CONVOCACAO_LEVEL_MIN, CONVOCACAO_LEVEL_MAX, l => CONVOCACAO_LEVELS[l].name, 'Convocação', flatEdges, instabilities);
+
+      if (moverLevel > 0 || perceberLevel > 0) {
+          // Mover/Perceber já venceram a rodada acima — os quatro modos
+          // novos não podem coexistir com eles nesta primeira versão.
+          if (ilusaoLevel > 0 || protecaoLevel > 0 || comandoLevel > 0 || convocacaoLevel > 0) {
+              instabilities.push(`[MODOS CONFLITANTES] Ilusão/Proteção/Comando/Convocação não atuam junto com Mover ou Perceber na mesma magia; apenas Mover/Perceber foi aplicado.`);
+          }
+          ilusaoLevel = 0; protecaoLevel = 0; comandoLevel = 0; convocacaoLevel = 0;
+      } else {
+          const activeNewModes = [
+              { key: 'CONVOCACAO', level: convocacaoLevel },
+              { key: 'COMANDO', level: comandoLevel },
+              { key: 'PROTECAO', level: protecaoLevel },
+              { key: 'ILUSAO', level: ilusaoLevel },
+          ].filter(m => m.level > 0);
+          if (activeNewModes.length > 1) {
+              const winner = activeNewModes[0].key;
+              instabilities.push(`[MODOS CONFLITANTES] ${activeNewModes.map(m => m.key).join(', ')} não podem atuar juntos na mesma magia; apenas ${winner} foi aplicado.`);
+              if (winner !== 'CONVOCACAO') convocacaoLevel = 0;
+              if (winner !== 'COMANDO') comandoLevel = 0;
+              if (winner !== 'PROTECAO') protecaoLevel = 0;
+              if (winner !== 'ILUSAO') ilusaoLevel = 0;
+          }
+      }
+
+      const isNewMode = ilusaoLevel > 0 || protecaoLevel > 0 || comandoLevel > 0 || convocacaoLevel > 0;
+      if ((moverLevel > 0 || perceberLevel > 0 || isNewMode) && formaLevel > 0) {
+          instabilities.push(`[FORMA SEM EFEITO] Forma não se aplica a magias de Mover, Perceber, Ilusão, Proteção, Comando ou Convocação.`);
           formaLevel = 0;
       }
 
@@ -548,9 +598,17 @@ export class PatternMatcher {
       // por um teste de resistência do alvo em PONTO 1 (Toque) ou 2
       // (Alcance) — o alcance da magia não deveria decidir sozinho se ela é
       // um ataque ou um teste; isso depende da magia, não da distância.
+      // Ilusão/Proteção/Comando aceitam Teste de propósito (representa,
+      // respectivamente, "o observador tenta enxergar através da ilusão",
+      // "o outro conjurador tenta driblar a anulação" e a resistência normal
+      // de um efeito de encantamento) — só Mover/Perceber/Convocação não têm
+      // uso nenhum pra ele.
       const hasTeste = allNodes.some(n => n instanceof AdditiveASTNode && n.additiveType === 'TESTE');
-      if (hasTeste && (moverLevel > 0 || perceberLevel > 0)) {
-          instabilities.push(`[TESTE SEM EFEITO] Teste não se aplica a magias de Mover ou Perceber, que não têm ataque nem teste.`);
+      if (hasTeste && (moverLevel > 0 || perceberLevel > 0 || convocacaoLevel > 0)) {
+          instabilities.push(`[TESTE SEM EFEITO] Teste não se aplica a magias de Mover, Perceber ou Convocação, que não têm ataque nem teste de resistência.`);
+      }
+      if (comandoLevel > 0 && !hasTeste) {
+          instabilities.push(`[COMANDO SEM RESISTÊNCIA] Comando normalmente pede um Teste (o alvo resiste com Sabedoria); sem ele, a magia assume que o alvo é afetado automaticamente.`);
       }
 
       // --- SE_ENTAO (condicional): só é válida saindo de um nó com um
@@ -681,6 +739,10 @@ export class PatternMatcher {
           moverLevel,
           perceberLevel,
           altPerceberInfo,
+          ilusaoLevel,
+          protecaoLevel,
+          comandoLevel,
+          convocacaoLevel,
           gatilhoLevel,
           triggerType,
           hasTeste,
@@ -915,13 +977,23 @@ export class MagicCompilerEngine {
     buffer.forma = patterns.formaLevel;
     buffer.mover = patterns.moverLevel;
     buffer.perceber = patterns.perceberLevel;
+    buffer.ilusao = patterns.ilusaoLevel;
+    buffer.protecao = patterns.protecaoLevel;
+    buffer.comando = patterns.comandoLevel;
+    buffer.convocacao = patterns.convocacaoLevel;
     buffer.teste = patterns.hasTeste ? 1 : 0;
 
-    const isMode = patterns.moverLevel > 0 || patterns.perceberLevel > 0;
+    const isMode = patterns.moverLevel > 0 || patterns.perceberLevel > 0
+      || patterns.ilusaoLevel > 0 || patterns.protecaoLevel > 0 || patterns.comandoLevel > 0 || patterns.convocacaoLevel > 0;
 
     // Condição imposta pelo efeito e habilidade usada para resisti-la.
     // Vêm do elemento (Núcleo) e, se houver, são refinadas pelo Kernel ativo.
-    const saveAbility: string = buffer.saveAbility || 'Destreza';
+    // Comando (Encantamento) e Ilusão sobrescrevem isso: mind-affecting e
+    // "enxergar através da ilusão" não usam a resistência do elemento, usam
+    // a convenção 5e (Sabedoria / Inteligência), independente do Núcleo.
+    let saveAbility: string = buffer.saveAbility || 'Destreza';
+    if (patterns.comandoLevel > 0) saveAbility = 'Sabedoria';
+    else if (patterns.ilusaoLevel > 0) saveAbility = 'Inteligência';
     const activeDebuffs: string[] = buffer.debuffs || [];
 
     // Régua de alcance/duração: uma só tabela (PONTO_LEVELS/MANTER_LEVELS)
@@ -938,6 +1010,13 @@ export class MagicCompilerEngine {
     // (ver MOVER_LEVELS/PERCEBER_LEVELS em engine/constants.ts).
     const moverInfo = buffer.mover > 0 ? MOVER_LEVELS[buffer.mover] : null;
     const perceberInfo = buffer.perceber > 0 ? PERCEBER_LEVELS[buffer.perceber] : null;
+    // Ilusão/Proteção/Comando/Convocação: mesma ideia de MOVER_LEVELS/
+    // PERCEBER_LEVELS acima — cada um troca dano/cura pelo próprio efeito
+    // (ver ILUSAO_LEVELS/PROTECAO_LEVELS/COMANDO_LEVELS/CONVOCACAO_LEVELS).
+    const ilusaoInfo = buffer.ilusao > 0 ? ILUSAO_LEVELS[buffer.ilusao] : null;
+    const protecaoInfo = buffer.protecao > 0 ? PROTECAO_LEVELS[buffer.protecao] : null;
+    const comandoInfo = buffer.comando > 0 ? COMANDO_LEVELS[buffer.comando] : null;
+    const convocacaoInfo = buffer.convocacao > 0 ? CONVOCACAO_LEVELS[buffer.convocacao] : null;
 
     // Cada Kernel escala o feitiço por "Aumento" (amplitude) ou
     // "Complexibilidade" (natureza do efeito) — ver KERNEL_SCALE_AXIS.
@@ -968,7 +1047,9 @@ export class MagicCompilerEngine {
     });
 
     const fase2Name = isPersonalOnly ? 'Pessoal (Você mesmo)' : (isTrulyEmpty ? 'Nenhum / Instável' : (formaInfo ? formaInfo.name : pontoInfo.vetor));
-    const fase2ModoSufixo = moverInfo ? ` — Modo Mover: ${moverInfo.name}` : perceberInfo ? ` — Modo Perceber: ${perceberInfo.name}` : '';
+    const fase2ModoSufixo = moverInfo ? ` — Modo Mover: ${moverInfo.name}` : perceberInfo ? ` — Modo Perceber: ${perceberInfo.name}`
+      : ilusaoInfo ? ` — Modo Ilusão: ${ilusaoInfo.name}` : protecaoInfo ? ` — Modo Proteção: ${protecaoInfo.name}`
+      : comandoInfo ? ` — Modo Comando: ${comandoInfo.name}` : convocacaoInfo ? ` — Modo Convocação: ${convocacaoInfo.name}` : '';
     events.push({
         step: stepCount++,
         title: `Projeção (Vetor)`,
@@ -1071,6 +1152,47 @@ export class MagicCompilerEngine {
         } else {
              dndFullText = `Uma onda de sensibilidade arcana se espalha ao seu redor: dentro da área, você ${perceberInfo.detail}.`;
         }
+    } else if (ilusaoInfo) {
+        // ILUSÃO: engana (ou esconde algo d)a percepção de TERCEIROS — o
+        // oposto de Perceber, que só refina a percepção do próprio
+        // conjurador. Nome já vem de ILUSAO_LEVELS.
+        if (buffer.alcance === 1) {
+             dndFullText = `Ao tocar o alvo (ou a si mesmo), você tece uma ilusão que ${ilusaoInfo.detail}.`;
+        } else if (buffer.alcance === 2) {
+             dndFullText = `Você projeta a ilusão sobre um ponto ou criatura à distância: ela ${ilusaoInfo.detail}.`;
+        } else {
+             dndFullText = `Uma ilusão se espalha ao seu redor, envolvendo a área: ela ${ilusaoInfo.detail}.`;
+        }
+        if (buffer.teste > 0) {
+            dndFullText += ` Um observador que suspeite pode gastar uma ação investigando pra tentar enxergar através dela (resistência de ${saveAbility}, CD ${dc}).`;
+        }
+    } else if (protecaoInfo) {
+        // PROTEÇÃO: em vez de causar dano, apara/resiste/anula — a
+        // contraparte defensiva da Abjuração. Nome já vem de PROTECAO_LEVELS.
+        if (buffer.alcance === 1) {
+             dndFullText = `Ao tocar o alvo (ou a si mesmo), você ergue uma proteção que ${protecaoInfo.detail}.`;
+        } else if (buffer.alcance === 2) {
+             dndFullText = `Você projeta uma barreira sobre um alvo à distância: ela ${protecaoInfo.detail}.`;
+        } else {
+             dndFullText = `Uma barreira protetora emana de você, cobrindo a área: ela ${protecaoInfo.detail}.`;
+        }
+    } else if (comandoInfo) {
+        // COMANDO: compele a vontade do alvo — a contraparte mecânica do
+        // Encantamento. Nome já vem de COMANDO_LEVELS.
+        const testeStr = buffer.teste > 0 ? ` Ele resiste com um teste de ${saveAbility} (CD ${dc}) para não ser afetado.` : ` Sem uma resistência ligada a esta magia, o efeito se aplica automaticamente.`;
+        if (buffer.alcance === 1) {
+             dndFullText = `Ao tocar o alvo, sua voz ecoa direto na mente dele: ${comandoInfo.detail}.${testeStr}`;
+        } else if (buffer.alcance === 2) {
+             dndFullText = `Sua vontade atravessa a distância até um alvo: ${comandoInfo.detail}.${testeStr}`;
+        } else {
+             dndFullText = `Sua vontade se espalha pela área, alcançando cada criatura dentro dela: ${comandoInfo.detail}.${testeStr}`;
+        }
+    } else if (convocacaoInfo) {
+        // CONVOCAÇÃO: em vez de agir direto, traz um aliado temporário —
+        // não varia por alcance/forma do mesmo jeito que os outros modos
+        // (o que importa é o nível/porte do convocado, não a geometria de
+        // entrega). Detalhes completos no bloco [CONVOCAÇÃO: ...] abaixo.
+        dndFullText = `Você abre um círculo temporário de invocação: ${convocacaoInfo.detail}.`;
     } else if (buffer.alcance === 3 && formaInfo?.level === 1) {
         // Cone: mesma Aura, mas direcionada à sua frente em vez de 360°.
         manifestKey = 'AURA_CONE';
@@ -1141,7 +1263,7 @@ export class MagicCompilerEngine {
     // lugar. Mover/Perceber usam o nome que já vem de suas próprias
     // tabelas de nível; Pessoal e os 8 casos de ataque/teste/aura usam
     // MANIFESTACAO_TABLE.
-    const manifestName = moverInfo?.name || perceberInfo?.name || (manifestKey ? MANIFESTACAO_TABLE[manifestKey]?.name : null) || null;
+    const manifestName = moverInfo?.name || perceberInfo?.name || ilusaoInfo?.name || protecaoInfo?.name || comandoInfo?.name || convocacaoInfo?.name || (manifestKey ? MANIFESTACAO_TABLE[manifestKey]?.name : null) || null;
     if (manifestName && !isTrulyEmpty) {
         dndFullText = `[MANIFESTAÇÃO: ${manifestName.toUpperCase()}]\n${dndFullText}`;
     }
@@ -1228,6 +1350,10 @@ export class MagicCompilerEngine {
     let magicSchool = 'Evocação';
     if (moverInfo) { if (!college) spellName = `Deslocamento de ${element}`; magicSchool = 'Conjuração'; }
     else if (perceberInfo) { if (!college) spellName = `Percepção de ${element}`; magicSchool = 'Adivinhação'; }
+    else if (ilusaoInfo) { if (!college) spellName = `Ilusão de ${element}`; magicSchool = 'Ilusão'; }
+    else if (protecaoInfo) { if (!college) spellName = `Proteção de ${element}`; magicSchool = 'Abjuração'; }
+    else if (comandoInfo) { if (!college) spellName = `Comando de ${element}`; magicSchool = 'Encantamento'; }
+    else if (convocacaoInfo) { if (!college) spellName = `Convocação de ${element}`; magicSchool = 'Conjuração'; }
 
     if (college) {
         dndFullText += `\n\n[${college.name.toUpperCase()}]\nEsta magia pertence ao colégio que trata de ${college.vocabulary}.`;
@@ -1249,6 +1375,18 @@ export class MagicCompilerEngine {
             : ' Como a fonte é estranha ao seu Núcleo, captá-la contra a natureza do ambiente sai mais caro em complexidade.';
         const capacitorText = gatilhoInfo ? ' Essa energia captada alimenta diretamente o Capacitor, no lugar dos turnos normais de conjuração.' : '';
         dndFullText += `\n\n[ABSORÇÃO: ${alignLabel}]\nVocê capta ${patterns.absorcaoSourceElement.toLowerCase()} ambiente e o guarda num glifo, em vez de gerar essa energia do zero.${alignText}${capacitorText}`;
+    }
+
+    // Convocação: deriva um "mini stat block" do aliado convocado a partir
+    // do mesmo buffer que definiria o dano de uma magia comum — dado (safeDice,
+    // já escalado por Kernels/Colégio/Capacitor), pontos de vida (orçamento
+    // simples: 4 por dado) e duração (Manter). Não simula um agente
+    // independente de verdade (fora do escopo de um compilador de magias) —
+    // é só o suficiente pra jogar na mesa sem inventar números na hora.
+    if (convocacaoInfo) {
+        const summonName = college ? `Servo do ${college.name}` : `Servo de ${element}`;
+        const summonHp = Math.max(4, safeDice * 4);
+        dndFullText += `\n\n[CONVOCAÇÃO: ${summonName.toUpperCase()}]\nUm aliado temporário se manifesta ao seu lado (${convocacaoInfo.detail}). Ele ataca causando ${safeDice}d6 de dano de ${damageBase.toLowerCase()}, tem aproximadamente ${summonHp} pontos de vida, obedece seus comandos simples, e permanece enquanto a magia durar (${durationStr}) ou até ser derrotado.`;
     }
 
     // Modo alternativo (Mover XOR Perceber): a mesma malha serve pros dois,
@@ -1321,7 +1459,7 @@ export class MagicCompilerEngine {
       } : null,
       needsDC: isSaveBased && dc > 10 && !isDeterministic,
       // 'MOVER' | 'PERCEBER' | null — diz à UI que a magia não tem dano/cura.
-      mode: moverInfo ? 'MOVER' : perceberInfo ? 'PERCEBER' : null,
+      mode: moverInfo ? 'MOVER' : perceberInfo ? 'PERCEBER' : ilusaoInfo ? 'ILUSAO' : protecaoInfo ? 'PROTECAO' : comandoInfo ? 'COMANDO' : convocacaoInfo ? 'CONVOCACAO' : null,
       saveAbility,
       // Mover/Perceber não são efeitos hostis: não impõem a condição do
       // elemento, mesmo que o Núcleo ativo normalmente imponha uma.

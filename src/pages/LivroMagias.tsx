@@ -52,12 +52,14 @@ const nucleosData = {
 
 const ADITIVO_ORDER = [
   AdditiveType.PONTO, AdditiveType.MANTER, AdditiveType.FORMA, AdditiveType.MOVER,
-  AdditiveType.PERCEBER, AdditiveType.TESTE, AdditiveType.FUSAO, AdditiveType.GATILHO,
+  AdditiveType.PERCEBER, AdditiveType.ILUSAO, AdditiveType.PROTECAO, AdditiveType.COMANDO,
+  AdditiveType.CONVOCACAO, AdditiveType.TESTE, AdditiveType.FUSAO, AdditiveType.GATILHO,
   AdditiveType.CONTROLE, AdditiveType.AUMENTO, AdditiveType.REDUCAO, AdditiveType.ECO,
 ];
 const ADITIVO_NOMES: Record<string, string> = {
   PONTO: 'Ponto (alcance)', MANTER: 'Manter (duração)', FORMA: 'Forma (geometria)',
-  MOVER: 'Mover', PERCEBER: 'Perceber', TESTE: 'Teste', FUSAO: 'Fusão',
+  MOVER: 'Mover', PERCEBER: 'Perceber', ILUSAO: 'Ilusão', PROTECAO: 'Proteção',
+  COMANDO: 'Comando', CONVOCACAO: 'Convocação', TESTE: 'Teste', FUSAO: 'Fusão',
   GATILHO: 'Gatilho (Capacitor)', CONTROLE: 'Controle', AUMENTO: 'Aumento', REDUCAO: 'Redução', ECO: 'Eco',
 };
 

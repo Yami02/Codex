@@ -122,6 +122,10 @@ sobrescreve a condição/resistência dele.
 | Forma | Geometria: 1=Cone/2=Linha (só com Ponto 3), 3=Esfera Remota (só com Ponto 2, vira teste em área) | 1-3 |
 | Mover | Substitui dano/cura por deslocamento. Ponto decide quem é afetado; o nível de Mover decide a distância | 1-3 |
 | Perceber | Substitui dano/cura por informação (Detectar/Identificar/Vislumbrar) | 1-3 |
+| Ilusão | Substitui dano/cura por enganar (ou esconder de) a percepção de terceiros — ver §4.2 | 1-3 |
+| Proteção | Substitui dano por aparar/resistir/anular — ver §4.3 | 1-3 |
+| Comando | Substitui dano/cura por compelir a vontade do alvo — ver §4.4 | 1-3 |
+| Convocação | Substitui dano/cura por um aliado temporário convocado — ver §4.5 | 1-3 |
 | Teste | Binário: troca ataque por teste de resistência em Ponto 1 ou 2 | — |
 | Fusão | Escolhe um 2º elemento/polaridade → revela um Colégio (§6) | — (campo `fusionElement`) |
 | Gatilho | O Capacitor (§7): guarda a magia pra disparar depois | 1-5 + campo `triggerType` |
@@ -129,15 +133,25 @@ sobrescreve a condição/resistência dele.
 
 Regras de conflito já implementadas (o compilador avisa como
 instabilidade, nunca falha em silêncio):
-- Mover + Perceber juntos → só Mover prevalece.
+- Mover, Perceber, Ilusão, Proteção, Comando e Convocação são todos
+  "modos" e nunca coexistem — só um vence por magia. Mover/Perceber têm
+  prioridade entre si (regra antiga, incluindo o par XOR "versátil");
+  entre os quatro novos, a ordem é Convocação > Comando > Proteção >
+  Ilusão. Se Mover ou Perceber estiver ativo, nenhum dos quatro novos
+  entra em jogo.
 - Forma presente mas Ponto na figura errada → Forma é ignorada.
-- Forma + (Mover ou Perceber) → Forma é ignorada.
-- Teste + (Mover ou Perceber) → avisado como sem efeito (não fazem
-  ataque nem teste).
-- Múltiplos nós do mesmo aditivo de nível (Manter/Forma/Mover/
-  Perceber/Gatilho) → só o de maior nível conta, avisado como redundância.
-  Ponto **não** segue essa regra — ver §4.1, ele tem as próprias regras de
-  contagem/figura.
+- Forma + qualquer modo (Mover/Perceber/Ilusão/Proteção/Comando/
+  Convocação) → Forma é ignorada.
+- Teste + (Mover, Perceber ou Convocação) → avisado como sem efeito (não
+  têm ataque nem teste de resistência). Teste **é** válido com Ilusão
+  (observador tenta enxergar através dela), Proteção (driblar uma
+  anulação) e Comando (a resistência normal do alvo).
+- Comando sem Teste ligado → avisado (`[COMANDO SEM RESISTÊNCIA]`), mas
+  resolve assumindo que o alvo é afetado automaticamente.
+- Múltiplos nós do mesmo aditivo de nível (Manter/Forma/Mover/Perceber/
+  Ilusão/Proteção/Comando/Convocação/Gatilho) → só o de maior nível conta,
+  avisado como redundância. Ponto **não** segue essa regra — ver §4.1, ele
+  tem as próprias regras de contagem/figura.
 
 **Pessoal**: uma magia sem Ponto mas com outro aditivo presente (ex:
 Manter sozinho) não é instável — é um efeito Pessoal legítimo (o
@@ -188,6 +202,106 @@ Consequências em cascata:
   `level` armazenado no nó deixou de ser lido — o alcance real passa a
   depender de quantos nós de Ponto existem e como estão ligados. Mudança
   de comportamento deliberada (pedido explícito do usuário), não um bug.
+
+### 4.2-4.5 As quatro escolas que só existiam de nome
+
+Auditoria pedida pelo usuário ("veja se precisa de mais aditivos para
+fazer todas as magias de D&D"): os 32 Colégios (§6) já citavam, no próprio
+vocabulário, mecânicas que o compilador não sabia realizar —
+"percepção enganada" (Ilusão, LUZ sozinho), "escudos e wards permanentes"
+(Abjuração, LUZ+TERRA), "a mente dos outros" (Domínio, AR+SOMBRA), "a
+criatura real, trazida inteira" (Invocação, ÁGUA+COMPOR). Evocação (dano/
+área), a maior parte de Adivinhação (Perceber) e Transmutação (Kernels)
+já tinham mecânica real; Ilusão, Abjuração, Encantamento e Conjuração
+(convocar) não tinham. Os quatro aditivos abaixo fecham essas lacunas,
+todos na mesma família de Mover/Perceber (§4): "modo" que substitui dano/
+cura pelo próprio efeito, nível 1-3, resolvidos por `resolveLeveledGroup`
+igual a qualquer outro aditivo de nível.
+
+**Escopo consciente**: nenhum deles simula um sistema novo por trás (não
+há engine de combate pra criatura convocada, nem uma "mente" simulada pro
+alvo dominado) — cada um só formaliza o suficiente pra sair do grafo um
+texto D&D-like consistente, do mesmo jeito que o resto do compilador já
+faz pra dano/cura.
+
+#### 4.2 Ilusão
+
+`ILUSAO_LEVELS`. O oposto de Perceber: em vez de refinar a percepção do
+próprio conjurador, engana (ou esconde algo d)a percepção de **terceiros**.
+
+| Nível | Nome | Efeito |
+|---|---|---|
+| 1 | Disfarce | muda como você (ou um alvo consentindo) aparenta — a aparência, não a substância |
+| 2 | Imagem Falsa | cria uma imagem/som/cena que não existe, perceptível a qualquer observador |
+| 3 | Véu de Invisibilidade | torna você (ou o alvo) imperceptível à visão normal até atacar ou quebrar o véu |
+
+Ligar um Teste permite que um observador tente "enxergar através dela"
+(resistência de **Inteligência** — Ilusão sobrescreve o `saveAbility` que
+viria do Núcleo/Kernel, seguindo a convenção 5e de Investigação contra
+ilusão, não a condição elemental de quem conjura).
+
+#### 4.3 Proteção
+
+`PROTECAO_LEVELS`. A contraparte defensiva da Abjuração — em vez de
+causar dano, apara, resiste ou anula.
+
+| Nível | Nome | Efeito |
+|---|---|---|
+| 1 | Aparar | absorve/anula um único golpe ou efeito prestes a atingir o alvo |
+| 2 | Resistência | concede resistência (metade do dano) a um tipo de energia, enquanto durar |
+| 3 | Anulação | nega por completo outra magia — dissipa um efeito ativo, ou impede um feitiço de se formar |
+
+Reaproveita a infraestrutura já existente em vez de inventar um novo tipo
+de aresta: ligar Proteção a partir de um **Teste** ou **Gatilho** com
+**SE_ENTAO** (§6) já produz "se o alvo for atingido/o gatilho disparar,
+então anula/resiste" de graça — Contramágica (Counterspell/Dispel Magic)
+e Escudo (Shield) são a mesma mecânica, só a condição do SE_ENTAO muda.
+
+#### 4.4 Comando
+
+`COMANDO_LEVELS`. Compele a vontade do alvo — a mecânica que faltava pro
+Encantamento (o vocabulário do Colégio do Domínio já dizia "a mente dos
+outros", mas as condições fixas de Núcleo/Kernel são físicas/sensoriais,
+não comportamentais).
+
+| Nível | Nome | Efeito |
+|---|---|---|
+| 1 | Sugestão | planta uma ideia convincente; o alvo tende a segui-la se não contrariar seus instintos |
+| 2 | Comando/Encanto | obriga uma ação simples e imediata, ou torna o alvo amistoso por um tempo |
+| 3 | Dominação | assume o controle direto das ações do alvo enquanto durar |
+
+Sempre pede um Teste (convenção 5e: mind-affecting resiste com
+**Sabedoria**, não a habilidade do Núcleo); sem um Teste ligado, a magia
+ainda resolve, mas avisa `[COMANDO SEM RESISTÊNCIA]` e assume que o alvo é
+afetado automaticamente.
+
+#### 4.5 Convocação
+
+`CONVOCACAO_LEVELS`. Em vez de agir direto, abre um círculo temporário e
+traz um aliado — a peça que faltava pra Conjuração de invocação (o
+Colégio da Invocação já descrevia "a criatura real, trazida inteira", sem
+nenhum jeito de o compilador produzir essa criatura).
+
+| Nível | Nome | Efeito |
+|---|---|---|
+| 1 | Servo Menor | um único aliado pequeno, poder equivalente a um golpe simples |
+| 2 | Aliado de Combate | um aliado robusto, ou um punhado de servos menores |
+| 3 | Avatar Elemental | uma manifestação poderosa e duradoura da natureza do seu Núcleo |
+
+Diferente dos outros três modos, não varia por Ponto (Toque/Alcance/Aura)
+— o que importa é o nível/porte do convocado, não a geometria de entrega.
+O compilador deriva um "mini stat block" do próprio buffer, reaproveitando
+as mesmas fórmulas de uma magia comum, em vez de simular um agente
+independente de verdade (fora do escopo de um compilador de magias):
+
+```
+dado de ataque = safeDice (o mesmo cálculo de computeDamageDice de sempre)
+pontos de vida ≈ max(4, safeDice × 4)
+duração = a mesma de Manter (§4)
+```
+
+Aparece no texto final como `[CONVOCAÇÃO: <nome>]`, com o nome derivado do
+Colégio ativo (ou do elemento puro, sem Colégio).
 
 ## 5. Kernels
 
@@ -357,6 +471,14 @@ usuário.
 > está ativo (nome, vocabulário, assimetria numérica), não uma cópia das
 > ~128 magias nomeadas do grimório original do usuário — o compilador
 > gera magias a partir do grafo, não de uma lista fixa de feitiços.
+>
+> **Atualização (auditoria "dá pra fazer toda magia de D&D?")**: por um
+> bom tempo, 4 desses vocabulários (Ilusão, Abjuração, Domínio, Invocação)
+> eram só nome — a mecânica por trás não existia (o compilador sabia dizer
+> "isto é o Colégio da Ilusão", mas não sabia gerar uma ilusão de verdade).
+> Os aditivos Ilusão/Proteção/Comando/Convocação (§4.2-4.5) fecham essa
+> lacuna. As outras escolas (Evocação, a maior parte de Adivinhação,
+> Transmutação via Kernels) já tinham mecânica real desde antes.
 
 ## 8. Capacitor / Gatilho
 
@@ -454,13 +576,13 @@ dicionário do livro original.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType — 10 valores incluindo `ABSORCAO`, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`/`PONTO_COUNT_TO_TIER` — §4.1 (geométrico, não é mais um dial), `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `KERNEL_INTENSITY_LEVELS` — §5.1, `ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL` — §5.2, `MANIFESTACAO_TABLE` — §1.1, `MANA_POR_NIVEL`/`PRESTIGE_ARCHETYPES` — §9). |
+| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType — 16 valores incluindo `ILUSAO`/`PROTECAO`/`COMANDO`/`CONVOCACAO` (§4.2-4.5), KernelType — 10 valores incluindo `ABSORCAO`, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`/`PONTO_COUNT_TO_TIER` — §4.1 (geométrico, não é mais um dial), `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `ILUSAO_LEVELS`/`PROTECAO_LEVELS`/`COMANDO_LEVELS`/`CONVOCACAO_LEVELS` — §4.2-4.5, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `KERNEL_INTENSITY_LEVELS` — §5.1, `ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL` — §5.2, `MANIFESTACAO_TABLE` — §1.1, `MANA_POR_NIVEL`/`PRESTIGE_ARCHETYPES` — §9). |
 | `types/magic.ts` | Interfaces de nó/aresta/grafo; reexporta os enums de `constants.ts`. `KernelNode.sourceElement` — §5.2. |
-| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (conectivos de aresta — §6, geometria de Ponto — §4.1, Lei do Combo de Kernels — §5.1, Absorção Ambiental — §5.2), álgebra do buffer (`computeManaCost` — §9), geração de texto. |
+| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (conectivos de aresta — §6, geometria de Ponto — §4.1, os 4 modos novos e a prioridade entre eles — §4.2-4.5, Lei do Combo de Kernels — §5.1, Absorção Ambiental — §5.2), álgebra do buffer (`computeManaCost` — §9), geração de texto. |
 | `engine/colleges.ts` | Tabela dos 32 Colégios, a Lei da Simetria, e `listColleges()` (lista os 32 com a chave de formação, pro Grande Tomo exibir sem duplicar a tabela). |
 | `engine/sigil.ts` | Gerador do Selo Arcano. |
 | `engine/spellBuilder.ts` | Monta um grafo a partir das respostas do assistente guiado (`MagicDSLTerminal.tsx`); gera N nós de Ponto ligados em ciclo (§4.1), não mais um único nó com `level`. |
-| `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado (inclui o seletor "Trocar Tipo de Kernel" e o seletor de `sourceElement` da Absorção — §5.2; Ponto foi removido de `LEVELED_ADDITIVES` — §4.1). |
+| `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado (inclui o seletor "Trocar Tipo de Kernel" e o seletor de `sourceElement` da Absorção — §5.2; Ilusão/Proteção/Comando/Convocação em `LEVELED_ADDITIVES` — §4.2-4.5; Ponto foi removido de lá — §4.1). |
 | `components/PontoShapeDiagram.tsx` | Desenho SVG reutilizável (ponto / triângulo de 3 pontos / quadrado de 4 pontos) usado pela Ajuda in-app e por O Grande Tomo pra ilustrar §4.1 — puramente ilustrativo, não afeta o compilador. |
 | `components/MagicTranslator.tsx` | Renderiza o resultado compilado (ficha, bloco D&D 5e, Selo Arcano). |
 | `components/HelpGuide.tsx` | Guia de ajuda in-app (linguagem simples, espelha este documento); usa `PontoShapeDiagram` na aba Aditivos. |

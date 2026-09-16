@@ -9,7 +9,7 @@ import PontoShapeDiagram from './PontoShapeDiagram';
 
 const USANDO = [
   { t: 'Núcleo', d: 'Arraste um elemento (Fogo, Água...) da barra lateral pro círculo, ou clique nele. Só cabe um Núcleo por vez — arrastar outro substitui o atual.' },
-  { t: 'Aditivos', d: 'Clique ou arraste um aditivo pra adicionar. Alguns (Manter, Forma, Mover, Perceber, Fusão, Gatilho) têm um controle próprio quando você seleciona o nó — nível com +/−, ou um seletor de elemento/gatilho. Ponto é diferente: não tem nível, é geométrico (veja a aba Aditivos).' },
+  { t: 'Aditivos', d: 'Clique ou arraste um aditivo pra adicionar. Alguns (Manter, Forma, Mover, Perceber, Ilusão, Proteção, Comando, Convocação, Fusão, Gatilho) têm um controle próprio quando você seleciona o nó — nível com +/−, ou um seletor de elemento/gatilho. Ponto é diferente: não tem nível, é geométrico (veja a aba Aditivos).' },
   { t: 'Selecionar e conectar', d: 'Clique num elemento pra selecioná-lo (fica com um brilho dourado). Clique em outro elemento em seguida pra criar uma conexão entre os dois.' },
   { t: 'Camada e Orientação', d: 'Com um aditivo selecionado, as setas ↑ ↓ mudam a distância dele até o centro (camada), e ↶ ↷ giram a posição dele ao redor do círculo.' },
   { t: 'Modo Exibição', d: 'Esconde os controles de edição e mostra só o círculo mágico, pra tirar print ou mostrar pra alguém.' },
@@ -33,6 +33,10 @@ const ADITIVOS = [
   { t: 'Forma', d: 'Muda o formato: Cone ou Linha (numa Aura), ou Esfera Remota (num Alcance, vira uma explosão à distância).' },
   { t: 'Mover', d: 'Em vez de causar dano ou cura, desloca alguém (ou você mesmo) no espaço.' },
   { t: 'Perceber', d: 'Em vez de causar dano ou cura, revela uma informação — detectar, identificar, enxergar longe.' },
+  { t: 'Ilusão', d: 'Em vez de causar dano ou cura, engana (ou esconde de) a percepção de terceiros: Disfarce, Imagem Falsa (algo que não existe, mas todo mundo vê) ou Véu de Invisibilidade. Ligue um Teste pra deixar observadores tentarem enxergar através dela.' },
+  { t: 'Proteção', d: 'Em vez de causar dano, apara um golpe, concede resistência a um tipo de energia, ou anula outra magia por completo (dissipar/contramagia).' },
+  { t: 'Comando', d: 'Em vez de causar dano ou cura, compele a vontade do alvo: Sugestão, Comando/Encanto ou Dominação. Sempre pede um Teste — a resistência usa Sabedoria.' },
+  { t: 'Convocação', d: 'Em vez de agir direto, abre um círculo e traz um aliado temporário que luta por você, com poder e duração derivados do resto da magia.' },
   { t: 'Teste', d: 'Faz o alvo tentar resistir (um teste), em vez de você ter que acertar um ataque.' },
   { t: 'Fusão', d: 'Combina o Núcleo com um segundo elemento (ou Compor/Decompor). A magia vira outra coisa — um "Colégio" com nome próprio.' },
   { t: 'Gatilho (Capacitor)', d: 'Guarda a magia num glifo em vez de gastar na hora. Ela só age quando o gatilho disparar — por tempo, por impacto, por comando, ou por proximidade. Quanto mais carga (mais turnos, ou mais gente ajudando a encher o mesmo capacitor), mais forte ela sai.' },

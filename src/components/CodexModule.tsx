@@ -15,6 +15,10 @@ import HelpGuide from './HelpGuide';
       FORMA_LEVELS, FORMA_LEVEL_MIN, FORMA_LEVEL_MAX,
       MOVER_LEVELS, MOVER_LEVEL_MIN, MOVER_LEVEL_MAX,
       PERCEBER_LEVELS, PERCEBER_LEVEL_MIN, PERCEBER_LEVEL_MAX,
+      ILUSAO_LEVELS, ILUSAO_LEVEL_MIN, ILUSAO_LEVEL_MAX,
+      PROTECAO_LEVELS, PROTECAO_LEVEL_MIN, PROTECAO_LEVEL_MAX,
+      COMANDO_LEVELS, COMANDO_LEVEL_MIN, COMANDO_LEVEL_MAX,
+      CONVOCACAO_LEVELS, CONVOCACAO_LEVEL_MIN, CONVOCACAO_LEVEL_MAX,
       GATILHO_LEVELS, GATILHO_LEVEL_MIN, GATILHO_LEVEL_MAX,
       TRIGGER_TYPES, DEFAULT_TRIGGER_TYPE,
       KERNEL_INTENSITY_LEVELS, KERNEL_LEVEL_MIN, KERNEL_LEVEL_MAX,
@@ -46,6 +50,13 @@ import HelpGuide from './HelpGuide';
       [AdditiveType.MOVER]: { min: MOVER_LEVEL_MIN, max: MOVER_LEVEL_MAX, table: MOVER_LEVELS, defaultLevel: MOVER_LEVEL_MIN, axisLabel: 'Distância' },
       [AdditiveType.PERCEBER]: { min: PERCEBER_LEVEL_MIN, max: PERCEBER_LEVEL_MAX, table: PERCEBER_LEVELS, defaultLevel: PERCEBER_LEVEL_MIN, axisLabel: 'Profundidade' },
       [AdditiveType.GATILHO]: { min: GATILHO_LEVEL_MIN, max: GATILHO_LEVEL_MAX, table: GATILHO_LEVELS, defaultLevel: GATILHO_LEVEL_MIN, axisLabel: 'Carga do Capacitor' },
+      // Ilusão/Proteção/Comando/Convocação: mesma família de Mover/Perceber
+      // (nível 1-3, substituem dano/cura pelo próprio efeito) — ver
+      // §4.2-4.5 do docs/COMO_FUNCIONA.md.
+      [AdditiveType.ILUSAO]: { min: ILUSAO_LEVEL_MIN, max: ILUSAO_LEVEL_MAX, table: ILUSAO_LEVELS, defaultLevel: ILUSAO_LEVEL_MIN, axisLabel: 'Profundidade do Engano' },
+      [AdditiveType.PROTECAO]: { min: PROTECAO_LEVEL_MIN, max: PROTECAO_LEVEL_MAX, table: PROTECAO_LEVELS, defaultLevel: PROTECAO_LEVEL_MIN, axisLabel: 'Força da Proteção' },
+      [AdditiveType.COMANDO]: { min: COMANDO_LEVEL_MIN, max: COMANDO_LEVEL_MAX, table: COMANDO_LEVELS, defaultLevel: COMANDO_LEVEL_MIN, axisLabel: 'Força da Compulsão' },
+      [AdditiveType.CONVOCACAO]: { min: CONVOCACAO_LEVEL_MIN, max: CONVOCACAO_LEVEL_MAX, table: CONVOCACAO_LEVELS, defaultLevel: CONVOCACAO_LEVEL_MIN, axisLabel: 'Porte do Convocado' },
     };
 
     // Kernels também são "de nível" (1-5): sobem a intensidade do próprio
@@ -683,10 +694,10 @@ import { useNavigate } from 'react-router-dom';
               
               <h3 style={{ fontSize: '1.1rem', color: '#3498db', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #3498db', paddingLeft: '8px' }}>Aditivos</h3>
               <p style={{ fontSize: '0.7rem', color: '#8a7d9b', margin: '4px 0 10px', fontStyle: 'italic' }}>
-                Passe o mouse sobre um aditivo para ver o que ele faz. Manter, Forma, Mover e Perceber têm nível ajustável: adicione um só e use +/− ao selecioná-lo. Ponto é diferente: é geométrico, não tem nível — adicione 1 nó de Ponto sozinho pra Toque, ou 3/4 nós e ligue-os entre si (clique num, depois no outro) fechando um Triângulo (Projétil) ou Quadrado (Aura). Forma só faz efeito com Ponto em Aura ou Alcance. Mover e Perceber substituem dano/cura pelo próprio efeito (deslocamento/informação) e não podem atuar juntos.
+                Passe o mouse sobre um aditivo para ver o que ele faz. Manter, Forma, Mover, Perceber, Ilusão, Proteção, Comando e Convocação têm nível ajustável: adicione um só e use +/− ao selecioná-lo. Ponto é diferente: é geométrico, não tem nível — adicione 1 nó de Ponto sozinho pra Toque, ou 3/4 nós e ligue-os entre si (clique num, depois no outro) fechando um Triângulo (Projétil) ou Quadrado (Aura). Forma só faz efeito com Ponto em Aura ou Alcance. Mover, Perceber, Ilusão, Proteção, Comando e Convocação substituem dano/cura pelo próprio efeito e só um deles atua por vez.
               </p>
               <div className="sidebar-grid">
-                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'TESTE', 'FUSAO', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
+                {['CONTROLE', 'AUMENTO', 'REDUCAO', 'PONTO', 'MANTER', 'FORMA', 'MOVER', 'PERCEBER', 'ILUSAO', 'PROTECAO', 'COMANDO', 'CONVOCACAO', 'TESTE', 'FUSAO', 'GATILHO', 'ECO'].map(a => <DraggableItem key={a} type={NodeType.ADDITIVE} name={a} description={AdditiveDescriptions[a]} onAdd={handleDirectAdd} />)}
               </div>
 
               <h3 style={{ fontSize: '1.1rem', color: '#fd79a8', marginTop: '2rem', fontFamily: 'Cinzel, serif', borderLeft: '3px solid #fd79a8', paddingLeft: '8px' }}>Subcírculos</h3>

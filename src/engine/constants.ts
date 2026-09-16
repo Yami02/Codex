@@ -28,7 +28,15 @@ export enum AdditiveType {
   MOVER = 'MOVER',
   PERCEBER = 'PERCEBER',
   TESTE = 'TESTE',
-  FUSAO = 'FUSAO'
+  FUSAO = 'FUSAO',
+  // Quatro aditivos de "modo" (mesma família de Mover/Perceber: substituem
+  // dano/cura pelo próprio efeito) que fecham lacunas mecânicas das 4
+  // escolas de D&D que o sistema só tinha de nome (via vocabulário de
+  // Colégio) mas não de mecânica — ver §4.2-4.5 do docs/COMO_FUNCIONA.md.
+  ILUSAO = 'ILUSAO',           // Ilusão: engana (ou esconde de) a percepção de terceiros
+  PROTECAO = 'PROTECAO',       // Abjuração: aparar/resistir/anular em vez de causar dano
+  COMANDO = 'COMANDO',         // Encantamento: compele a vontade do alvo
+  CONVOCACAO = 'CONVOCACAO',   // Conjuração: invoca um aliado temporário
 }
 
 export enum KernelType {
@@ -82,6 +90,10 @@ export const AdditiveRunes: Record<string, string> = {
   [AdditiveType.PERCEBER]: 'ᛇ',
   [AdditiveType.TESTE]: 'ᚹ',
   [AdditiveType.FUSAO]: 'ᛝ',
+  [AdditiveType.ILUSAO]: 'ᛉ',
+  [AdditiveType.PROTECAO]: 'ᚺ',
+  [AdditiveType.COMANDO]: 'ᚠ',
+  [AdditiveType.CONVOCACAO]: 'ᚷ',
   // Kernel Runes
   [KernelType.ENTROPIA]: 'ᚲ', 
   [KernelType.MORFOLOGIA]: '᚛', 
@@ -124,7 +136,7 @@ export const EdgeDescriptions: Record<string, string> = {
   [EdgeType.OR]: 'Alternativa: liga duas variantes do mesmo aditivo (ex: dois nós de Forma). O conjurador escolhe uma ao lançar; a ficha usa o pior caso (maior nível) para o nível/CD.',
   [EdgeType.XOR]: 'Exclusão mútua: como Alternativa, mas as variantes nunca coexistem — a ficha descreve a primeira como padrão, e o conjurador troca pra outra. É também o que transforma Mover+Perceber juntos numa escolha intencional em vez de um erro de design.',
   [EdgeType.SE_ENTAO]: 'Condicional: só pode sair de um nó de Teste ou Gatilho. O nó de destino passa a ser descrito como "se a condição, então o efeito" em vez de sempre ativo.',
-  [EdgeType.ATRIBUICAO]: 'Canalização: liga um Aumento/Redução a um aditivo de nível (Manter, Forma, Mover, Perceber ou Gatilho — Ponto não tem mais nível, é geométrico) — em vez de reforçar o buffer genérico, soma ou subtrai 1 nível direto naquele aditivo.',
+  [EdgeType.ATRIBUICAO]: 'Canalização: liga um Aumento/Redução a um aditivo de nível (Manter, Forma, Mover, Perceber, Gatilho, Ilusão, Proteção, Comando ou Convocação — Ponto não tem mais nível, é geométrico) — em vez de reforçar o buffer genérico, soma ou subtrai 1 nível direto naquele aditivo.',
   [EdgeType.CORRENTE]: 'Corrente: uma sequência de nós ligados em cadeia faz o efeito saltar de alvo em alvo — cada salto soma complexidade e aparece no texto final com dano decrescente por salto.',
 };
 
@@ -141,6 +153,10 @@ export const AdditiveDescriptions: Record<string, string> = {
   [AdditiveType.PERCEBER]: 'não causa dano nem cura: revela uma informação sobre o alvo ou a área',
   [AdditiveType.TESTE]: 'troca a jogada de ataque por um teste de resistência do alvo, mesmo à distância ou ao toque',
   [AdditiveType.FUSAO]: 'funde um segundo elemento (ou Compor/Decompor) ao Núcleo, revelando um dos 32 Colégios',
+  [AdditiveType.ILUSAO]: 'não causa dano nem cura: engana a percepção de terceiros (Disfarce/Imagem Falsa) ou esconde algo dela (Véu de Invisibilidade). Ligue um Teste pra permitir que observadores tentem enxergar através dela',
+  [AdditiveType.PROTECAO]: 'não causa dano: em vez disso apara um golpe, concede resistência a um tipo de energia, ou anula outra magia por completo. Ligue a um Teste/Gatilho com SE_ENTAO pra reagir a um ataque ou disparo específico',
+  [AdditiveType.COMANDO]: 'não causa dano nem cura: compele a vontade do alvo — sugere, ordena ou (no topo) domina. Sempre pede um Teste; a resistência usa Sabedoria em vez do padrão do Núcleo',
+  [AdditiveType.CONVOCACAO]: 'não age direto: convoca um aliado temporário que luta por você, com poder derivado do resto do buffer e duração de Manter',
   // Kernels
   [KernelType.ENTROPIA]: 'Buffer de Entropia: Manipula a agitação térmica.',
   [KernelType.MORFOLOGIA]: 'Buffer de Morfologia: Define a forma/formato natural da energia.',
@@ -311,6 +327,50 @@ export const PERCEBER_LEVELS: Record<number, PerceberLevelInfo> = {
 export const PERCEBER_LEVEL_MIN = 1;
 export const PERCEBER_LEVEL_MAX = 3;
 
+// ILUSÃO / PROTEÇÃO / COMANDO / CONVOCAÇÃO: quatro aditivos de "modo" novos
+// (mesma família de Mover/Perceber — quando presentes, substituem o
+// resultado padrão de dano/cura pelo próprio efeito), cada um fechando uma
+// das 4 escolas de D&D que o sistema só tinha de NOME (o vocabulário de
+// Colégio já falava em "percepção enganada", "escudos e wards permanentes",
+// "a mente dos outros", "a criatura real, trazida inteira") sem nenhuma
+// mecânica própria por trás. Ver §4.2-4.5 do docs/COMO_FUNCIONA.md.
+
+export interface IlusaoLevelInfo { level: number; name: string; detail: string; }
+export const ILUSAO_LEVELS: Record<number, IlusaoLevelInfo> = {
+  1: { level: 1, name: 'Disfarce',            detail: 'muda como você (ou um alvo consentindo) aparenta aos olhos alheios — a aparência, não a substância' },
+  2: { level: 2, name: 'Imagem Falsa',        detail: 'cria uma imagem, som ou cena que não existe de verdade, perceptível a qualquer observador na área' },
+  3: { level: 3, name: 'Véu de Invisibilidade', detail: 'torna você (ou o alvo) imperceptível à visão normal, até atacar ou fazer algo que quebre o véu' },
+};
+export const ILUSAO_LEVEL_MIN = 1;
+export const ILUSAO_LEVEL_MAX = 3;
+
+export interface ProtecaoLevelInfo { level: number; name: string; detail: string; }
+export const PROTECAO_LEVELS: Record<number, ProtecaoLevelInfo> = {
+  1: { level: 1, name: 'Aparar',      detail: 'absorve ou anula um único golpe ou efeito prestes a atingir o alvo' },
+  2: { level: 2, name: 'Resistência', detail: 'concede resistência (metade do dano) a um tipo de energia compatível com o Núcleo, enquanto durar' },
+  3: { level: 3, name: 'Anulação',    detail: 'nega por completo outra magia — dissipa um efeito já ativo, ou impede um feitiço de sequer se formar' },
+};
+export const PROTECAO_LEVEL_MIN = 1;
+export const PROTECAO_LEVEL_MAX = 3;
+
+export interface ComandoLevelInfo { level: number; name: string; detail: string; }
+export const COMANDO_LEVELS: Record<number, ComandoLevelInfo> = {
+  1: { level: 1, name: 'Sugestão',        detail: 'planta uma ideia convincente; o alvo tende a segui-la se ela não contrariar seus instintos' },
+  2: { level: 2, name: 'Comando/Encanto', detail: 'obriga uma ação simples e imediata, ou torna o alvo amistoso por um tempo' },
+  3: { level: 3, name: 'Dominação',       detail: 'assume o controle direto das ações do alvo enquanto durar' },
+};
+export const COMANDO_LEVEL_MIN = 1;
+export const COMANDO_LEVEL_MAX = 3;
+
+export interface ConvocacaoLevelInfo { level: number; name: string; detail: string; }
+export const CONVOCACAO_LEVELS: Record<number, ConvocacaoLevelInfo> = {
+  1: { level: 1, name: 'Servo Menor',       detail: 'convoca um único aliado pequeno, com poder equivalente a um golpe simples' },
+  2: { level: 2, name: 'Aliado de Combate', detail: 'convoca um aliado robusto, ou um punhado de servos menores agindo juntos' },
+  3: { level: 3, name: 'Avatar Elemental',  detail: 'convoca uma manifestação poderosa e duradoura da natureza do seu Núcleo' },
+};
+export const CONVOCACAO_LEVEL_MIN = 1;
+export const CONVOCACAO_LEVEL_MAX = 3;
+
 // Cada Kernel escala o feitiço por um de dois eixos: pura amplitude
 // ("Aumento") ou mudança qualitativa da natureza do efeito ("Complexibilidade").
 export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> = {
@@ -473,6 +533,10 @@ export const NodeAttributesDict: Record<string, any> = {
   // escolhido (fusionElement, somado à parte pelo compilador) e a
   // assimetria de Criar/Destruir (ver Lei da Simetria em engine/colleges.ts).
   [AdditiveType.FUSAO]: { tags: ['FUSAO'] },
+  [AdditiveType.ILUSAO]: { complexity: +2, tags: ['ILUSAO'] },
+  [AdditiveType.PROTECAO]: { complexity: +2, potency: +1, tags: ['PROTECAO'] },
+  [AdditiveType.COMANDO]: { complexity: +3, tags: ['COMANDO'] },
+  [AdditiveType.CONVOCACAO]: { complexity: +4, potency: +2, tags: ['CONVOCACAO'] },
 
   // Kernel Defaults (Buffers): mais específicos que o Núcleo, por isso
   // sobrescrevem a condição/habilidade de resistência dele quando ativos.
