@@ -119,6 +119,11 @@ export interface KernelNode extends BaseNode {
   // a contribuição dele ao buffer. Ver KERNEL_INTENSITY_LEVELS em
   // engine/constants.ts e a Lei do Combo de Kernels.
   level?: number;
+  // Usado só pelo Kernel de Absorção (additiveType === KernelType.ABSORCAO):
+  // qual elemento ambiente/externo (um dos 8 valores de CoreElement) está
+  // sendo captado pro glifo — ver "ABSORÇÃO AMBIENTAL / NÍVEL 0" em
+  // engine/constants.ts.
+  sourceElement?: string;
 }
 
 export type MagicNode = CoreNode | AdditiveNode | SubCircleNode | KernelNode;

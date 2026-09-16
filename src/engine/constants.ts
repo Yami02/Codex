@@ -32,15 +32,19 @@ export enum AdditiveType {
 }
 
 export enum KernelType {
-  ENTROPIA = 'ENTROPIA', 
-  MORFOLOGIA = 'MORFOLOGIA', 
-  ESTADO = 'ESTADO', 
-  LUMINOSIDADE = 'LUMINOSIDADE', 
+  ENTROPIA = 'ENTROPIA',
+  MORFOLOGIA = 'MORFOLOGIA',
+  ESTADO = 'ESTADO',
+  LUMINOSIDADE = 'LUMINOSIDADE',
   SOM = 'SOM',
-  FORCA = 'FORCA', 
+  FORCA = 'FORCA',
   VOLUME = 'VOLUME',
   ORDEM = 'ORDEM',
-  CAOS = 'CAOS'
+  CAOS = 'CAOS',
+  // Kernel de Absorção: não gera energia do zero — capta energia elemental
+  // ambiente/externa (`sourceElement` no KernelNode) e a converte pro efeito
+  // final. Ver "ABSORÇÃO AMBIENTAL / NÍVEL 0" mais abaixo.
+  ABSORCAO = 'ABSORCAO'
 }
 
 export enum EdgeType { 
@@ -87,7 +91,8 @@ export const AdditiveRunes: Record<string, string> = {
   [KernelType.FORCA]: 'ᚦ', 
   [KernelType.VOLUME]: 'ᛚ',
   [KernelType.ORDEM]: 'ᛈ',
-  [KernelType.CAOS]: 'ᚦ'
+  [KernelType.CAOS]: 'ᚦ',
+  [KernelType.ABSORCAO]: 'ᛁ'
 };
 
 export const EdgeCycle = [
@@ -145,7 +150,8 @@ export const AdditiveDescriptions: Record<string, string> = {
   [KernelType.FORCA]: 'Buffer de Força: Aplica leis da física sobre a magia.',
   [KernelType.VOLUME]: 'Buffer de Volume: Define o espaço volumétrico padrão.',
   [KernelType.ORDEM]: 'Buffer de Ordem: Impõe estrutura e criação ao padrão arcano.',
-  [KernelType.CAOS]: 'Buffer de Caos: Promove a dissipação e quebra de padrões.'
+  [KernelType.CAOS]: 'Buffer de Caos: Promove a dissipação e quebra de padrões.',
+  [KernelType.ABSORCAO]: 'Kernel de Absorção: capta energia elemental ambiente (escolhida em "sourceElement") pra dentro de um glifo, em vez de gerar a energia do zero — a favor do seu próprio Núcleo, é quase grátis (Nível 0); contra, é caro.',
 };
 
 // ==========================================
@@ -300,6 +306,7 @@ export const KERNEL_SCALE_AXIS: Record<string, 'Aumento' | 'Complexibilidade'> =
   [KernelType.MORFOLOGIA]: 'Complexibilidade',
   [KernelType.ESTADO]: 'Complexibilidade',
   [KernelType.CAOS]: 'Complexibilidade',
+  [KernelType.ABSORCAO]: 'Complexibilidade',
 };
 
 // INTENSIDADE DE KERNEL: cada Kernel carrega um `level` (1-5, como
@@ -357,6 +364,44 @@ export interface PrestigeArchetypeInfo {
 export const PRESTIGE_ARCHETYPES: Record<string, PrestigeArchetypeInfo> = {
   NECROMANTE: { id: 'NECROMANTE', name: 'Necromante', description: 'Exemplo de Arquétipo de Prestígio citado pelo usuário — ainda sem regras próprias implementadas.' },
 };
+
+// ABSORÇÃO AMBIENTAL / "NÍVEL 0": ideia de magia de custo zero (ou muito
+// reduzido) quando conjurada A FAVOR do ambiente, e cara quando CONTRA ele.
+// Exemplo do usuário: um mago de água tentando conjurar fogo num lugar
+// dominado por fogo tem muita dificuldade; um mago de FOGO nesse mesmo
+// lugar possivelmente nem precisa gastar mana — ele só está canalizando
+// energia que já está lá.
+//
+// Implementado como um Kernel (KernelType.ABSORCAO, não um Núcleo — o
+// usuário foi explícito nisso). O Kernel carrega um `sourceElement`
+// (qual elemento ambiente/externo está sendo captado pro glifo, ver
+// KernelNode em types/magic.ts) e o `level` de sempre (1-5, quanto o
+// glifo acumula/quão potente fica).
+//
+// "A favor" vs "contra" o ambiente (1ª versão, deliberadamente simples: sem
+// uma tabela de oposições elementais tipo fogo-vs-água — qualquer elemento
+// diferente do seu próprio Núcleo já conta como "ir contra a natureza do
+// ambiente", não só o oposto direto):
+//   - sourceElement === elemento do seu próprio Núcleo → ALINHADO (Nível 0):
+//     a captação não soma custo de mana algum (ver computeManaCost em
+//     engine/compiler.ts) — você só está canalizando o que já está lá.
+//   - sourceElement !== Núcleo → DESALINHADO: soma complexidade extra
+//     proporcional ao nível do Kernel (ver fórmula abaixo), tornando a
+//     magia mais cara/instável, nunca literalmente impossível nesta
+//     primeira versão.
+//
+// Conversão elemento absorvido → efeito de saída: a energia do
+// sourceElement é somada ao buffer como se fosse um segundo Núcleo (mesma
+// mecânica de FUSAO/fusionElement) — é isso que permite o exemplo do
+// usuário (fogo absorvido, depois usado numa cura): o Núcleo decide o
+// efeito final (cura, dano...), a Absorção decide de onde vem parte da
+// energia que alimenta esse efeito.
+//
+// Conecta com o Capacitor/Gatilho (§7): quando os dois existem na mesma
+// magia, a Absorção é descrita como uma forma alternativa de encher o
+// capacitor — energia ambiente/de um evento, em vez de turnos de
+// conjuração (ver MagicCompilerEngine.execute).
+export const ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL = 2;
 
 // MANIFESTAÇÃO: a mesma combinação exata de alcance/forma/teste sempre
 // produz a mesma palavra — nunca duas magias com a mesma geometria saem
@@ -422,5 +467,9 @@ export const NodeAttributesDict: Record<string, any> = {
   [KernelType.FORCA]: { strength: 1, strengthBuffer: true, tags: ['KERNEL', 'FORCA'], debuffs: ['Retido'], saveAbility: 'Força' as SaveAbility },
   [KernelType.VOLUME]: { volume: 1, volumeBuffer: true, tags: ['KERNEL', 'VOLUME'], debuffs: ['Empurrado'], saveAbility: 'Força' as SaveAbility },
   [KernelType.ORDEM]: { order: 1, orderBuffer: true, tags: ['KERNEL', 'ORDEM'], debuffs: ['Enfeitiçado'], saveAbility: 'Sabedoria' as SaveAbility },
-  [KernelType.CAOS]: { chaos: 1, chaosBuffer: true, tags: ['KERNEL', 'CAOS'], debuffs: ['Atordoado'], saveAbility: 'Constituição' as SaveAbility }
+  [KernelType.CAOS]: { chaos: 1, chaosBuffer: true, tags: ['KERNEL', 'CAOS'], debuffs: ['Atordoado'], saveAbility: 'Constituição' as SaveAbility },
+  // Absorção não carrega atributos próprios fixos — quem contribui é o
+  // elemento ambiente escolhido (sourceElement, somado à parte pelo
+  // compilador, igual à FUSAO) — ver "ABSORÇÃO AMBIENTAL / NÍVEL 0" acima.
+  [KernelType.ABSORCAO]: { tags: ['KERNEL', 'ABSORCAO'], absorcaoBuffer: true }
 };

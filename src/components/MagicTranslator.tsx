@@ -17,7 +17,7 @@ const MagicTranslator = ({ graph }: any) => {
         const result = MagicCompilerEngine.execute(graph);
         if (!result) return <div style={{opacity: 0.5, textAlign: 'center', padding: '40px', border: '1px dashed rgba(212,175,55,0.2)', borderRadius: '12px'}}>O círculo está vazio. Aguardando pulso rúnico para iniciar a tradução do Codex...</div>;
         
-        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode, college, capacitor, manifestation, manaCost, manaPoolAtLevel, requiresPrestige } = result;
+        const { attrs, instabilities, element, description, logs, needsDC, rangeStr, level, dc, durationStr, dndBlock, saveAbility, conditions, mode, college, capacitor, manifestation, manaCost, manaPoolAtLevel, requiresPrestige, absorcao } = result;
         const isInvisible = (attrs.lumen || 0) <= 0;
 
         // Selo Arcano: assinatura geométrica única desta magia compilada,
@@ -112,6 +112,15 @@ const MagicTranslator = ({ graph }: any) => {
                 <div style={{ background: 'rgba(0,168,255,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(0,168,255,0.3)' }}>
                   <div style={{ fontSize: '0.8rem', color: '#0097e6', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Capacitor</div>
                   <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>{capacitor.name} ({capacitor.cargas}) — Gatilho: {capacitor.trigger.name}</div>
+                </div>
+              )}
+              {absorcao && (
+                <div style={{ background: absorcao.aligned ? 'rgba(46,204,113,0.06)' : 'rgba(232,65,24,0.06)', padding: '12px', borderRadius: '4px', border: `1px solid ${absorcao.aligned ? 'rgba(46,204,113,0.35)' : 'rgba(232,65,24,0.35)'}` }}>
+                  <div style={{ fontSize: '0.8rem', color: absorcao.aligned ? '#2ecc71' : '#e84118', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>Absorção Ambiental</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#1a120b' }}>
+                    {absorcao.sourceElement || '???'} — {absorcao.aligned ? 'A favor (Nível 0)' : 'Contra o ambiente'}
+                    {absorcao.chargesCapacitor && <span style={{ fontWeight: 'normal', fontSize: '0.8rem', color: '#5c3a21' }}> · alimenta o Capacitor</span>}
+                  </div>
                 </div>
               )}
               <div style={{ background: 'rgba(46,139,87,0.05)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(46,139,87,0.3)' }}>

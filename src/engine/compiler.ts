@@ -12,6 +12,7 @@ import {
   AdditiveDescriptions,
   MANIFESTACAO_TABLE,
   MANA_NIVEL_MAX, MANA_POR_NIVEL,
+  ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL,
 } from './constants';
 import { resolveCollege, polaritySymmetryDelta } from './colleges';
 
@@ -50,7 +51,9 @@ export class AdditiveASTNode extends ASTNode {
 export class KernelASTNode extends ASTNode {
   // `level` (1-5) escala proporcionalmente a contribuição do Kernel ao
   // buffer — ver KERNEL_INTENSITY_LEVELS em engine/constants.ts.
-  constructor(id: string, public kernelType: string, public subGraph: ASTGraph, public level?: number) { super(id); }
+  // `sourceElement` é usado só pelo Kernel de Absorção (ver
+  // "ABSORÇÃO AMBIENTAL / NÍVEL 0" em engine/constants.ts).
+  constructor(id: string, public kernelType: string, public subGraph: ASTGraph, public level?: number, public sourceElement?: string) { super(id); }
   accept(visitor: ASTVisitor) { visitor.visitKernel(this); }
 }
 
@@ -106,7 +109,7 @@ export class GraphToASTBuilder {
         ast.addNode(new AdditiveASTNode(n.id, n.additiveType || n.name, n.level, n.fusionElement, n.triggerType));
       } else if (n.type === NodeType.KERNEL || n.type === NodeType.SUBCIRCLE) {
         const subAst = n.magicGraph ? this.build(n.magicGraph) : new ASTGraph();
-        ast.addNode(new KernelASTNode(n.id, n.additiveType || n.element || n.name || 'SUBCIRCLE', subAst, n.level));
+        ast.addNode(new KernelASTNode(n.id, n.additiveType || n.element || n.name || 'SUBCIRCLE', subAst, n.level, n.sourceElement));
       }
     }
 
@@ -562,6 +565,41 @@ export class PatternMatcher {
           instabilities.push(`[COMBO DE KERNELS] ${scaledKernels.length} eixos escalados juntos (${scaledKernels.map(k => k.kernelType).join(', ')}); combiná-los soma +${kernelComboPenalty} de complexidade além do custo normal de cada um.`);
       }
 
+      // --- ABSORÇÃO AMBIENTAL / "NÍVEL 0": um Kernel de Absorção não gera
+      // energia do zero — capta um elemento ambiente/externo (sourceElement)
+      // pra dentro de um glifo. A favor do próprio Núcleo (mesmo elemento),
+      // é Nível 0: a captação não soma custo de mana. Contra o Núcleo
+      // (elemento diferente), é cara: soma complexidade proporcional ao
+      // nível do Kernel. Ver ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL e o
+      // comentário completo em engine/constants.ts.
+      const absorcaoNodes = kernelsAtivosNodes.filter(k => k.kernelType === 'ABSORCAO');
+      let absorcaoSourceElement: string | null = null;
+      let absorcaoAligned = false;
+      let absorcaoLevel = 0;
+      if (absorcaoNodes.length > 0) {
+          absorcaoSourceElement = absorcaoNodes[0].sourceElement || null;
+          absorcaoLevel = absorcaoNodes[0].level ?? 1;
+          if (!absorcaoSourceElement) {
+              instabilities.push(`[ABSORÇÃO SEM FONTE] O Kernel de Absorção precisa de um elemento ambiente escolhido para captar; sem isso, ele fica inerte.`);
+          } else if (!primaryElement) {
+              instabilities.push(`[ABSORÇÃO SEM NÚCLEO] Sem um Núcleo próprio, não há "o que é seu" pra comparar com a energia captada (${absorcaoSourceElement}) — a Absorção não pode ser avaliada como a favor ou contra o ambiente.`);
+          } else {
+              absorcaoAligned = absorcaoSourceElement === primaryElement;
+              if (absorcaoAligned) {
+                  instabilities.push(`[ABSORÇÃO A FAVOR / NÍVEL 0] A energia captada (${absorcaoSourceElement}) já é da mesma natureza do seu Núcleo — você só está canalizando o que já está no ambiente. A captação não soma custo de mana.`);
+              } else {
+                  instabilities.push(`[ABSORÇÃO CONTRA O AMBIENTE] A energia captada (${absorcaoSourceElement}) é estranha ao seu Núcleo (${primaryElement}) — canalizar contra a natureza do ambiente é caro: +${absorcaoLevel * ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL} de complexidade.`);
+              }
+          }
+          if (absorcaoNodes.length > 1) {
+              instabilities.push(`[REDUNDÂNCIA] ${absorcaoNodes.length} Kernels de Absorção detectados; apenas o primeiro (${absorcaoSourceElement || '???'}) foi considerado.`);
+          }
+      }
+      // Conecta com o Capacitor (§7): quando os dois existem juntos, a
+      // Absorção alimenta o glifo com energia ambiente/de evento em vez de
+      // turnos de conjuração.
+      const absorcaoChargesCapacitor = absorcaoNodes.length > 0 && gatilhoNodes.length > 0;
+
       return {
           finalElement,
           fusionElement,
@@ -583,6 +621,11 @@ export class PatternMatcher {
           kernelsAtivos,
           mainKernel,
           kernelComboPenalty,
+          absorcaoActive: absorcaoNodes.length > 0,
+          absorcaoSourceElement,
+          absorcaoAligned,
+          absorcaoLevel,
+          absorcaoChargesCapacitor,
           transmutationLogs: logs,
           topologicalInstabilities: instabilities
       };
@@ -736,6 +779,14 @@ export class MagicCompilerEngine {
           // sua contribuição ao buffer — nível 1 é o +1 de sempre, nível 5
           // multiplica por 5. Ver KERNEL_INTENSITY_LEVELS.
           buffer = mergeAttrs(buffer, scaleAttrs(NodeAttributesDict[node.kernelType] || {}, node.level ?? 1));
+          // ABSORÇÃO: o Kernel em si não carrega atributos fixos — a
+          // energia de verdade vem do elemento ambiente captado
+          // (sourceElement), somada como se fosse um segundo Núcleo (igual
+          // à FUSAO). É isso que permite converter energia absorvida pra
+          // outro efeito (ex: fogo absorvido → poder extra numa cura).
+          if (node.kernelType === 'ABSORCAO' && node.sourceElement) {
+              buffer = mergeAttrs(buffer, scaleAttrs(NodeAttributesDict[node.sourceElement] || {}, node.level ?? 1));
+          }
       }
     }
 
@@ -751,6 +802,14 @@ export class MagicCompilerEngine {
     // contribui isoladamente — ver PatternMatcher.kernelComboPenalty.
     if (patterns.kernelComboPenalty > 0) {
         buffer = mergeAttrs(buffer, { complexity: patterns.kernelComboPenalty });
+    }
+
+    // Absorção Ambiental / Nível 0: canalizar um elemento estranho ao seu
+    // próprio Núcleo (contra o ambiente) soma complexidade proporcional ao
+    // nível do Kernel — a favor (mesmo elemento do Núcleo) não soma nada
+    // aqui; o desconto dela aparece mais abaixo, direto no custo de mana.
+    if (patterns.absorcaoActive && patterns.absorcaoSourceElement && !patterns.absorcaoAligned) {
+        buffer = mergeAttrs(buffer, { complexity: patterns.absorcaoLevel * ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL });
     }
 
     // A Lei da Simetria: Criar (fusão com COMPOR) é a versão permanente e
@@ -877,7 +936,14 @@ export class MagicCompilerEngine {
     const rangeStr = isPersonalOnly ? 'Pessoal' : (isTrulyEmpty ? 'Nenhum / Instável' : (formaInfo ? formaInfo.rangeStr : pontoInfo.rangeStr));
     const level = computeSpellLevel(buffer, events.length);
     const dc = computeDC(level, buffer);
-    const manaCost = computeManaCost(level, buffer);
+    let manaCost = computeManaCost(level, buffer);
+    // Absorção A Favor / Nível 0: a energia captada já era do ambiente, não
+    // gerada do zero — a fatia de custo equivalente ao nível do Kernel de
+    // Absorção é dispensada (nunca abaixo de 1, uma magia nunca é 100%
+    // grátis).
+    if (patterns.absorcaoActive && patterns.absorcaoAligned) {
+        manaCost = Math.max(1, manaCost - patterns.absorcaoLevel);
+    }
     // Nível 10 é o teto de progressão "normal" (ver MANA_POR_NIVEL). Acima
     // disso, mais mana não resolve — só um Arquétipo de Prestígio (ainda
     // sem conteúdo/regras próprias implementadas) libera o próximo passo.
@@ -1103,6 +1169,17 @@ export class MagicCompilerEngine {
         dndFullText += `\n\n[CAPACITOR: ${gatilhoInfo.name.toUpperCase()}]\nEm vez de se manifestar na hora, a magia é armazenada num glifo (${gatilhoInfo.cargas} de carga). O efeito só ${triggerInfo.description} — Gatilho de ${triggerInfo.name}.`;
     }
 
+    // Absorção Ambiental / Nível 0: em vez de gerar a energia do zero, o
+    // conjurador capta energia elemental já presente no ambiente.
+    if (patterns.absorcaoActive && patterns.absorcaoSourceElement) {
+        const alignLabel = patterns.absorcaoAligned ? 'A FAVOR DO AMBIENTE (NÍVEL 0)' : 'CONTRA O AMBIENTE';
+        const alignText = patterns.absorcaoAligned
+            ? ' Como a fonte já é da mesma natureza do seu Núcleo, a captação não soma custo de mana.'
+            : ' Como a fonte é estranha ao seu Núcleo, captá-la contra a natureza do ambiente sai mais caro em complexidade.';
+        const capacitorText = gatilhoInfo ? ' Essa energia captada alimenta diretamente o Capacitor, no lugar dos turnos normais de conjuração.' : '';
+        dndFullText += `\n\n[ABSORÇÃO: ${alignLabel}]\nVocê capta ${patterns.absorcaoSourceElement.toLowerCase()} ambiente e o guarda num glifo, em vez de gerar essa energia do zero.${alignText}${capacitorText}`;
+    }
+
     // Modo alternativo (Mover XOR Perceber): a mesma malha serve pros dois,
     // o conjurador escolhe qual manifestar a cada lançamento — ver o bloco
     // [VERSÁTIL XOR] gerado pelo PatternMatcher.
@@ -1163,6 +1240,14 @@ export class MagicCompilerEngine {
       manaCost,
       manaPoolAtLevel,
       requiresPrestige,
+      // Absorção Ambiental / Nível 0 (ver engine/constants.ts), ou null se
+      // não há Kernel de Absorção ativo na magia.
+      absorcao: patterns.absorcaoActive ? {
+          sourceElement: patterns.absorcaoSourceElement,
+          aligned: patterns.absorcaoAligned,
+          level: patterns.absorcaoLevel,
+          chargesCapacitor: patterns.absorcaoChargesCapacitor,
+      } : null,
       needsDC: isSaveBased && dc > 10 && !isDeterministic,
       // 'MOVER' | 'PERCEBER' | null — diz à UI que a magia não tem dano/cura.
       mode: moverInfo ? 'MOVER' : perceberInfo ? 'PERCEBER' : null,

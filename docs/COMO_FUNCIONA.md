@@ -188,6 +188,64 @@ só com o quanto cada um subiu. A sobretaxa soma direto em `complexity`, o
 que eleva nível, CD e custo em mana (§9) de tabela — sem lógica especial
 espalhada por outros lugares. Avisado como `[COMBO DE KERNELS]`.
 
+### 5.2 Absorção Ambiental / "Nível 0" (Kernel de Absorção)
+
+Implementação da ideia registrada em §12.2 (ver a nota lá marcando como
+resolvido). Um **Kernel de Absorção** (`KernelType.ABSORCAO`) não gera
+energia do zero — ele carrega um `sourceElement` (um dos 8 elementos de
+Núcleo, campo novo em `KernelNode`, `types/magic.ts`) que representa qual
+energia ambiente/externa está sendo captada pra dentro de um glifo, além
+do `level` de sempre (1-5, quanto o glifo acumula/quão potente fica —
+reaproveita `KERNEL_INTENSITY_LEVELS`).
+
+**A favor vs. contra o ambiente** (`PatternMatcher`, `engine/compiler.ts`):
+compara `sourceElement` com o elemento do **próprio Núcleo** da magia
+(`primaryElement`).
+
+| Caso | Resultado |
+|---|---|
+| `sourceElement` **igual** ao Núcleo | **Alinhado / Nível 0**: você só está canalizando energia que já é da mesma natureza da sua — a captação **não soma custo de mana** (desconto direto de `absorcaoLevel` em `computeManaCost`, nunca abaixo de 1). Avisado como `[ABSORÇÃO A FAVOR / NÍVEL 0]`. |
+| `sourceElement` **diferente** do Núcleo | **Desalinhado**: canalizar contra a natureza do ambiente é caro — soma `nível × 2` de `complexity` ao buffer (`ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL`), o que eleva nível/CD/mana como qualquer outra sobretaxa. Avisado como `[ABSORÇÃO CONTRA O AMBIENTE]`. |
+
+Exemplo do usuário (mago de água tentando conjurar fogo num lugar dominado
+por fogo vs. um mago de fogo no mesmo lugar): aqui isso é lido como
+"Núcleo do conjurador" vs. "elemento absorvido", não uma simulação de uma
+cena/ambiente externo — ver a ressalva de escopo abaixo.
+
+**Conversão elemento absorvido → efeito de saída**: a energia do
+`sourceElement` é somada ao buffer exatamente como o segundo elemento de
+uma Fusão (`NodeAttributesDict[sourceElement]`, escalado pelo `level` do
+Kernel) — o Kernel de Absorção em si não carrega atributos fixos próprios.
+É isso que viabiliza o exemplo do usuário (fogo absorvido, usado depois
+numa cura): o Núcleo/Fusão decide o efeito final (cura, dano...), a
+Absorção decide de onde vem parte da energia que alimenta esse efeito.
+
+**Conexão com o Capacitor** (§8): quando um Gatilho e uma Absorção existem
+na mesma magia, o texto final descreve a Absorção como alimentando o
+glifo do Capacitor no lugar dos turnos normais de conjuração
+(`[ABSORÇÃO: ...] ... alimenta diretamente o Capacitor`) — só descritivo
+por enquanto, não muda o cálculo de carga do Gatilho.
+
+Na UI (`CodexModule.tsx`), como a Absorção não tem um Núcleo "dono" fixo
+no mapeamento automático Núcleo→Kernel (botão "Ativar Modo Kernel"), um
+Kernel já ativo ganhou um seletor "Trocar Tipo de Kernel" (todos os 10
+tipos) pra alcançá-la, e um seletor próprio de `sourceElement` (com
+pré-visualização ao vivo de "a favor"/"contra o ambiente") aparece quando
+o tipo ativo é Absorção.
+
+> **Escopo desta primeira versão** (as três perguntas deixadas em aberto
+> em §12.2, respondidas): (1) "a favor/contra o ambiente" é medido só como
+> `sourceElement === Núcleo da magia` — não existe uma tabela de oposições
+> elementais (fogo é rival de água especificamente, mas não de terra) nem
+> um conceito de "cena/ambiente atual" fora do grafo; qualquer elemento
+> diferente do seu Núcleo já conta como "contra". (2) a conversão
+> elemento→efeito reaproveita a mesma mecânica de Fusão (soma os atributos
+> do elemento absorvido ao buffer), sem uma fórmula própria de
+> "eficiência de conversão". (3) foi implementado como um `KernelType`
+> novo (`ABSORCAO`), confirmando a intenção original do usuário, não como
+> um modo do Gatilho. Nada disso é uma penalidade "impossível" — mesmo
+> desalinhada, a Absorção sempre resolve, só fica mais cara.
+
 ## 6. Conectivos de Aresta (Edges)
 
 `engine/compiler.ts` (`ASTGraph.edges`, `PatternMatcher.matchAndTransform`).
@@ -348,12 +406,12 @@ dicionário do livro original.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `KERNEL_INTENSITY_LEVELS` — §5.1, `MANIFESTACAO_TABLE` — §1.1, `MANA_POR_NIVEL`/`PRESTIGE_ARCHETYPES` — §9). |
-| `types/magic.ts` | Interfaces de nó/aresta/grafo; reexporta os enums de `constants.ts`. |
-| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (conectivos de aresta — §6, Lei do Combo de Kernels — §5.1), álgebra do buffer (`computeManaCost` — §9), geração de texto. |
+| `engine/constants.ts` | Fonte única dos enums (NodeType, CoreElement, AdditiveType, KernelType — 10 valores incluindo `ABSORCAO`, EdgeType), runas, descrições (`AdditiveDescriptions`, `EdgeDescriptions`), `NodeAttributesDict`, e todas as tabelas de nível (`PONTO_LEVELS`, `MANTER_LEVELS`, `FORMA_LEVELS`, `MOVER_LEVELS`, `PERCEBER_LEVELS`, `GATILHO_LEVELS`, `TRIGGER_TYPES`, `KERNEL_INTENSITY_LEVELS` — §5.1, `ABSORCAO_MISALIGNED_COMPLEXITY_PER_LEVEL` — §5.2, `MANIFESTACAO_TABLE` — §1.1, `MANA_POR_NIVEL`/`PRESTIGE_ARCHETYPES` — §9). |
+| `types/magic.ts` | Interfaces de nó/aresta/grafo; reexporta os enums de `constants.ts`. `KernelNode.sourceElement` — §5.2. |
+| `engine/compiler.ts` | O motor: AST, validador, pattern matcher (conectivos de aresta — §6, Lei do Combo de Kernels — §5.1, Absorção Ambiental — §5.2), álgebra do buffer (`computeManaCost` — §9), geração de texto. |
 | `engine/colleges.ts` | Tabela dos 32 Colégios, a Lei da Simetria, e `listColleges()` (lista os 32 com a chave de formação, pro Grande Tomo exibir sem duplicar a tabela). |
 | `engine/sigil.ts` | Gerador do Selo Arcano. |
-| `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado. |
+| `components/CodexModule.tsx` | UI do canvas: sidebar, drag-and-drop, barra de ações do nó selecionado (inclui o seletor "Trocar Tipo de Kernel" e o seletor de `sourceElement` da Absorção — §5.2). |
 | `components/MagicTranslator.tsx` | Renderiza o resultado compilado (ficha, bloco D&D 5e, Selo Arcano). |
 | `components/HelpGuide.tsx` | Guia de ajuda in-app (linguagem simples, espelha este documento). |
 | `pages/Naturalista.tsx` | O Estudo Naturalista: layout de livro-tomo (couro, pergaminho, tinta, índice giratório) com um léxico de palavras de poder livre — flavor, não é o sistema real. |
@@ -373,9 +431,10 @@ dicionário do livro original.
 
 Três ideias levantadas pelo usuário numa sessão de brainstorm, explicitamente
 adiadas ("não vou fazer agora, no momento" / "só documentar tudo por
-agora"). A terceira (conectivos de aresta) já foi implementada desde então
-— ver a nota no fim desta seção. As outras duas continuam em aberto, só
-documentadas, sem código.
+agora"). A segunda (Absorção Ambiental) e a terceira (conectivos de
+aresta) já foram implementadas desde então — ver as notas no fim de cada
+uma. Só a primeira (nível infinito via mana) continua em aberto além do
+que já foi adiantado em §9.
 
 ### 12.1 Nível infinito via mana investida (curva tipo Fibonacci)
 
@@ -416,7 +475,16 @@ derivado disso.
   vira um novo campo de buffer ou um recurso externo ao grafo (atributo do
   personagem, não da magia).
 
-### 12.2 "Nível 0" / conjuração ambiental + Kernel de Absorção
+### ~~12.2 "Nível 0" / conjuração ambiental + Kernel de Absorção~~ — resolvido
+
+> **Atualização**: implementado — ver §5.2 (Absorção Ambiental / "Nível 0").
+> Ficou como um `KernelType.ABSORCAO` de verdade (não um modo do Gatilho),
+> com "a favor/contra o ambiente" medido por `sourceElement === Núcleo da
+> magia` (uma simplificação deliberada da 1ª versão — sem tabela de
+> oposições elementais nem um conceito de "cena/ambiente" fora do grafo,
+> ver a ressalva de escopo em §5.2) e conversão elemento→efeito
+> reaproveitando a mecânica de Fusão. Os parágrafos abaixo são o registro
+> original da ideia, mantidos como estavam.
 
 Ideia de magia de custo zero (ou muito reduzido) quando conjurada **a
 favor do ambiente**, e cara ou impossível quando contra ele.

@@ -56,7 +56,14 @@ import HelpGuide from './HelpGuide';
       [KernelType.MORFOLOGIA]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Morfologia' },
       [KernelType.ESTADO]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Estado' },
       [KernelType.CAOS]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Caos' },
+      [KernelType.ABSORCAO]: { min: KERNEL_LEVEL_MIN, max: KERNEL_LEVEL_MAX, table: KERNEL_INTENSITY_LEVELS, defaultLevel: KERNEL_LEVEL_MIN, axisLabel: 'Carga Absorvida' },
     };
+
+    // Todos os tipos de Kernel disponíveis — usado pelo seletor "Trocar
+    // Tipo de Kernel" (o mapeamento Núcleo->Kernel do botão "Ativar Modo
+    // Kernel" só alcança 8 dos 9 tipos; a Absorção precisa ser escolhida
+    // manualmente com esse seletor, já que não tem um Núcleo "dono" fixo).
+    const KERNEL_TYPE_OPTIONS = Object.values(KernelType);
 
     // Mostra, no tooltip do Núcleo, qual condição ele impõe e com qual
     // atributo o alvo resiste — mesma tabela que o compilador usa.
@@ -321,6 +328,7 @@ import { useNavigate } from 'react-router-dom';
               delete newNode.customMorphology;
             } else if (mode === NodeType.KERNEL && newNode.level == null) {
               newNode.level = KERNEL_LEVEL_MIN;
+              if (kernelType === KernelType.ABSORCAO && !newNode.sourceElement) newNode.sourceElement = 'FOGO';
             }
             return newNode;
           }
@@ -414,6 +422,69 @@ import { useNavigate } from 'react-router-dom';
                           {info.name}
                         </div>
                       )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {selectedNode.type === NodeType.KERNEL && (
+                <div className="action-group">
+                  <div style={{ maxWidth: '210px' }}>
+                    <div className="action-label">Trocar Tipo de Kernel</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginTop: '4px' }}>
+                      {KERNEL_TYPE_OPTIONS.map(kt => (
+                        <div
+                          key={kt}
+                          className="mini-btn"
+                          onClick={() => {
+                            const newGraph = { ...activeGraph, nodes: activeGraph.nodes.map(n => n.id === selectedNode.id ? { ...n, additiveType: kt, ...(kt === KernelType.ABSORCAO && !n.sourceElement ? { sourceElement: 'FOGO' } : {}) } : n) };
+                            setMainGraph(updateNestedGraph(mainGraph, path, newGraph));
+                          }}
+                          title={AdditiveDescriptions[kt]}
+                          style={{
+                            fontSize: '0.58rem',
+                            padding: '4px 2px',
+                            borderColor: selectedNode.additiveType === kt ? '#00d2ff' : undefined,
+                            color: selectedNode.additiveType === kt ? '#00d2ff' : undefined,
+                          }}
+                        >
+                          {kt.slice(0, 6)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === NodeType.KERNEL && selectedNode.additiveType === KernelType.ABSORCAO && (() => {
+                const coreNode = mainGraph.nodes.find(n => n.type === NodeType.CORE);
+                const source = selectedNode.sourceElement || 'FOGO';
+                const aligned = coreNode && coreNode.element === source;
+                return (
+                  <div className="action-group">
+                    <div style={{ maxWidth: '200px' }}>
+                      <div className="action-label">Absorção (elemento ambiente captado)</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginTop: '4px' }}>
+                        {FUSAO_ELEMENT_OPTIONS.map(el => (
+                          <div
+                            key={el}
+                            className="mini-btn"
+                            onClick={() => updateNodeCustomProperty(selectedNode.id, 'sourceElement', el)}
+                            title={el}
+                            style={{
+                              fontSize: '0.6rem',
+                              padding: '4px 2px',
+                              borderColor: source === el ? '#00d2ff' : undefined,
+                              color: source === el ? '#00d2ff' : undefined,
+                            }}
+                          >
+                            {el.slice(0, 4)}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: !coreNode ? '#8a7d9b' : aligned ? '#2ecc71' : '#e84118', marginTop: '6px', lineHeight: 1.3 }}>
+                        {!coreNode ? 'Adicione um Núcleo para saber se é a favor ou contra o ambiente.' : aligned ? 'A favor do ambiente (Nível 0): grátis.' : `Contra o ambiente (Núcleo é ${coreNode.element}): custo extra.`}
+                      </div>
                     </div>
                   </div>
                 );

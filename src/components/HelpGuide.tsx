@@ -44,6 +44,7 @@ const OUTROS = [
   { t: 'Colégio', d: 'O resultado de uma Fusão: Fogo + Terra vira o Colégio da Transmutação (Metal); Luz + Compor vira o Colégio da Bênção. Cada Colégio tem seu próprio nome e vocabulário.' },
   { t: 'Selo Arcano', d: 'Um símbolo único gerado pra cada magia compilada, baseado nos atributos dela — nunca dois selos iguais para magias diferentes.' },
   { t: 'Custo em Mana', d: 'Toda magia mostra quanto custaria de mana, e quanto seria o "tanque" de mana de um conjurador naquele nível (teto: nível 10). Passar do nível 10 marca a magia como precisando de um Arquétipo de Prestígio — ideia registrada, ainda sem regras próprias.' },
+  { t: 'Absorção Ambiental / Nível 0', d: 'Um Kernel especial: em vez de gerar energia do zero, capta um elemento ambiente (escolhido nele) pra dentro de um glifo. Se esse elemento é o mesmo do seu Núcleo, é "a favor do ambiente" — Nível 0, praticamente grátis (sem custo de mana). Se é diferente, é "contra o ambiente" — mais caro (soma complexidade). Também pode alimentar um Capacitor (Gatilho) no lugar dos turnos normais de conjuração.' },
 ];
 
 // Clique numa aresta (a linha entre dois nós) para trocar o tipo dela —
